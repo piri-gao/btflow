@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "btflow"
+version = "1.0"
+description = "Event-driven, Async Behavior Tree framework for LLM Agents"
+authors = ["Piri Gao <piri.gao@outlook.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+py_trees = "^2.2.3"
+pydantic = "^2.0.0"
+anyio = "^4.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

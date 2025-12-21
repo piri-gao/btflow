@@ -1,0 +1,21 @@
+# .gitignore
+
+# Python 编译文件
+__pycache__/
+*.pyc
+
+# 你的存档文件 (这是运行时产生的，不要提交)
+.checkpoints/
+*.jsonl
+
+# 虚拟环境
+venv/
+.env
+
+# IDE 配置
+.vscode/
+.idea/
+
+# 图片生成结果 (可选)
+*.png
+*.dot
