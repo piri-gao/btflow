@@ -3,24 +3,42 @@ import py_trees
 from py_trees.trees import BehaviourTree
 from py_trees.common import Status
 from py_trees.composites import Composite, Selector, Sequence
+from btflow.core import AsyncBehaviour
 
 class ReactiveRunner:
     """
     Runner: 支持断点续传、资源清理、状态差异化恢复。
+    升级为事件驱动 (Event-Driven) 调度模式
     """
     def __init__(self, root: py_trees.behaviour.Behaviour, state_manager):
         self.root = root
         self.state_manager = state_manager 
         self.tree = BehaviourTree(root)
-        self.tree.setup(timeout=15) 
+        self.tree.setup(timeout=15)
+        
+        # 核心信号量：事件锁
+        self.tick_signal = asyncio.Event()
+
+        # 1. 订阅状态变化 (State Driven)
+        self.state_manager.subscribe(self._on_wake_signal)
+
+        # 2. 订阅所有异步节点的任务完成事件 (Task Driven)
+        for node in self.root.iterate():
+            if isinstance(node, AsyncBehaviour):
+                node.bind_wake_up(self._on_wake_signal)
+
+    def _on_wake_signal(self):
+        """任何风吹草动，都会调用这个方法"""
+        # 触发 Event，唤醒正在 wait 的 run 循环
+        # 注意：asyncio.Event 是线程安全的（在同个 Loop 内），如果是多线程需用 call_soon_threadsafe
+        self.tick_signal.set()
 
     async def run(self, 
                   max_ticks: int = 100, 
-                  tick_interval: float = 0.1, 
                   checkpointer = None, 
                   thread_id: str = "default_thread"):
         
-        print(f"🚀 [Runner] 启动 (Thread: {thread_id})...")
+        print(f"🚀 [Runner] 启动 (Thread: {thread_id}) [Mode: Event-Driven]...")
         
         if checkpointer:
             checkpoint = checkpointer.load_latest(thread_id)
@@ -75,8 +93,20 @@ class ReactiveRunner:
             else:
                 print("🆕 [Runner] 无存档，开始新会话...")
 
+        # 启动时先手动触发一次，保证第一帧执行
+        self.tick_signal.set()
+
         try:
             for i in range(max_ticks):
+                # [核心修改] === 从 Sleep 变成 Wait ===
+                
+                # 1. 阻塞等待信号（如果没信号，CPU 占用率为 0）
+                await self.tick_signal.wait()
+                
+                # 2. 醒来后，立刻清除信号，准备下一次等待
+                self.tick_signal.clear()
+
+                # 3. 执行 Tick (全树扫描)
                 self.tree.tick()
                 status = self.root.status
                 
@@ -96,8 +126,9 @@ class ReactiveRunner:
                     print("❌ [Runner] 执行失败 (FAILURE).")
                     break
                 
-                if status == Status.RUNNING:
-                    await asyncio.sleep(tick_interval)
+                # [注意] 这里删除了原来的 if RUNNING: await sleep()
+                # 只要任务还在跑，我们就在下一轮循环 await tick_signal.wait()
+
             else:
                 print("⚠️ [Runner] 达到最大 Tick 次数，强制停止。")
                 

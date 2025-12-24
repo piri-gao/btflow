@@ -44,7 +44,7 @@ if __name__ == "__main__":
     root = build_demo_tree()
     
     print("\n=== 🌳 方式 1: ASCII 文本树 (终端直接看) ===")
-    # 🚨 修复点：v2.0+ API 使用 ascii_tree，并且需要手动 print
+    # 🚨 使用 ascii_tree，并且需要手动 print
     print(display.ascii_tree(root))
     
     print("\n=== 🖼️ 方式 2: 生成 PNG 图片 (需要 Graphviz) ===")

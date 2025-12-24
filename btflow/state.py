@@ -1,5 +1,5 @@
 import threading
-from typing import Any, Dict, Type, TypeVar, Optional, get_origin, get_args, Annotated, Callable, get_type_hints
+from typing import Any, Dict, Type, TypeVar, Optional, get_origin, get_args, Annotated, Callable, get_type_hints, List
 import py_trees
 from py_trees.blackboard import Client as BlackboardClient
 from pydantic import BaseModel, ValidationError
@@ -8,7 +8,8 @@ T = TypeVar("T", bound=BaseModel)
 
 class StateManager:
     """
-    状态管理器
+    状态管理器 (Event-Driven)
+    支持：类型校验、Reducer、以及数据变更通知
     """
     def __init__(self, schema: Type[T], namespace: str = "state"):
         self.schema = schema
@@ -16,9 +17,24 @@ class StateManager:
         self.blackboard = BlackboardClient(name=f"State:{namespace}")
         self.reducers: Dict[str, Callable[[Any, Any], Any]] = {}
         
+        # 监听器列表
+        self._listeners: List[Callable[[], None]] = []
+        
         self._lock = threading.Lock()
         
         self._register_schema()
+
+    def subscribe(self, callback: Callable[[], None]):
+        """注册状态变更回调"""
+        self._listeners.append(callback)
+
+    def _notify_listeners(self):
+        """通知所有监听者"""
+        for callback in self._listeners:
+            try:
+                callback()
+            except Exception as e:
+                print(f"⚠️ [StateManager] Listener callback failed: {e}")
 
     def _register_schema(self):
         """解析 Schema，注册 Key 到 Blackboard，并提取 Reducer"""
@@ -27,7 +43,6 @@ class StateManager:
         try:
             type_hints = get_type_hints(self.schema, include_extras=True)
         except Exception:
-            # 某些复杂情况可能失败，回退到 model_fields
             type_hints = {}
 
         for name, field in self.schema.model_fields.items():
@@ -35,10 +50,8 @@ class StateManager:
             self.blackboard.register_key(key=key, access=py_trees.common.Access.WRITE)
             self.blackboard.register_key(key=key, access=py_trees.common.Access.READ)
             
-            # 优先使用 get_type_hints 里的原始定义，否则用 field.annotation
             annotation = type_hints.get(name, field.annotation)
             
-            # 检查 Annotated
             if get_origin(annotation) is Annotated:
                 args = get_args(annotation)
                 for arg in args[1:]:
@@ -62,6 +75,8 @@ class StateManager:
             for name, value in model.model_dump().items():
                 key = self._get_key(name)
                 self.blackboard.set(key, value)
+        
+        # 初始化通常不触发通知，或者根据需求触发
 
     def get(self) -> T:
         """获取快照"""
@@ -77,7 +92,7 @@ class StateManager:
 
     def update(self, updates: Dict[str, Any]):
         """
-        更新状态 (线程安全 + Reducer + 强校验)
+        更新状态 (线程安全 + Reducer + 强校验 + 事件通知)
         """
         with self._lock:
             current_data = {}
@@ -88,7 +103,6 @@ class StateManager:
                     if val is not None:
                         current_data[name] = val
             
-            # 构造基准模型
             current_model = self.schema(**current_data)
             pending_writes = {}
             
@@ -96,7 +110,6 @@ class StateManager:
                 if name not in self.schema.model_fields:
                     continue 
 
-                # 应用 Reducer
                 if name in self.reducers:
                     reducer = self.reducers[name]
                     old_val = getattr(current_model, name)
@@ -109,7 +122,6 @@ class StateManager:
                 
                 pending_writes[name] = final_val
 
-            # 整体验证
             merged_data = current_model.model_dump()
             merged_data.update(pending_writes)
             
@@ -118,7 +130,9 @@ class StateManager:
             except ValidationError as e:
                 raise ValueError(f"❌ [StateManager] Update Validation Failed: {e}")
 
-            # 写入
             for name, val in pending_writes.items():
                 key = self._get_key(name)
                 self.blackboard.set(key, val)
+
+        # 数据落库后，通知 Runner
+        self._notify_listeners()

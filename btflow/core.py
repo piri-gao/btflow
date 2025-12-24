@@ -1,5 +1,6 @@
 import asyncio
 import traceback
+from typing import Callable, Optional
 import py_trees
 from py_trees.common import Status
 
@@ -11,13 +12,18 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
     def __init__(self, name: str):
         super().__init__(name)
         self.async_task = None 
+        # 唤醒回调句柄
+        self._wake_callback: Optional[Callable[[], None]] = None
+
+    def bind_wake_up(self, callback: Callable[[], None]):
+        """绑定唤醒回调 (通常由 Runner 注入)"""
+        self._wake_callback = callback
 
     def initialise(self) -> None:
         """
         [生命周期] 启动任务
         """
         # 🛡️ 幂等性守卫
-        # 防止从 SUCCESS 状态恢复后被重复 Tick 时重新创建任务
         if self.status in (Status.SUCCESS, Status.FAILURE):
             return
 
@@ -27,6 +33,11 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
         try:
             loop = asyncio.get_running_loop()
             self.async_task = loop.create_task(self.update_async())
+            
+            # 关键：任务结束时（无论成功失败），按一下闹钟
+            if self._wake_callback:
+                self.async_task.add_done_callback(lambda _: self._wake_callback())
+                
         except RuntimeError:
             self.feedback_message = "❌ No active asyncio event loop found."
             self.async_task = None
@@ -36,7 +47,6 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
         [生命周期] 检查状态
         """
         # 🛡️ 状态透传
-        # 如果是恢复的节点，直接返回状态
         if self.status in (Status.SUCCESS, Status.FAILURE) and self.async_task is None:
             return self.status
 

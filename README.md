@@ -1,19 +1,19 @@
 # BTflow 🌊
 
-> **Async-first, State-managed Behavior Tree Framework for LLM Agents.**
+> **Event-driven, State-managed Behavior Tree Framework for LLM Agents.**
 >
-> A behavior tree framework designed for building complex, interruptible, and long-term memory AI agents (v1.0 Stable).
+> A behavior tree framework designed for building complex, interruptible, and long-term memory AI agents (v0.1.0 Alpha).
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
-![Status](https://img.shields.io/badge/status-production--ready-orange)
+![Status](https://img.shields.io/badge/status-alpha-red)
 
 [English](README.md) | [简体中文](README_CN.md)
 
 ## 🌟 Key Features
 
-* **🧠 State Management**: Pydantic-based typed blackboard supporting `Reducer` (e.g., append-only messages) to prevent data pollution.
-* **⚡ Async-First**: Native `asyncio` support in the kernel, perfectly matching the streaming/async nature of LLM APIs.
+* **⚡ Event-Driven**: Reactive kernel based on `asyncio.Event`. No busy waiting or polling. Ticks are triggered only by state changes or task completion, ensuring zero latency and high efficiency.
+* **🧠 State Management**: Pydantic-based typed blackboard supporting `Reducer` (e.g., append-only messages) and change notifications to prevent data pollution.
 * **💾 Persistence & Memory**: Supports "Resumable Execution". System state and execution progress can be perfectly restored from the latest checkpoint after a crash or interruption.
 * **🛡️ Idempotency Guard**: Unique mechanism to prevent expensive LLM calls from being re-executed when restoring from a checkpoint.
 * **🌳 Visualization**: Built-in tools to export complex agent logic as ASCII trees or PNG flowcharts.
@@ -68,7 +68,7 @@ from btflow.runtime import ReactiveRunner
 
 async def main():
     runner = ReactiveRunner(root, state_manager)
-    # Start runner (supports auto-checkpointing)
+    # Start runner (Event-driven mode, auto-sleeps when idle)
     await runner.run(max_ticks=10)
 
 if __name__ == "__main__":
@@ -80,11 +80,11 @@ if __name__ == "__main__":
 
 ```text
 btflow/
-├── core.py         # [Kernel] Async base class for nodes (AsyncBehaviour)
-├── state.py        # [Memory] Typed blackboard with Reducers
-├── runtime.py      # [Engine] Async runner with recovery & pointer fix
-├── persistence.py  # [Storage] JSONL checkpoint system
-└── nodes/          # [Actions] Concrete business nodes (LLM, Tool...)
+├── core.py         # [Kernel] Event-driven Async Node Base (AsyncBehaviour)
+├── state.py        # [Memory] Typed Blackboard with Observer Pattern
+├── runtime.py      # [Engine] Reactive Runner based on Signals
+├── persistence.py  # [Storage] JSONL Checkpoint System
+└── nodes/          # [Actions] Concrete Business Nodes (LLM, Tool...)
 
 ```
 
@@ -106,10 +106,10 @@ python examples/visualize_tree.py
 
 ## 🗓️ Roadmap
 
-* [x] **v1.0**: Core Kernel (Core/Runtime/State/Persistence) ✅
-* [ ] **v1.1**: Integration with Real OpenAI/DeepSeek APIs
-* [ ] **v1.2**: Trace Visualization (Mermaid/Gantt)
-* [ ] **v1.3**: Human-in-the-loop (Manual Approval Node)
+* [x] **v0.1**: Event-Driven Kernel (Core/Runtime/State/Persistence) ✅
+* [ ] **v0.2**: Real Capabilities (OpenAI/DeepSeek Node, Tools, Human-in-loop)
+* [ ] **v0.3**: Engineering (Redis Persistence, FastAPI Service, Docker)
+* [ ] **v1.0**: Production Ready
 
 ## 📄 License
 

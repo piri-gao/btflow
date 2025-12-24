@@ -50,8 +50,7 @@ async def main():
     
     print(f"📊 初始状态: {state_manager.get().model_dump()}")
     
-    # 运行！
-    await runner.run(max_ticks=50, tick_interval=0.1)
+    await runner.run(max_ticks=50)
 
     # 5. 验证结果
     final_state = state_manager.get()

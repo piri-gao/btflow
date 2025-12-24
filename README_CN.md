@@ -1,19 +1,19 @@
-# BTflow 🌊
+# btflow 🌊
 
-> **Async-first, State-managed Behavior Tree Framework for LLM Agents.**
+> **Event-driven, State-managed Behavior Tree Framework for LLM Agents.**
 >
-> 专为构建复杂、可中断、长程记忆的 AI Agent 而设计的行为树框架 (v1.0 Stable)。
+> 专为构建复杂、可中断、长程记忆的 AI Agent 而设计的行为树框架 (v0.1.0 Alpha)。
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
-![Status](https://img.shields.io/badge/status-production--ready-orange)
+![Status](https://img.shields.io/badge/status-alpha-red)
 
 [English](README.md) | [简体中文](README_CN.md)
 
 ## 🌟 核心特性 (Key Features)
 
-* **🧠 状态管理 (State Management)**: 基于 Pydantic 的强类型黑板，支持 `Reducer` (如增量追加消息)，拒绝数据污染。
-* **⚡ 异步优先 (Async-First)**: 内核原生支持 `asyncio`，完美契合 LLM API 的流式/异步调用特性。
+* **⚡ 事件驱动 (Event-Driven)**: 基于 `asyncio.Event` 的响应式内核。告别死轮询 (Busy Waiting)，仅在状态变更或任务完成时唤醒 Tick，实现零延迟响应与极高资源利用率。
+* **🧠 状态管理 (State Management)**: 基于 Pydantic 的强类型黑板，支持 `Reducer` (如增量追加消息) 与变更通知，拒绝数据污染。
 * **💾 持久化与记忆 (Persistence)**: 支持“断点续传”。程序崩溃或中断后，可从最近的 Checkpoint 完美恢复状态和执行进度。
 * **🛡️ 僵尸防御 (Idempotency Guard)**: 独创的幂等性守卫机制，防止从存档恢复时重复触发已完成的昂贵 LLM 调用。
 * **🌳 可视化 (Visualization)**: 内置工具可将复杂的 Agent 逻辑导出为 ASCII 树或 PNG 流程图。
@@ -68,7 +68,7 @@ from btflow.runtime import ReactiveRunner
 
 async def main():
     runner = ReactiveRunner(root, state_manager)
-    # 启动运行器 (支持自动存档)
+    # 启动运行器 (事件驱动模式，自动休眠与唤醒)
     await runner.run(max_ticks=10)
 
 if __name__ == "__main__":
@@ -80,9 +80,9 @@ if __name__ == "__main__":
 
 ```text
 btflow/
-├── core.py         # [Kernel] 异步节点基类 (AsyncBehaviour)
-├── state.py        # [Memory] 带 Reducer 的类型化黑板
-├── runtime.py      # [Engine] 支持恢复与指针修复的运行器
+├── core.py         # [Kernel] 事件驱动的异步节点基类 (AsyncBehaviour)
+├── state.py        # [Memory] 支持观察者模式的类型化黑板
+├── runtime.py      # [Engine] 基于 Signal 的响应式运行器
 ├── persistence.py  # [Storage] JSONL 存档系统
 └── nodes/          # [Actions] 具体业务节点 (LLM, Tool...)
 
@@ -106,11 +106,12 @@ python examples/visualize_tree.py
 
 ## 🗓️ Roadmap
 
-* [x] **v1.0**: 核心内核 (Core/Runtime/State/Persistence) ✅
-* [ ] **v1.1**: 接入 OpenAI/DeepSeek 真实 API
-* [ ] **v1.2**: 增加 Trace 可视化 (Mermaid/Gantt)
-* [ ] **v1.3**: Human-in-the-loop (人工审批节点)
+* [x] **v0.1**: 事件驱动内核 (Event-Driven Kernel) ✅
+* [ ] **v0.2**: 真实能力接入 (OpenAI/DeepSeek Node, Tools, Human-in-loop)
+* [ ] **v0.3**: 工程化 (Redis Persistence, FastAPI Service, Docker)
+* [ ] **v1.0**: 生产环境发布 (Production Ready)
 
 ## 📄 License
 
 MIT © 2025 Piri Gao
+
