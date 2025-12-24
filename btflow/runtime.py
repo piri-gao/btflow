@@ -34,7 +34,7 @@ class ReactiveRunner:
         self.tick_signal.set()
 
     async def run(self, 
-                  max_ticks: int = 100, 
+                  max_ticks: int = None, 
                   checkpointer = None, 
                   thread_id: str = "default_thread"):
         
@@ -96,28 +96,32 @@ class ReactiveRunner:
         # 启动时先手动触发一次，保证第一帧执行
         self.tick_signal.set()
 
+        tick_count = 0
+        
         try:
-            for i in range(max_ticks):
-                # [核心修改] === 从 Sleep 变成 Wait ===
-                
-                # 1. 阻塞等待信号（如果没信号，CPU 占用率为 0）
+            while True: # [修改] 改为死循环
+                # 1. 检查最大步数限制 (仅在设置了 max_ticks 时检查)
+                if max_ticks is not None and tick_count >= max_ticks:
+                    print("⚠️ [Runner] 达到最大 Tick 限制 (熔断保护)，停止。")
+                    break
+
+                # 2. 等待信号
                 await self.tick_signal.wait()
-                
-                # 2. 醒来后，立刻清除信号，准备下一次等待
                 self.tick_signal.clear()
 
-                # 3. 执行 Tick (全树扫描)
+                # 3. 执行 Tick
                 self.tree.tick()
+                tick_count += 1  # 计数
                 status = self.root.status
                 
                 # 收集状态用于存档
                 current_state_data = self.state_manager.get().model_dump()
                 current_tree_state = {n.name: n.status.name for n in self.root.iterate()}
 
-                print(f"⏱️ [Tick {i+1}] Root Status: {status.name}")
+                print(f"⏱️ [Tick {tick_count+1}] Root Status: {status.name}")
 
                 if checkpointer:
-                    checkpointer.save(thread_id, i+1, current_state_data, current_tree_state)
+                    checkpointer.save(thread_id, tick_count+1, current_state_data, current_tree_state)
 
                 if status == Status.SUCCESS:
                     print("✅ [Runner] 执行成功 (SUCCESS).")
