@@ -1,4 +1,4 @@
-# btflow 🌊
+# BTflow 🌊
 
 > **Event-driven, State-managed Behavior Tree Framework for LLM Agents.**
 >
