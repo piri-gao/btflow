@@ -97,10 +97,10 @@ The project includes complete unit and integration tests.
 python -m unittest discover tests
 
 # Run persistence integration tests (Simulate crash & recovery)
-python examples/test_persistence.py
+python tests/test_persistence.py
 
 # Generate behavior tree visualization
-python examples/visualize_tree.py
+python tests/visualize_tree.py
 
 ```
 

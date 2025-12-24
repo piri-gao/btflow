@@ -97,10 +97,10 @@ btflow/
 python -m unittest discover tests
 
 # 运行持久化集成测试 (模拟崩溃恢复)
-python examples/test_persistence.py
+python tests/test_persistence.py
 
 # 生成行为树结构图
-python examples/visualize_tree.py
+python tests/visualize_tree.py
 
 ```
 
