@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "btflow"
-version = "1.0"
+version = "0.1.1" 
 description = "Event-driven, Async Behavior Tree framework for LLM Agents"
 authors = ["Piri Gao <piri.gao@outlook.com>"]
 
@@ -9,6 +9,8 @@ python = "^3.9"
 py_trees = "^2.2.3"
 pydantic = "^2.0.0"
 anyio = "^4.0.0"
+google-genai = "^0.2.0"  # 或者不写版本号让它装最新的
+python-dotenv = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core"]
