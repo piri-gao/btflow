@@ -45,14 +45,17 @@ class GeminiNode(AsyncBehaviour):
 
             # 2. 调用 API (原生异步)
             # 关键点：使用 .aio 访问异步方法
-            response = await self.client.aio.models.generate_content(
-                model=self.model,
-                contents=prompt_content,
-                config=types.GenerateContentConfig(
-                    system_instruction=self.system_prompt,
-                    temperature=0.7
-                )
-            )
+            response = await asyncio.wait_for(
+                            self.client.aio.models.generate_content(
+                                model=self.model,
+                                contents=prompt_content,
+                                config=types.GenerateContentConfig(
+                                    system_instruction=self.system_prompt,
+                                    temperature=0.7
+                                )
+                            ),
+                            timeout=30.0 # 30秒超时
+                        )
             
             content = response.text
             # print(f"   📥 [Gemini] 回复: {content[:50]}...")
@@ -64,7 +67,9 @@ class GeminiNode(AsyncBehaviour):
             })
             
             return Status.SUCCESS
-
+        except asyncio.TimeoutError:
+            print(f"   ⏰ [{self.name}] 请求超时")
+            return Status.FAILURE
         except Exception as e:
             print(f"   🔥 [{self.name}] Gemini 调用失败: {e}")
             self.feedback_message = str(e)
