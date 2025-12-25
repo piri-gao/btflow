@@ -19,3 +19,7 @@ venv/
 # 图片生成结果 (可选)
 *.png
 *.dot
+
+# mac生成文件
+.DS_Store
+**/.DS_Store
