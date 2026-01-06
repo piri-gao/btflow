@@ -42,27 +42,31 @@ class TestAsyncNode(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status, Status.SUCCESS)
         self.assertEqual(node.execution_count, 1)
 
-    async def test_zombie_guard(self):
+    async def test_node_reentry(self):
         """
-        🛡️ 关键测试：测试幂等性守卫
-        验证当状态已经是 SUCCESS 时，initialise 是否会拦截任务创建
+        � 关键测试：节点重入
+        验证节点在 SUCCESS 后可以再次执行
         """
-        node = SimpleNode("Zombie")
+        node = SimpleNode("Reentry")
         
-        # 1. 强制设定状态为 SUCCESS (模拟从存档恢复)
-        node.status = Status.SUCCESS
-        
-        # 2. 调用 initialise
+        # 第 1 轮执行
         node.initialise()
+        await node.async_task
+        status1 = node.update()
+        self.assertEqual(status1, Status.SUCCESS)
+        self.assertEqual(node.execution_count, 1)
         
-        # 3. 断言：绝不应该创建 Task！
-        # 如果这里报错，说明 core.py 里的 if return 没写对
-        self.assertIsNone(node.async_task, "僵尸守卫失效！不应该创建任务")
+        # 模拟 py_trees 调用 terminate
+        node.terminate(Status.SUCCESS)
+        self.assertIsNone(node.async_task)
         
-        # 4. 断言：update 应该透传状态
-        status = node.update()
-        self.assertEqual(status, Status.SUCCESS)
-        self.assertEqual(node.execution_count, 0) # 根本没跑！
+        # 第 2 轮执行（节点重入）
+        node.initialise()
+        self.assertIsNotNone(node.async_task, "节点应该能重新创建任务！")
+        await node.async_task
+        status2 = node.update()
+        self.assertEqual(status2, Status.SUCCESS)
+        self.assertEqual(node.execution_count, 2)  # 应该执行了 2 次
 
 if __name__ == '__main__':
     unittest.main()

@@ -18,6 +18,10 @@ class ReactiveRunner:
         
         # 核心信号量：事件锁
         self.tick_signal = asyncio.Event()
+        
+        # Gatekeeper 开关：控制信号触发
+        # step 模式下关闭（忽略内部信号），run 模式下开启
+        self.auto_driving = False
 
         # 1. 订阅状态变化 (State Driven)
         self.state_manager.subscribe(self._on_wake_signal)
@@ -29,16 +33,40 @@ class ReactiveRunner:
 
     def _on_wake_signal(self):
         """任何风吹草动，都会调用这个方法"""
+        # Gatekeeper：只有在 auto_driving 模式下才触发信号
+        if not self.auto_driving:
+            return
         # 触发 Event，唤醒正在 wait 的 run 循环
         # 注意：asyncio.Event 是线程安全的（在同个 Loop 内），如果是多线程需用 call_soon_threadsafe
         self.tick_signal.set()
+    
+    def tick_once(self) -> Status:
+        """
+        原子 tick：执行一次行为树 tick。
+        供 BTAgent.step() 同步调用，不涉及信号机制。
+        """
+        self.tree.tick()
+        return self.root.status
 
     async def run(self, 
                   max_ticks: int = None, 
-                  checkpointer = None, 
+                  checkpointer = None,
+                  checkpoint_interval: int = 1,
                   thread_id: str = "default_thread"):
+        """
+        事件驱动模式运行。
+        
+        Args:
+            max_ticks: 最大 tick 次数（熔断保护）
+            checkpointer: 检查点管理器
+            checkpoint_interval: 保存检查点的间隔（每 N 次 tick 保存一次，默认 1）
+            thread_id: 会话线程 ID
+        """
         
         print(f"🚀 [Runner] 启动 (Thread: {thread_id}) [Mode: Event-Driven]...")
+        
+        # 开启自动驾驶模式
+        self.auto_driving = True
         
         if checkpointer:
             checkpoint = checkpointer.load_latest(thread_id)
@@ -120,8 +148,8 @@ class ReactiveRunner:
 
                 print(f"⏱️ [Tick {tick_count+1}] Root Status: {status.name}")
 
-                if checkpointer:
-                    checkpointer.save(thread_id, tick_count+1, current_state_data, current_tree_state)
+                if checkpointer and tick_count % checkpoint_interval == 0:
+                    checkpointer.save(thread_id, tick_count, current_state_data, current_tree_state)
 
                 if status == Status.SUCCESS:
                     print("✅ [Runner] 执行成功 (SUCCESS).")
@@ -144,6 +172,7 @@ class ReactiveRunner:
             print(f"🔥 [Runner] 树结构状态异常: {e}")
             raise e
         finally:
+            self.auto_driving = False  # 关闭自动驾驶
             print("🧹 [Runner] 正在清理资源...")
             self.tree.interrupt()
             print("💤 [Runner] 结束。")

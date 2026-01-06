@@ -6,6 +6,20 @@ from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
+
+class ActionField:
+    """
+    动作字段标记。
+    用于标记需要每帧重置的字段（如 RL 场景中的动作输出）。
+    
+    Usage:
+        class AgentState(BaseModel):
+            speed: Annotated[float, ActionField()] = 0.0
+            fire: Annotated[bool, ActionField()] = False
+            messages: List[str] = []  # 非动作，不会被 reset_actions 重置
+    """
+    pass
+
 class StateManager:
     """
     状态管理器 (Event-Driven)
@@ -16,6 +30,9 @@ class StateManager:
         self.namespace = namespace
         self.blackboard = BlackboardClient(name=f"State:{namespace}")
         self.reducers: Dict[str, Callable[[Any, Any], Any]] = {}
+        # ActionField 标记的字段: (default_value, default_factory)
+        # 如果有 factory 则优先使用 factory，避免可变默认值陷阱
+        self._action_fields: Dict[str, tuple] = {}
         
         # 监听器列表
         self._listeners: List[Callable[[], None]] = []
@@ -55,10 +72,15 @@ class StateManager:
             if get_origin(annotation) is Annotated:
                 args = get_args(annotation)
                 for arg in args[1:]:
-                    if callable(arg):
+                    # 检查是否为 ActionField 标记
+                    if isinstance(arg, ActionField):
+                        print(f"   🎯 [Action] 标记字段: '{name}'")
+                        # 存储 (default_value, default_factory) 元组
+                        self._action_fields[name] = (field.default, field.default_factory)
+                    # 检查是否为 Reducer 函数
+                    elif callable(arg):
                         print(f"   ⚙️ [Reducer] 绑定字段: '{name}' -> {arg.__name__}")
                         self.reducers[name] = arg
-                        break
 
     def _get_key(self, field_name: str) -> str:
         return f"{self.namespace}/{field_name}"
@@ -136,3 +158,34 @@ class StateManager:
 
         # 数据落库后，通知 Runner
         self._notify_listeners()
+
+    def reset_actions(self):
+        """
+        重置所有 ActionField 标记的字段为默认值。
+        应在每帧开始时调用（step 模式）。
+        
+        Note:
+            对于可变默认值（如 List），会调用 default_factory 生成新实例，
+            避免多帧之间共享同一对象。
+        """
+        with self._lock:
+            for name, (default_value, default_factory) in self._action_fields.items():
+                key = self._get_key(name)
+                # 优先使用 factory 生成新实例
+                if default_factory is not None:
+                    self.blackboard.set(key, default_factory())
+                else:
+                    self.blackboard.set(key, default_value)
+
+    def get_actions(self) -> Dict[str, Any]:
+        """
+        获取所有 ActionField 标记字段的当前值。
+        返回动作快照。
+        """
+        actions = {}
+        with self._lock:
+            for name in self._action_fields.keys():
+                key = self._get_key(name)
+                if self.blackboard.exists(key):
+                    actions[name] = self.blackboard.get(key)
+        return actions

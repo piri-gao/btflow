@@ -2,7 +2,7 @@
 
 > **Event-driven, State-managed Behavior Tree Framework for LLM Agents.**
 >
-> A behavior tree framework designed for building complex, interruptible, and long-term memory AI agents (v0.1.0 Alpha).
+> A behavior tree framework designed for building complex, interruptible, and long-term memory AI agents (v0.2.0 Alpha).
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
@@ -13,9 +13,9 @@
 ## 🌟 Key Features
 
 * **⚡ Event-Driven**: Reactive kernel based on `asyncio.Event`. No busy waiting or polling. Ticks are triggered only by state changes or task completion, ensuring zero latency and high efficiency.
-* **🧠 State Management**: Pydantic-based typed blackboard supporting `Reducer` (e.g., append-only messages) and change notifications to prevent data pollution.
+* **🎮 Dual-Mode Support**: `BTAgent` supports both `step()` mode for RL training and `run()` mode for task-driven agents like chatbots.
+* **🧠 State Management**: Pydantic-based typed blackboard supporting `Reducer` (e.g., append-only messages), `ActionField` for per-frame reset, and change notifications.
 * **💾 Persistence & Memory**: Supports "Resumable Execution". System state and execution progress can be perfectly restored from the latest checkpoint after a crash or interruption.
-* **🛡️ Idempotency Guard**: Unique mechanism to prevent expensive LLM calls from being re-executed when restoring from a checkpoint.
 * **🌳 Visualization**: Built-in tools to export complex agent logic as ASCII trees or PNG flowcharts.
 
 ## 📦 Installation
@@ -46,6 +46,8 @@ class AgentState(BaseModel):
 ```python
 import py_trees
 from btflow.state import StateManager
+from btflow.runtime import ReactiveRunner
+from btflow.agent import BTAgent
 from btflow.nodes.mock import MockLLMAction
 
 # Initialize State
@@ -58,23 +60,29 @@ node1 = MockLLMAction(name="Think", state_manager=state_manager)
 node2 = MockLLMAction(name="Reply", state_manager=state_manager)
 root.add_children([node1, node2])
 
+# Create BTAgent
+runner = ReactiveRunner(root, state_manager)
+agent = BTAgent(runner)
+
 ```
 
 ### 3. Run
 
 ```python
 import asyncio
-from btflow.runtime import ReactiveRunner
 
 async def main():
-    runner = ReactiveRunner(root, state_manager)
-    # Start runner (Event-driven mode, auto-sleeps when idle)
-    await runner.run(max_ticks=10)
+    # Run with initial input
+    await agent.run(
+        input_data={"messages": ["User: Hello!"]},
+        max_ticks=10
+    )
 
 if __name__ == "__main__":
     asyncio.run(main())
 
 ```
+
 
 ## 🏗️ Architecture
 
@@ -103,13 +111,6 @@ python tests/test_persistence.py
 python tests/visualize_tree.py
 
 ```
-
-## 🗓️ Roadmap
-
-* [x] **v0.1**: Event-Driven Kernel (Core/Runtime/State/Persistence) ✅
-* [ ] **v0.2**: Real Capabilities (OpenAI/DeepSeek Node, Tools, Human-in-loop)
-* [ ] **v0.3**: Engineering (Redis Persistence, FastAPI Service, Docker)
-* [ ] **v1.0**: Production Ready
 
 ## 📄 License
 

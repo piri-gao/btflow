@@ -6,7 +6,14 @@ from py_trees.common import Status
 
 class AsyncBehaviour(py_trees.behaviour.Behaviour):
     """
-    btflow 核心基类
+    btflow 核心基类：异步行为节点。
+    
+    子类必须实现 update_async() 方法。
+    
+    Structured Concurrency 约束:
+        - update_async() 中创建的所有协程必须在返回前 await 完成
+        - 禁止 fire-and-forget 模式（asyncio.create_task 后不 await）
+        - 如需并行执行，请在行为树中使用 Parallel 节点
     """
 
     def __init__(self, name: str):
@@ -22,10 +29,11 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
     def initialise(self) -> None:
         """
         [生命周期] 启动任务
+        
+        Note:
+            每次节点被重新 tick 时都会调用此方法（如果上次不是 RUNNING）。
+            无论上次是 SUCCESS 还是 FAILURE，都会重新创建任务。
         """
-        # 🛡️ 幂等性守卫
-        if self.status in (Status.SUCCESS, Status.FAILURE):
-            return
 
         if self.async_task and not self.async_task.done():
             self.async_task.cancel()
@@ -46,10 +54,6 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
         """
         [生命周期] 检查状态
         """
-        # 🛡️ 状态透传
-        if self.status in (Status.SUCCESS, Status.FAILURE) and self.async_task is None:
-            return self.status
-
         # 1. 任务启动失败
         if self.async_task is None:
             return Status.FAILURE
