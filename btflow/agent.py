@@ -2,6 +2,7 @@
 BTAgent: 统一接入层
 支持 step() 和 run() 双模驱动
 """
+import asyncio
 from typing import Literal, Dict, Any, Optional
 from py_trees.common import Status
 
@@ -20,9 +21,13 @@ class BTAgent:
         runner = ReactiveRunner(root, state_manager)
         agent = BTAgent(runner)
         
-        # RL 场景
+        # RL 场景（纯同步节点）
         for _ in range(1000):
             action = await agent.step({"observation": obs})
+        
+        # 脑肌结合场景（同步 + 异步节点）
+        for _ in range(1000):
+            action = await agent.step({"observation": obs}, yield_to_async=True)
         
         # 对话场景
         result = await agent.run({"user_input": "你好"})
@@ -33,7 +38,11 @@ class BTAgent:
         self.state_manager = runner.state_manager
         self._mode: Literal["idle", "step", "run"] = "idle"
     
-    async def step(self, obs: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def step(
+        self, 
+        obs: Optional[Dict[str, Any]] = None,
+        yield_to_async: bool = False
+    ) -> Dict[str, Any]:
         """
         步进模式：强制同步 tick，返回动作快照。
         
@@ -42,12 +51,21 @@ class BTAgent:
         
         Args:
             obs: 观测数据，将被 update 到 state
+            yield_to_async: 是否让步给事件循环，让异步任务有机会执行。
+                - False: 纯同步场景，性能最优
+                - True: 脑肌结合场景，允许异步大脑节点在后台推进
             
         Returns:
             本帧动作快照（ActionField 标记的字段）
             
         Raises:
             RuntimeError: 如果 run() 正在执行
+            
+        Note:
+            脑肌结合场景示例（Parallel 节点包含异步大脑 + 同步肌肉）：
+            - 大脑节点：异步 LLM 推理，更新持久化状态（如 target_position）
+            - 肌肉节点：同步控制，读取大脑状态，输出 ActionField
+            - 设置 yield_to_async=True 确保 LLM 任务能在后台推进
         """
         if self._mode == "run":
             raise RuntimeError("Cannot step() while run() is active")
@@ -66,7 +84,11 @@ class BTAgent:
             # 3. 同步 tick（不等信号）
             self.runner.tick_once()
             
-            # 4. 返回本帧动作
+            # 4. 可选：让步给事件循环，让异步任务推进
+            if yield_to_async:
+                await asyncio.sleep(0)
+            
+            # 5. 返回本帧动作
             return self.state_manager.get_actions()
         finally:
             self._mode = "idle"
