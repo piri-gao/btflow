@@ -140,8 +140,9 @@ class WorkflowConverter:
             return Selector(name=node_def.id, memory=node_def.config.get("memory", True))
         elif node_def.type == "Parallel":
             policy_str = node_def.config.get("policy", "SuccessOnAll")
-            # Safe attribute access
-            policy = getattr(ParallelPolicy, policy_str, ParallelPolicy.SuccessOnAll)
+            # Get policy instance (not class!)
+            policy_class = getattr(ParallelPolicy, policy_str, ParallelPolicy.SuccessOnAll)
+            policy = policy_class()  # Instantiate!
             return Parallel(name=node_def.id, policy=policy)
             
         # 2. Handle Custom Nodes (Registered Classes)
