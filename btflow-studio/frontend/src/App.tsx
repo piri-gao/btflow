@@ -19,6 +19,7 @@ import 'reactflow/dist/style.css';
 import Sidebar from './components/Sidebar';
 import NodePanel from './components/NodePanel';
 import LogPanel from './components/LogPanel';
+import ChatPanel from './components/ChatPanel';
 import { fetchNodes, saveWorkflow, runWorkflow, stopWorkflow, createWorkflow } from './api/client';
 
 interface LogEntry {
@@ -30,7 +31,9 @@ interface LogEntry {
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
 
+// Define once outside component to avoid re-creation
 const nodeTypes: NodeTypes = {};
+const edgeTypes = {};
 
 function Flow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -43,6 +46,7 @@ function Flow() {
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'chat'>('properties');
 
   // Derive selectedNode from nodes to keep it in sync
   const selectedNode = useMemo(() => {
@@ -197,6 +201,29 @@ function Flow() {
     await stopWorkflow(workflowId);
   }, [workflowId]);
 
+  const applyWorkflow = useCallback((workflow: { nodes: any[], edges: any[] }) => {
+    // Convert workflow JSON to React Flow format
+    const newNodes: Node[] = workflow.nodes.map(n => ({
+      id: n.id,
+      type: 'default',
+      position: n.position || { x: 0, y: 0 },
+      data: {
+        label: n.label || n.type,
+        nodeType: n.type,
+        config: n.config || {}
+      }
+    }));
+
+    const newEdges: Edge[] = workflow.edges.map(e => ({
+      id: e.id,
+      source: e.source,
+      target: e.target
+    }));
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, [setNodes, setEdges]);
+
   return (
     <div className="flex flex-col h-screen w-screen bg-gray-50">
       {/* Top Area: Sidebar + Canvas + NodePanel */}
@@ -211,6 +238,7 @@ function Flow() {
               nodes={nodes}
               edges={edges}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
@@ -243,12 +271,47 @@ function Flow() {
             </ReactFlow>
           </div>
 
-          {/* Right Panel */}
-          <NodePanel
-            selectedNode={selectedNode}
-            setNodes={setNodes}
-            nodeMetas={nodeMetas}
-          />
+          {/* Right Panel - Tabbed Interface */}
+          <div className="w-80 border-l border-gray-200 bg-white flex flex-col">
+            {/* Tab Headers */}
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => setRightPanelTab('properties')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${rightPanelTab === 'properties'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+              >
+                Properties
+              </button>
+              <button
+                onClick={() => setRightPanelTab('chat')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${rightPanelTab === 'chat'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+              >
+                🤖 AI Assistant
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-hidden">
+              {rightPanelTab === 'properties' ? (
+                <NodePanel
+                  selectedNode={selectedNode}
+                  setNodes={setNodes}
+                  nodeMetas={nodeMetas}
+                />
+              ) : (
+                <ChatPanel
+                  currentWorkflow={{ nodes, edges }}
+                  onApplyWorkflow={applyWorkflow}
+                  availableNodes={nodeMetas}
+                />
+              )}
+            </div>
+          </div>
         </ReactFlowProvider>
       </div>
 

@@ -215,3 +215,34 @@ async def stop_workflow(workflow_id: str):
             pass  # Expected
         return {"status": "stopped"}
     return {"status": "not_running"}
+
+# === Chat Assistant API ===
+from .llm import get_workflow_llm
+
+class ChatRequest(BaseModel):
+    message: str
+    conversation_history: Optional[List[Dict[str, str]]] = None
+    current_workflow: Optional[Dict[str, Any]] = None
+    available_nodes: Optional[List[Dict[str, Any]]] = None
+
+@app.post("/api/chat/generate-workflow")
+async def generate_workflow_from_chat(request: ChatRequest):
+    """
+    Generate or modify workflow using LLM based on user message.
+    Supports multi-turn conversations.
+    """
+    try:
+        llm = get_workflow_llm()
+        result = llm.generate_workflow(
+            user_message=request.message,
+            conversation_history=request.conversation_history,
+            current_workflow=request.current_workflow,
+            available_nodes=request.available_nodes
+        )
+        
+        return result
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
