@@ -166,6 +166,7 @@ class ReactiveRunner:
                 
         except asyncio.CancelledError:
             print("🛑 [Runner] 任务被外部取消。")
+            raise  # Re-raise to propagate cancellation to caller
         except KeyboardInterrupt:
             print("🛑 [Runner] 用户手动中断。")
         except AssertionError as e:
