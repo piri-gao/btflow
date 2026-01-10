@@ -20,6 +20,7 @@ import Sidebar from './components/Sidebar';
 import NodePanel from './components/NodePanel';
 import LogPanel from './components/LogPanel';
 import ChatPanel from './components/ChatPanel';
+import { ControlFlowNode, ActionNode, DebugNode } from './components/CustomNodes';
 import { fetchNodes, saveWorkflow, runWorkflow, stopWorkflow, createWorkflow } from './api/client';
 
 interface LogEntry {
@@ -32,8 +33,22 @@ const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
 
 // Define once outside component to avoid re-creation
-const nodeTypes: NodeTypes = {};
+const nodeTypes: NodeTypes = {
+  controlFlow: ControlFlowNode,
+  action: ActionNode,
+  debug: DebugNode,
+};
 const edgeTypes = {};
+
+// Helper to determine node visual type from nodeType
+const getNodeVisualType = (nodeType: string): string => {
+  const controlFlowTypes = ['Sequence', 'Selector', 'Parallel'];
+  const debugTypes = ['Log'];
+
+  if (controlFlowTypes.includes(nodeType)) return 'controlFlow';
+  if (debugTypes.includes(nodeType)) return 'debug';
+  return 'action';
+};
 
 function Flow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -79,15 +94,12 @@ function Flow() {
           // data is { nodeId: "SUCCESS" | "RUNNING" | "FAILURE" }
           setNodes((nds) => nds.map(n => {
             if (msg.data[n.id]) {
-              const status = msg.data[n.id];
-              let color = '#fff'; // default
-              if (status === 'RUNNING') color = '#fbbf24'; // yellow-400
-              if (status === 'SUCCESS') color = '#86efac'; // green-300
-              if (status === 'FAILURE') color = '#fca5a5'; // red-300
-
               return {
                 ...n,
-                style: { ...n.style, backgroundColor: color, transition: 'background-color 0.2s' }
+                data: {
+                  ...n.data,
+                  status: msg.data[n.id]
+                }
               };
             }
             return n;
@@ -158,12 +170,13 @@ function Flow() {
 
       const newNode: Node = {
         id: `${type}_${Date.now()}`,
-        type: 'default',
+        type: getNodeVisualType(type),
         position,
         data: {
           label: label,
           nodeType: type,
-          config: {} // Init config
+          config: {},
+          icon: nodeMetas.find(n => n.id === type)?.icon || '📦'
         },
       };
 
@@ -205,12 +218,13 @@ function Flow() {
     // Convert workflow JSON to React Flow format
     const newNodes: Node[] = workflow.nodes.map(n => ({
       id: n.id,
-      type: 'default',
+      type: getNodeVisualType(n.type),
       position: n.position || { x: 0, y: 0 },
       data: {
         label: n.label || n.type,
         nodeType: n.type,
-        config: n.config || {}
+        config: n.config || {},
+        icon: n.icon || (nodeMetas.find(m => m.id === n.type)?.icon) || '📦'
       }
     }));
 
@@ -222,7 +236,7 @@ function Flow() {
 
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, nodeMetas]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-gray-50">
