@@ -1,6 +1,7 @@
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status
 from typing import Callable, Optional
+from btflow.logging import logger
 
 class Log(Behaviour):
     # Class-level callback that can be set by the runner
@@ -12,7 +13,7 @@ class Log(Behaviour):
 
     def update(self) -> Status:
         log_msg = f"[{self.name}] {self.message}"
-        print(f"📝 [Log] {self.name}: {self.message}")
+        logger.info("📝 [Log] {}: {}", self.name, self.message)
         
         # Broadcast to frontend if callback is set
         if Log._broadcast_callback:

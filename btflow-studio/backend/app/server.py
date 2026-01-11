@@ -13,6 +13,7 @@ from .websocket import manager
 from fastapi import WebSocket, WebSocketDisconnect
 from btflow.agent import BTAgent
 from btflow.runtime import ReactiveRunner
+from btflow.logging import logger
 
 class StudioVisitor(py_trees.visitors.VisitorBase):
     """Captures node status after each tick and schedules a broadcast."""
@@ -32,7 +33,7 @@ class StudioVisitor(py_trees.visitors.VisitorBase):
 
     def finalise(self):
         """Broadcast collected statuses after tick completes."""
-        print(f"📡 [Visitor] Broadcasting node_update: {self.status_map}")
+        logger.debug("📡 [Visitor] Broadcasting node_update: {}", self.status_map)
         # Broadcast via asyncio (fire and forget)
         asyncio.create_task(manager.broadcast(self.workflow_id, {
             "type": "node_update",
@@ -103,7 +104,7 @@ async def delete_workflow(workflow_id: str):
 
 async def _run_agent_task(workflow_id: str, agent: BTAgent):
     """Background task to run the agent with WebSocket broadcasting."""
-    print(f"🚀 [API] Starting workflow {workflow_id}")
+    logger.info("🚀 [API] Starting workflow {}", workflow_id)
     
     # Define a callback to broadcast state
     async def on_tick_update():
@@ -142,16 +143,16 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
         await manager.broadcast(workflow_id, {"type": "status", "status": "completed"})
         
     except asyncio.CancelledError:
-        print(f"⏹️ [API] Workflow {workflow_id} cancelled")
+        logger.info("⏹️ [API] Workflow {} cancelled", workflow_id)
         await manager.broadcast(workflow_id, {"type": "status", "status": "stopped"})
         raise  # Re-raise to properly cancel the task
     except Exception as e:
-        print(f"🔥 [API] Workflow {workflow_id} failed: {e}")
+        logger.error("🔥 [API] Workflow {} failed: {}", workflow_id, e)
         import traceback
         traceback.print_exc()
         await manager.broadcast(workflow_id, {"type": "error", "message": str(e)})
     finally:
-        print(f"💤 [API] Workflow {workflow_id} finished")
+        logger.info("💤 [API] Workflow {} finished", workflow_id)
         if workflow_id in running_agents:
             del running_agents[workflow_id]
         if workflow_id in running_tasks:

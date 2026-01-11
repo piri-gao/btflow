@@ -7,6 +7,7 @@ import json
 from typing import List, Dict, Any, Optional
 import google.generativeai as genai
 from dotenv import load_dotenv
+from btflow.logging import logger
 
 # Load environment variables
 load_dotenv()
@@ -133,8 +134,8 @@ class WorkflowLLM:
                 }
             )
         except Exception as e:
-            print(f"⚠️ Failed to initialize model {model_name}: {e}")
-            print("Trying fallback model...")
+            logger.warning("⚠️ Failed to initialize model {}: {}", model_name, e)
+            logger.info("Trying fallback model...")
             # Fallback to a known working model
             self.model = genai.GenerativeModel(
                 model_name="gemini-1.5-flash",

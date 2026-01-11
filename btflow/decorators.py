@@ -4,6 +4,7 @@ from typing import Callable, Any, Dict, Type
 from py_trees.common import Status
 from btflow.core import AsyncBehaviour
 from btflow.state import StateManager
+from btflow.logging import logger
 
 def action(func: Callable):
     """
@@ -45,7 +46,7 @@ def action(func: Callable):
                 if isinstance(updates, dict):
                     self.state_manager.update(updates)
                     # 只有返回了数据才打印，避免刷屏
-                    print(f"   ⚡ [{self.name}] Action finished. Updates: {list(updates.keys())}")
+                    logger.debug("   ⚡ [{}] Action finished. Updates: {}", self.name, list(updates.keys()))
                 elif updates is None:
                     # 允许函数不返回任何东西（只做副作用）
                     pass
@@ -55,7 +56,7 @@ def action(func: Callable):
                 return Status.SUCCESS
 
             except Exception as e:
-                print(f"   🔥 [{self.name}] Action failed: {e}")
+                logger.error("   🔥 [{}] Action failed: {}", self.name, e)
                 import traceback
                 traceback.print_exc()
                 self.feedback_message = str(e)

@@ -3,6 +3,7 @@ import traceback
 from typing import Callable, Optional
 import py_trees
 from py_trees.common import Status
+from btflow.logging import logger
 
 class AsyncBehaviour(py_trees.behaviour.Behaviour):
     """
@@ -73,7 +74,7 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
         except asyncio.CancelledError:
             return Status.INVALID
         except Exception as e:
-            print(f"\n🔥 [AsyncBehaviour] Node '{self.name}' crashed!")
+            logger.error("🔥 [AsyncBehaviour] Node '{}' crashed!", self.name)
             traceback.print_exc()
             self.feedback_message = str(e)
             return Status.FAILURE

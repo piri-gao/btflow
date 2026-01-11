@@ -3,6 +3,7 @@ from typing import Any, Dict, Type, TypeVar, Optional, get_origin, get_args, Ann
 import py_trees
 from py_trees.blackboard import Client as BlackboardClient
 from pydantic import BaseModel, ValidationError
+from btflow.logging import logger
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -51,11 +52,11 @@ class StateManager:
             try:
                 callback()
             except Exception as e:
-                print(f"⚠️ [StateManager] Listener callback failed: {e}")
+                logger.warning("⚠️ [StateManager] Listener callback failed: {}", e)
 
     def _register_schema(self):
         """解析 Schema，注册 Key 到 Blackboard，并提取 Reducer"""
-        print(f"🔍 [StateManager] 解析 Schema: {self.schema.__name__}")
+        logger.debug("🔍 [StateManager] 解析 Schema: {}", self.schema.__name__)
         
         try:
             type_hints = get_type_hints(self.schema, include_extras=True)
@@ -74,12 +75,12 @@ class StateManager:
                 for arg in args[1:]:
                     # 检查是否为 ActionField 标记
                     if isinstance(arg, ActionField):
-                        print(f"   🎯 [Action] 标记字段: '{name}'")
+                        logger.debug("   🎯 [Action] 标记字段: '{}'", name)
                         # 存储 (default_value, default_factory) 元组
                         self._action_fields[name] = (field.default, field.default_factory)
                     # 检查是否为 Reducer 函数
                     elif callable(arg):
-                        print(f"   ⚙️ [Reducer] 绑定字段: '{name}' -> {arg.__name__}")
+                        logger.debug("   ⚙️ [Reducer] 绑定字段: '{}' -> {}", name, arg.__name__)
                         self.reducers[name] = arg
 
     def _get_key(self, field_name: str) -> str:

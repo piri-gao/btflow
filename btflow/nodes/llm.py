@@ -5,6 +5,7 @@ from py_trees.common import Status
 from btflow.core import AsyncBehaviour
 from btflow.state import StateManager
 from dotenv import load_dotenv
+from btflow.logging import logger
 
 # 引入 Google GenAI SDK
 from google import genai
@@ -28,7 +29,7 @@ class GeminiNode(AsyncBehaviour):
         
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            print(f"⚠️ [GeminiNode] Warning: GOOGLE_API_KEY not found in env!")
+            logger.warning("⚠️ [GeminiNode] Warning: GOOGLE_API_KEY not found in env!")
 
         # 初始化客户端 (同步/异步共用同一个 client 实例)
         self.client = genai.Client(api_key=api_key)
@@ -41,7 +42,7 @@ class GeminiNode(AsyncBehaviour):
             # 将历史消息转换为 Gemini 接受的 contents 格式 (字符串或列表)
             prompt_content = self._build_prompt(current_state.messages)
             
-            print(f"   ✨ [{self.name}] 正在询问 Gemini ({self.model})...")
+            logger.debug("   ✨ [{}] 正在询问 Gemini ({})...", self.name, self.model)
 
             # 2. 调用 API (原生异步)
             # 关键点：使用 .aio 访问异步方法
@@ -68,10 +69,10 @@ class GeminiNode(AsyncBehaviour):
             
             return Status.SUCCESS
         except asyncio.TimeoutError:
-            print(f"   ⏰ [{self.name}] 请求超时")
+            logger.warning("   ⏰ [{}] 请求超时", self.name)
             return Status.FAILURE
         except Exception as e:
-            print(f"   🔥 [{self.name}] Gemini 调用失败: {e}")
+            logger.error("   🔥 [{}] Gemini 调用失败: {}", self.name, e)
             self.feedback_message = str(e)
             return Status.FAILURE
 

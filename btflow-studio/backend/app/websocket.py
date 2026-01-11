@@ -1,5 +1,6 @@
 from typing import List, Dict
 from fastapi import WebSocket
+from btflow.logging import logger
 
 class ConnectionManager:
     def __init__(self):
@@ -11,7 +12,7 @@ class ConnectionManager:
         if workflow_id not in self.active_connections:
             self.active_connections[workflow_id] = []
         self.active_connections[workflow_id].append(websocket)
-        print(f"🔌 [WS] Client connected to workflow {workflow_id}")
+        logger.info("🔌 [WS] Client connected to workflow {}", workflow_id)
 
     def disconnect(self, workflow_id: str, websocket: WebSocket):
         if workflow_id in self.active_connections:
@@ -19,7 +20,7 @@ class ConnectionManager:
                 self.active_connections[workflow_id].remove(websocket)
             if not self.active_connections[workflow_id]:
                 del self.active_connections[workflow_id]
-        print(f"🔌 [WS] Client disconnected from workflow {workflow_id}")
+        logger.info("🔌 [WS] Client disconnected from workflow {}", workflow_id)
 
     async def broadcast(self, workflow_id: str, message: dict):
         if workflow_id in self.active_connections:
@@ -28,6 +29,6 @@ class ConnectionManager:
                 try:
                     await connection.send_json(message)
                 except Exception as e:
-                     print(f"⚠️ [WS] Send failed: {e}")
+                     logger.warning("⚠️ [WS] Send failed: {}", e)
 
 manager = ConnectionManager()

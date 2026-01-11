@@ -62,6 +62,9 @@ def cleanup_environment():
     BlackboardClient(name="Cleaner").unregister_all_keys()
 
 # === 4. 测试流程 ===
+import pytest
+
+@pytest.mark.asyncio
 async def test_stable_persistence():
     cleanup_environment()
     db_path = "./.checkpoints"

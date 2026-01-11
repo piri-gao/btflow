@@ -9,6 +9,7 @@ from py_trees.composites import Sequence, Selector, Parallel
 from py_trees.composites import Sequence, Selector, Parallel
 from py_trees.common import ParallelPolicy
 import inspect
+from btflow.logging import logger
 
 class WorkflowConverter:
     """
@@ -95,7 +96,7 @@ class WorkflowConverter:
                 if len(children_nodes) == 1:
                     parent_node.decorate(children_nodes[0])
                 else:
-                    print(f"Warning: Decorator {parent_id} has {len(children_nodes)} children. Expected 1.")
+                    logger.warning("Decorator {} has {} children. Expected 1.", parent_id, len(children_nodes))
             else:
                  # Warning: Leaf node has children?
                  pass
@@ -135,15 +136,15 @@ class WorkflowConverter:
             
         # 1. Handle Built-in Composites
         if node_def.type == "Sequence":
-            return Sequence(name=node_def.id, memory=node_def.config.get("memory", True))
+            return Sequence(name=node_def.label or node_def.id, memory=node_def.config.get("memory", True))
         elif node_def.type == "Selector":
-            return Selector(name=node_def.id, memory=node_def.config.get("memory", True))
+            return Selector(name=node_def.label or node_def.id, memory=node_def.config.get("memory", True))
         elif node_def.type == "Parallel":
             policy_str = node_def.config.get("policy", "SuccessOnAll")
             # Get policy instance (not class!)
             policy_class = getattr(ParallelPolicy, policy_str, ParallelPolicy.SuccessOnAll)
             policy = policy_class()  # Instantiate!
-            return Parallel(name=node_def.id, policy=policy)
+            return Parallel(name=node_def.label or node_def.id, policy=policy)
             
         # 2. Handle Custom Nodes (Registered Classes)
         cls = node_registry.get_class(node_def.type)
@@ -162,7 +163,7 @@ class WorkflowConverter:
                     continue
                     
                 if param_name == "name":
-                    kwargs["name"] = node_def.id
+                    kwargs["name"] = node_def.label or node_def.id
                 elif param_name == "state_manager":
                     kwargs["state_manager"] = self.state_manager
                 elif param_name in node_def.config:
@@ -173,10 +174,10 @@ class WorkflowConverter:
                     # OR we wrap the value in a helper if the node supports generic config.
                     kwargs[param_name] = val
         except Exception as e:
-            print(f"Error inspecting signature for {node_def.type}: {e}")
+            logger.error("Error inspecting signature for {}: {}", node_def.type, e)
         
         try:
             return cls(**kwargs)
         except Exception as e:
-            print(f"Failed to instantiate {node_def.type}: {e}")
+            logger.error("Failed to instantiate {}: {}", node_def.type, e)
             return py_trees.behaviours.Dummy(name=node_def.id)

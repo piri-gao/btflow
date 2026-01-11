@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from typing import Any, Dict, Optional
 from pydantic import BaseModel
+from btflow.logging import logger
 
 class Checkpoint(BaseModel):
     """存档数据结构"""
@@ -49,6 +50,6 @@ class SimpleCheckpointer:
         
         if last_line:
             checkpoint = Checkpoint.model_validate_json(last_line)
-            print(f"   📂 [Checkpointer] 已恢复存档 (Step {checkpoint.step})")
+            logger.debug("   📂 [Checkpointer] 已恢复存档 (Step {})", checkpoint.step)
             return checkpoint
         return None

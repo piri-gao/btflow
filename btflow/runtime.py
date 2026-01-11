@@ -4,6 +4,7 @@ from py_trees.trees import BehaviourTree
 from py_trees.common import Status
 from py_trees.composites import Composite, Selector, Sequence
 from btflow.core import AsyncBehaviour
+from btflow.logging import logger
 
 class ReactiveRunner:
     """
@@ -63,7 +64,7 @@ class ReactiveRunner:
             thread_id: 会话线程 ID
         """
         
-        print(f"🚀 [Runner] 启动 (Thread: {thread_id}) [Mode: Event-Driven]...")
+        logger.info("🚀 [Runner] 启动 (Thread: {}) [Mode: Event-Driven]...", thread_id)
         
         # 开启自动驾驶模式
         self.auto_driving = True
@@ -117,9 +118,9 @@ class ReactiveRunner:
                         else:
                             node.stop(Status.INVALID)
 
-                print("🔄 [Runner] 状态已恢复，继续执行...")
+                logger.info("🔄 [Runner] 状态已恢复，继续执行...")
             else:
-                print("🆕 [Runner] 无存档，开始新会话...")
+                logger.info("🆕 [Runner] 无存档，开始新会话...")
 
         # 启动时先手动触发一次，保证第一帧执行
         self.tick_signal.set()
@@ -130,7 +131,7 @@ class ReactiveRunner:
             while True: # [修改] 改为死循环
                 # 1. 检查最大步数限制 (仅在设置了 max_ticks 时检查)
                 if max_ticks is not None and tick_count >= max_ticks:
-                    print("⚠️ [Runner] 达到最大 Tick 限制 (熔断保护)，停止。")
+                    logger.warning("⚠️ [Runner] 达到最大 Tick 限制 (熔断保护)，停止。")
                     break
 
                 # 2. 等待信号
@@ -146,34 +147,34 @@ class ReactiveRunner:
                 current_state_data = self.state_manager.get().model_dump()
                 current_tree_state = {n.name: n.status.name for n in self.root.iterate()}
 
-                print(f"⏱️ [Tick {tick_count+1}] Root Status: {status.name}")
+                logger.debug("⏱️ [Tick {}] Root Status: {}", tick_count+1, status.name)
 
                 if checkpointer and tick_count % checkpoint_interval == 0:
                     checkpointer.save(thread_id, tick_count, current_state_data, current_tree_state)
 
                 if status == Status.SUCCESS:
-                    print("✅ [Runner] 执行成功 (SUCCESS).")
+                    logger.info("✅ [Runner] 执行成功 (SUCCESS).")
                     break
                 elif status == Status.FAILURE:
-                    print("❌ [Runner] 执行失败 (FAILURE).")
+                    logger.error("❌ [Runner] 执行失败 (FAILURE).")
                     break
                 
                 # [注意] 这里删除了原来的 if RUNNING: await sleep()
                 # 只要任务还在跑，我们就在下一轮循环 await tick_signal.wait()
 
             else:
-                print("⚠️ [Runner] 达到最大 Tick 次数，强制停止。")
+                logger.warning("⚠️ [Runner] 达到最大 Tick 次数，强制停止。")
                 
         except asyncio.CancelledError:
-            print("🛑 [Runner] 任务被外部取消。")
+            logger.warning("🛑 [Runner] 任务被外部取消。")
             raise  # Re-raise to propagate cancellation to caller
         except KeyboardInterrupt:
-            print("🛑 [Runner] 用户手动中断。")
+            logger.warning("🛑 [Runner] 用户手动中断。")
         except AssertionError as e:
-            print(f"🔥 [Runner] 树结构状态异常: {e}")
+            logger.error("🔥 [Runner] 树结构状态异常: {}", e)
             raise e
         finally:
             self.auto_driving = False  # 关闭自动驾驶
-            print("🧹 [Runner] 正在清理资源...")
+            logger.debug("🧹 [Runner] 正在清理资源...")
             self.tree.interrupt()
-            print("💤 [Runner] 结束。")
+            logger.info("💤 [Runner] 结束。")
