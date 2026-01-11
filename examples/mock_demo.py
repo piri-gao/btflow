@@ -34,10 +34,10 @@ async def main():
         "step_count": 0
     })
 
-    # 3. 构建行为树
+    # 3. 构建行为树 (不需要传 state_manager，Runner 会自动注入)
     root = py_trees.composites.Sequence(name="MainSequence", memory=True)
-    node1 = MockLLMAction(name="LLM_Node_1", state_manager=state_manager)
-    node2 = MockLLMAction(name="LLM_Node_2", state_manager=state_manager)
+    node1 = MockLLMAction(name="LLM_Node_1")
+    node2 = MockLLMAction(name="LLM_Node_2")
     root.add_children([node1, node2])
 
     # 4. 创建 BTAgent 并运行

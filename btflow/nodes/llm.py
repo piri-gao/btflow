@@ -3,7 +3,6 @@ import asyncio
 from typing import List, Dict, Any
 from py_trees.common import Status
 from btflow.core import AsyncBehaviour
-from btflow.state import StateManager
 from dotenv import load_dotenv
 from btflow.logging import logger
 
@@ -16,14 +15,15 @@ load_dotenv()
 class GeminiNode(AsyncBehaviour):
     """
     Gemini 节点 (基于 google-genai SDK 原生异步支持)
+    
+    Note:
+        state_manager 由 Runner 自动注入，不需要在构造时传入。
     """
     def __init__(self, 
                  name: str, 
-                 state_manager: StateManager,
                  model: str = "gemini-2.5-flash", 
                  system_prompt: str = "You are a helpful AI assistant."):
         super().__init__(name)
-        self.state = state_manager
         self.model = model
         self.system_prompt = system_prompt
         
@@ -36,8 +36,8 @@ class GeminiNode(AsyncBehaviour):
 
     async def update_async(self) -> Status:
         try:
-            # 1. 准备上下文
-            current_state = self.state.get()
+            # 1. 准备上下文 - 使用自动注入的 state_manager
+            current_state = self.state_manager.get()
             
             # 将历史消息转换为 Gemini 接受的 contents 格式 (字符串或列表)
             prompt_content = self._build_prompt(current_state.messages)
@@ -62,7 +62,7 @@ class GeminiNode(AsyncBehaviour):
             # print(f"   📥 [Gemini] 回复: {content[:50]}...")
 
             # 3. 写入状态 (触发 Runner 唤醒)
-            self.state.update({
+            self.state_manager.update({
                 "messages": [f"Gemini: {content}"], 
                 "step_count": 1
             })

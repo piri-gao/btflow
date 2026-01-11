@@ -37,16 +37,53 @@ class SimpleCheckpointer:
     def load_latest(self, thread_id: str) -> Optional[Checkpoint]:
         """
         加载最新的 Checkpoint 对象。
+        使用 seek 倒序读取，O(1) 复杂度，避免大文件的启动瓶颈。
         """
         path = self._get_path(thread_id)
         if not os.path.exists(path):
             return None
         
+        # 获取文件大小
+        file_size = os.path.getsize(path)
+        if file_size == 0:
+            return None
+        
+        # 从文件末尾倒序读取，查找最后一个完整的 JSON 行
+        chunk_size = 8192  # 每次读取 8KB
         last_line = None
-        with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    last_line = line
+        
+        with open(path, "rb") as f:  # 二进制模式，方便 seek
+            # 从末尾开始
+            position = file_size
+            buffer = b""
+            
+            while position > 0:
+                # 计算本次读取的起始位置和大小
+                read_size = min(chunk_size, position)
+                position -= read_size
+                f.seek(position)
+                chunk = f.read(read_size)
+                buffer = chunk + buffer
+                
+                # 查找换行符
+                lines = buffer.split(b"\n")
+                
+                # 如果有超过一行，说明找到了完整的行
+                if len(lines) > 1:
+                    # 倒序查找第一个非空行
+                    for line in reversed(lines):
+                        stripped = line.strip()
+                        if stripped:
+                            last_line = stripped.decode("utf-8")
+                            break
+                    if last_line:
+                        break
+                    # 保留第一个不完整的片段继续
+                    buffer = lines[0]
+            
+            # 处理文件开头的情况（没有换行符的单行文件）
+            if not last_line and buffer.strip():
+                last_line = buffer.strip().decode("utf-8")
         
         if last_line:
             checkpoint = Checkpoint.model_validate_json(last_line)

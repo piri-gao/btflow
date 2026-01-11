@@ -1,7 +1,5 @@
 import threading
 from typing import Any, Dict, Type, TypeVar, Optional, get_origin, get_args, Annotated, Callable, get_type_hints, List
-import py_trees
-from py_trees.blackboard import Client as BlackboardClient
 from pydantic import BaseModel, ValidationError
 from btflow.logging import logger
 
@@ -25,11 +23,16 @@ class StateManager:
     """
     状态管理器 (Event-Driven)
     支持：类型校验、Reducer、以及数据变更通知
+    
+    重构说明：
+        移除了 py_trees.Blackboard 依赖，直接使用 Pydantic Model 存储状态。
+        - 避免多 Agent 场景下的 namespace 冲突
+        - 减少中间层 overhead
+        - 更简洁的架构
     """
     def __init__(self, schema: Type[T], namespace: str = "state"):
         self.schema = schema
-        self.namespace = namespace
-        self.blackboard = BlackboardClient(name=f"State:{namespace}")
+        self.namespace = namespace  # 保留 namespace 用于日志/调试
         self.reducers: Dict[str, Callable[[Any, Any], Any]] = {}
         # ActionField 标记的字段: (default_value, default_factory)
         # 如果有 factory 则优先使用 factory，避免可变默认值陷阱
@@ -40,11 +43,21 @@ class StateManager:
         
         self._lock = threading.Lock()
         
-        self._register_schema()
+        # 直接存储 Pydantic Model 实例
+        self._data: Optional[T] = None
+        
+        self._parse_schema()
 
     def subscribe(self, callback: Callable[[], None]):
         """注册状态变更回调"""
         self._listeners.append(callback)
+
+    def unsubscribe(self, callback: Callable[[], None]):
+        """取消订阅状态变更回调（防止内存泄漏）"""
+        try:
+            self._listeners.remove(callback)
+        except ValueError:
+            pass  # 回调不存在，忽略
 
     def _notify_listeners(self):
         """通知所有监听者"""
@@ -54,8 +67,8 @@ class StateManager:
             except Exception as e:
                 logger.warning("⚠️ [StateManager] Listener callback failed: {}", e)
 
-    def _register_schema(self):
-        """解析 Schema，注册 Key 到 Blackboard，并提取 Reducer"""
+    def _parse_schema(self):
+        """解析 Schema，提取 Reducer 和 ActionField 标记"""
         logger.debug("🔍 [StateManager] 解析 Schema: {}", self.schema.__name__)
         
         try:
@@ -64,10 +77,6 @@ class StateManager:
             type_hints = {}
 
         for name, field in self.schema.model_fields.items():
-            key = self._get_key(name)
-            self.blackboard.register_key(key=key, access=py_trees.common.Access.WRITE)
-            self.blackboard.register_key(key=key, access=py_trees.common.Access.READ)
-            
             annotation = type_hints.get(name, field.annotation)
             
             if get_origin(annotation) is Annotated:
@@ -83,50 +92,33 @@ class StateManager:
                         logger.debug("   ⚙️ [Reducer] 绑定字段: '{}' -> {}", name, arg.__name__)
                         self.reducers[name] = arg
 
-    def _get_key(self, field_name: str) -> str:
-        return f"{self.namespace}/{field_name}"
-
     def initialize(self, initial_state: Optional[Dict[str, Any]] = None):
         """初始化并校验"""
         data = initial_state or {}
         try:
-            model = self.schema(**data)
+            self._data = self.schema(**data)
         except ValidationError as e:
             raise ValueError(f"❌ [StateManager] Init Error: {e}")
         
-        with self._lock:
-            for name, value in model.model_dump().items():
-                key = self._get_key(name)
-                self.blackboard.set(key, value)
-        
-        # 初始化通常不触发通知，或者根据需求触发
+        # 初始化通常不触发通知
 
     def get(self) -> T:
-        """获取快照"""
-        data = {}
+        """获取当前状态（返回副本避免外部修改）"""
         with self._lock:
-            for name in self.schema.model_fields.keys():
-                key = self._get_key(name)
-                if self.blackboard.exists(key):
-                    val = self.blackboard.get(key)
-                    if val is not None:
-                        data[name] = val
-            return self.schema(**data)
+            if self._data is None:
+                return self.schema()
+            # 返回深拷贝，避免外部直接修改内部状态
+            return self.schema(**self._data.model_dump())
 
     def update(self, updates: Dict[str, Any]):
         """
         更新状态 (线程安全 + Reducer + 强校验 + 事件通知)
         """
         with self._lock:
-            current_data = {}
-            for name in self.schema.model_fields.keys():
-                key = self._get_key(name)
-                if self.blackboard.exists(key):
-                    val = self.blackboard.get(key)
-                    if val is not None:
-                        current_data[name] = val
+            if self._data is None:
+                self._data = self.schema()
             
-            current_model = self.schema(**current_data)
+            current_data = self._data.model_dump()
             pending_writes = {}
             
             for name, update_val in updates.items():
@@ -135,7 +127,7 @@ class StateManager:
 
                 if name in self.reducers:
                     reducer = self.reducers[name]
-                    old_val = getattr(current_model, name)
+                    old_val = current_data.get(name)
                     try:
                         final_val = reducer(old_val, update_val)
                     except Exception as e:
@@ -145,17 +137,13 @@ class StateManager:
                 
                 pending_writes[name] = final_val
 
-            merged_data = current_model.model_dump()
+            merged_data = current_data.copy()
             merged_data.update(pending_writes)
             
             try:
-                self.schema(**merged_data)
+                self._data = self.schema(**merged_data)
             except ValidationError as e:
                 raise ValueError(f"❌ [StateManager] Update Validation Failed: {e}")
-
-            for name, val in pending_writes.items():
-                key = self._get_key(name)
-                self.blackboard.set(key, val)
 
         # 数据落库后，通知 Runner
         self._notify_listeners()
@@ -170,13 +158,19 @@ class StateManager:
             避免多帧之间共享同一对象。
         """
         with self._lock:
+            if self._data is None:
+                return
+            
+            current_data = self._data.model_dump()
+            
             for name, (default_value, default_factory) in self._action_fields.items():
-                key = self._get_key(name)
                 # 优先使用 factory 生成新实例
                 if default_factory is not None:
-                    self.blackboard.set(key, default_factory())
+                    current_data[name] = default_factory()
                 else:
-                    self.blackboard.set(key, default_value)
+                    current_data[name] = default_value
+            
+            self._data = self.schema(**current_data)
 
     def get_actions(self) -> Dict[str, Any]:
         """
@@ -185,8 +179,11 @@ class StateManager:
         """
         actions = {}
         with self._lock:
+            if self._data is None:
+                return actions
+            
+            data_dict = self._data.model_dump()
             for name in self._action_fields.keys():
-                key = self._get_key(name)
-                if self.blackboard.exists(key):
-                    actions[name] = self.blackboard.get(key)
+                if name in data_dict:
+                    actions[name] = data_dict[name]
         return actions

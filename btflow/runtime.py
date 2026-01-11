@@ -1,4 +1,5 @@
 import asyncio
+import time
 import py_trees
 from py_trees.trees import BehaviourTree
 from py_trees.common import Status
@@ -11,11 +12,11 @@ class ReactiveRunner:
     Runner: 支持断点续传、资源清理、状态差异化恢复。
     升级为事件驱动 (Event-Driven) 调度模式
     """
-    def __init__(self, root: py_trees.behaviour.Behaviour, state_manager):
+    def __init__(self, root: py_trees.behaviour.Behaviour, state_manager, setup_timeout: float = 15.0):
         self.root = root
         self.state_manager = state_manager 
         self.tree = BehaviourTree(root)
-        self.tree.setup(timeout=15)
+        self.tree.setup(timeout=setup_timeout)
         
         # 核心信号量：事件锁
         self.tick_signal = asyncio.Event()
@@ -27,8 +28,13 @@ class ReactiveRunner:
         # 1. 订阅状态变化 (State Driven)
         self.state_manager.subscribe(self._on_wake_signal)
 
-        # 2. 订阅所有异步节点的任务完成事件 (Task Driven)
+        # 2. 遍历所有节点，完成依赖注入
         for node in self.root.iterate():
+            # 2a. 注入 StateManager（自动依赖注入）
+            if hasattr(node, "bind_state_manager"):
+                node.bind_state_manager(self.state_manager)
+            
+            # 2b. 注入唤醒回调（Task Driven）
             if isinstance(node, AsyncBehaviour):
                 node.bind_wake_up(self._on_wake_signal)
 
@@ -126,6 +132,8 @@ class ReactiveRunner:
         self.tick_signal.set()
 
         tick_count = 0
+        start_time = time.monotonic()  # Hot loop 检测计时器
+        hot_loop_warned = False  # 避免重复警告
         
         try:
             while True: # [修改] 改为死循环
@@ -142,6 +150,17 @@ class ReactiveRunner:
                 self.tree.tick()
                 tick_count += 1  # 计数
                 status = self.root.status
+                
+                # 4. Hot Loop 检测：如果 1 秒内超过 100 次 tick，警告
+                if not hot_loop_warned and tick_count >= 100:
+                    elapsed = time.monotonic() - start_time
+                    if elapsed < 1.0:
+                        logger.warning(
+                            "⚠️ [Runner] 疑似 Hot Loop: {} ticks in {:.2f}s. "
+                            "检查是否有同步节点在 update() 中调用 state.update()",
+                            tick_count, elapsed
+                        )
+                        hot_loop_warned = True
                 
                 # 收集状态用于存档
                 current_state_data = self.state_manager.get().model_dump()
@@ -176,5 +195,11 @@ class ReactiveRunner:
         finally:
             self.auto_driving = False  # 关闭自动驾驶
             logger.debug("🧹 [Runner] 正在清理资源...")
+            # 取消订阅，防止内存泄漏
+            self.state_manager.unsubscribe(self._on_wake_signal)
+            # 解绑节点的唤醒回调，防止 Long-lived Tree 场景下的引用泄漏
+            for node in self.root.iterate():
+                if isinstance(node, AsyncBehaviour):
+                    node.bind_wake_up(None)
             self.tree.interrupt()
             logger.info("💤 [Runner] 结束。")

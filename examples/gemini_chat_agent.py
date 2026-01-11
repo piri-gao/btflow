@@ -35,11 +35,10 @@ async def main():
         "step_count": 0
     })
 
-    # === 3. 构建树 ===
+    # === 3. 构建树 (不需要传 state_manager，Runner 会自动注入) ===
     root = py_trees.composites.Sequence(name="GeminiFlow", memory=True)
     gemini_node = GeminiNode(
         name="Gemini", 
-        state_manager=state_manager,
         model="gemini-2.5-flash", 
         system_prompt="你是一个乐于助人的 AI 助手。"
     )

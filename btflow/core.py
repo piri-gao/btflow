@@ -1,9 +1,12 @@
 import asyncio
 import traceback
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 import py_trees
 from py_trees.common import Status
 from btflow.logging import logger
+
+if TYPE_CHECKING:
+    from btflow.state import StateManager
 
 class AsyncBehaviour(py_trees.behaviour.Behaviour):
     """
@@ -22,10 +25,22 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
         self.async_task = None 
         # 唤醒回调句柄
         self._wake_callback: Optional[Callable[[], None]] = None
+        # StateManager 引用（由 Runner 自动注入）
+        self.state_manager: Optional['StateManager'] = None
 
     def bind_wake_up(self, callback: Callable[[], None]):
         """绑定唤醒回调 (通常由 Runner 注入)"""
         self._wake_callback = callback
+
+    def bind_state_manager(self, state_manager: 'StateManager'):
+        """绑定 StateManager (由 Runner 自动注入)
+        
+        Note:
+            注入发生在 ReactiveRunner 初始化时。
+            因此，不要在节点的 __init__ 中访问 self.state_manager，
+            它那时可能还是 None。如需初始化时读取状态，请在 setup() 或 initialise() 中进行。
+        """
+        self.state_manager = state_manager
 
     def initialise(self) -> None:
         """
@@ -45,7 +60,9 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
             
             # 关键：任务结束时（无论成功失败），按一下闹钟
             if self._wake_callback:
-                self.async_task.add_done_callback(lambda _: self._wake_callback())
+                self.async_task.add_done_callback(
+                    lambda _: self._wake_callback() if self._wake_callback else None
+                )
                 
         except RuntimeError:
             self.feedback_message = "❌ No active asyncio event loop found."
