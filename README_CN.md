@@ -1,124 +1,106 @@
 # BTflow 🌊
 
-> **Event-driven, State-managed Behavior Tree Framework for LLM Agents.**
+> **面向 LLM Agent 的事件驱动、状态管理行为树框架。**
 >
-> 专为构建复杂、可中断、长程记忆的 AI Agent 而设计的行为树框架 (v0.2.0 Alpha)。
+> 一个专为构建复杂、可中断且具备长期记忆的 AI Agent 而设计的行为树框架。
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.9+-green.svg)
-![Status](https://img.shields.io/badge/status-alpha-red)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10+-green.svg)]()
+[![Status](https://img.shields.io/badge/status-alpha-red)]()
 
 [English](README.md) | [简体中文](README_CN.md)
 
 ## 🌟 核心特性
 
-* **⚡ 事件驱动**: 基于 `asyncio.Event` 的响应式内核，仅在状态变更或任务完成时唤醒 Tick。
-* **🎮 双模驱动**: `BTAgent` 支持 `step()` 模式（RL 训练）和 `run()` 模式（对话机器人）。
-* **🧠 状态管理**: Pydantic 强类型黑板，支持 `Reducer`（增量追加）和 `ActionField`（每帧重置）。
-* **💾 持久化**: 支持断点续传，可配置检查点间隔，避免高频场景磁盘压力。
-* **🌳 可视化**: 导出 ASCII 树或 PNG 流程图。
+* **⚡ 事件驱动**: 基于 `asyncio.Event` 的响应式内核。告别忙等待和轮询。只有当状态发生变化或任务完成时才会触发 Tick，确保零延迟和高效率。
+* **🧠 类型化状态**: 基于 Pydantic 的黑板（Blackboard），支持自动数据验证和变更通知。
+* **🔌 零样板代码**: 自动为所有节点注入 `state_manager`。不再需要手动传递参数。
+* **🎨 BTflow Studio**: 内置可视化编辑器，直接在浏览器中创建、调试和运行工作流。
+* **💾 可恢复性**: 完整的状态持久化支持，允许 Agent 在崩溃或中断后从上一个 Checkpoint 完美恢复。
 
 ## 📦 安装
 
 ```bash
-pip install -e .
+pip install btflow
 ```
 
-## 🚀 快速开始
+## 🚀 快速开始 (Studio)
 
-### 1. 定义状态
+最简单的上手方式是使用可视化 Studio：
+
+```bash
+# 启动 Studio UI
+btflow-studio
+```
+
+浏览器将自动打开 `http://localhost:8000`，你可以立即开始创建你的第一个 Agent。
+
+## 💻 快速开始 (Python API)
+
+### 1. 定义 Agent 状态
 
 ```python
-import operator
 from typing import Annotated, List
 from pydantic import BaseModel, Field
+import operator
 
 class AgentState(BaseModel):
+    # 自动追加新消息，而不是覆盖
     messages: Annotated[List[str], operator.add] = Field(default_factory=list)
 ```
 
-### 2. 构建行为树
-
-```python
-import py_trees
-from btflow.state import StateManager
-from btflow.runtime import ReactiveRunner
-from btflow.agent import BTAgent
-from btflow.nodes.mock import MockLLMAction
-
-# 初始化
-state_manager = StateManager(schema=AgentState)
-state_manager.initialize({"messages": []})
-
-# 构建树
-root = py_trees.composites.Sequence(name="MainSeq", memory=True)
-node1 = MockLLMAction(name="Think", state_manager=state_manager)
-node2 = MockLLMAction(name="Reply", state_manager=state_manager)
-root.add_children([node1, node2])
-
-# 创建 BTAgent
-runner = ReactiveRunner(root, state_manager)
-agent = BTAgent(runner)
-```
-
-### 3. 运行
+### 2. 构建并运行
 
 ```python
 import asyncio
+from btflow import StateManager, ReactiveRunner, BTAgent, Sequence
+from btflow.nodes.llm import GeminiNode
 
 async def main():
-    # 对话模式
-    await agent.run(
-        input_data={"messages": ["User: 你好！"]},
-        max_ticks=10
-    )
+    # 1. 初始化状态
+    state_manager = StateManager(schema=AgentState)
+    state_manager.initialize({"messages": []})
+
+    # 2. 构建行为树
+    root = Sequence(name="MainSeq", memory=True)
+    # 注意: StateManager 会被自动注入，无需手动传递！
+    node1 = GeminiNode(name="Think", model="gemini-1.5-flash")
+    root.add_children([node1])
+
+    # 3. 运行 Agent
+    runner = ReactiveRunner(root, state_manager)
+    agent = BTAgent(runner)
+    
+    await agent.run(input_data={"messages": ["Hello!"]})
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### 4. RL 训练模式
+## 🛠️ 开发指南
 
-```python
-from btflow.state import ActionField
-
-class RLState(BaseModel):
-    observation: dict = {}
-    speed: Annotated[float, ActionField()] = 0.0  # 每帧自动重置
-
-# 训练循环
-for episode in range(1000):
-    obs = env.reset()
-    agent.reset(reset_data=True)
-    
-    while not done:
-        action = await agent.step(obs)
-        obs, reward, done, _ = env.step(action)
-```
-
-## 🏗️ 架构概览
-
-```text
-btflow/
-├── agent.py        # [Gate] 双模驱动统一入口 (BTAgent)
-├── core.py         # [Kernel] 异步节点基类 (AsyncBehaviour)
-├── state.py        # [Memory] 类型化黑板 (StateManager, ActionField)
-├── runtime.py      # [Engine] 响应式运行器 (ReactiveRunner)
-├── persistence.py  # [Storage] JSONL 存档
-└── nodes/          # [Actions] 业务节点
-```
-
-## 🧪 测试
+如果你想参与贡献或从源码构建：
 
 ```bash
-# 运行所有测试
-python -m unittest discover tests
+# 1. 安装开发依赖
+make install
 
-# 运行 examples
-cd examples && python mock_demo.py
-cd examples && python rl_step_demo.py
+# 2. 运行测试
+make test
+
+# 3. 构建发布包 (包含后端和前端资源)
+make publish
+```
+
+### 目录结构
+```text
+btflow/
+├── btflow/          # 核心框架代码
+├── btflow_studio/   # 可视化 Studio (FastAPI + React)
+├── examples/        # 使用示例
+└── tests/           # 单元测试与集成测试
 ```
 
 ## 📄 License
 
-MIT © 2025 Piri Gao
+MIT © 2026 Piri Gao

@@ -5,13 +5,7 @@ import time
 import operator
 from typing import Annotated, List
 from pydantic import BaseModel, Field
-import py_trees
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from btflow.state import StateManager
-from btflow.runtime import ReactiveRunner
-from btflow.decorators import action # <--- 引入神器
+from btflow import StateManager, ReactiveRunner, action, Sequence
 
 # 1. 状态定义
 class State(BaseModel):
@@ -40,7 +34,7 @@ async def main():
     sm.initialize()
     
     # 组装树
-    root = py_trees.composites.Sequence("MainSeq", memory=True)
+    root = Sequence("MainSeq", memory=True)
     
     # 实例化节点时，只需传 name 和 state_manager
     # 装饰器把函数变成了类，所以这里是在实例化类

@@ -1,15 +1,15 @@
-import py_trees
+import btflow
 from typing import Dict, Any, Type, List
 from pydantic import create_model
-from btflow.state import StateManager
-from btflow.state import StateManager
+from btflow.core.state import StateManager
+from btflow.core.state import StateManager
 from .workflow_schema import WorkflowDefinition, NodeDefinition
 from .node_registry import node_registry
-from py_trees.composites import Sequence, Selector, Parallel
-from py_trees.composites import Sequence, Selector, Parallel
-from py_trees.common import ParallelPolicy
+from btflow import Sequence, Selector, Parallel
+from btflow import Sequence, Selector, Parallel
+from btflow import ParallelPolicy
 import inspect
-from btflow.logging import logger
+from btflow.core.logging import logger
 
 class WorkflowConverter:
     """
@@ -18,10 +18,10 @@ class WorkflowConverter:
     
     def __init__(self, workflow: WorkflowDefinition):
         self.workflow = workflow
-        self.node_map: Dict[str, py_trees.behaviour.Behaviour] = {}
+        self.node_map: Dict[str, btflow.Behaviour] = {}
         self.state_manager = self._create_state_manager()
     
-    def compile(self) -> py_trees.behaviour.Behaviour:
+    def compile(self) -> btflow.Behaviour:
         """Builds the behavior tree from the workflow definition."""
         
         # 1. Instantiate all nodes
@@ -50,7 +50,7 @@ class WorkflowConverter:
         if not root_candidates:
             # Fallback: if single node loop or empty, handle gracefully
             if not self.workflow.nodes:
-                 return py_trees.behaviours.Dummy(name="Empty Workflow")
+                 return btflow.Dummy(name="Empty Workflow")
             # If ring, pick first? No, error.
             raise ValueError("Cyclic dependency or empty workflow: No root node found.")
             
@@ -90,9 +90,9 @@ class WorkflowConverter:
                 self._assemble_children(child_id, children_map)
                 children_nodes.append(self.node_map[child_id])
                 
-            if isinstance(parent_node, py_trees.composites.Composite):
+            if isinstance(parent_node, btflow.Composite):
                 parent_node.add_children(children_nodes)
-            elif isinstance(parent_node, py_trees.decorators.Decorator):
+            elif isinstance(parent_node, btflow.Decorator):
                 if len(children_nodes) == 1:
                     parent_node.decorate(children_nodes[0])
                 else:
@@ -128,11 +128,11 @@ class WorkflowConverter:
             
         return StateManager(schema=DynamicState)
         
-    def _create_node(self, node_def: NodeDefinition) -> py_trees.behaviour.Behaviour:
+    def _create_node(self, node_def: NodeDefinition) -> btflow.Behaviour:
         meta = node_registry.get(node_def.type)
         if not meta:
             # Check built-in fallbacks if generic
-             return py_trees.behaviours.Dummy(name=node_def.id)
+             return btflow.Dummy(name=node_def.id)
             
         # 1. Handle Built-in Composites
         if node_def.type == "Sequence":
@@ -149,7 +149,7 @@ class WorkflowConverter:
         # 2. Handle Custom Nodes (Registered Classes)
         cls = node_registry.get_class(node_def.type)
         if not cls:
-             return py_trees.behaviours.Dummy(name=node_def.id)
+             return btflow.Dummy(name=node_def.id)
 
         # Prepare kwargs
         kwargs = {}
@@ -180,4 +180,4 @@ class WorkflowConverter:
             return cls(**kwargs)
         except Exception as e:
             logger.error("Failed to instantiate {}: {}", node_def.type, e)
-            return py_trees.behaviours.Dummy(name=node_def.id)
+            return btflow.Dummy(name=node_def.id)

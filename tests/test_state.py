@@ -2,7 +2,7 @@ import unittest
 import operator
 from typing import Annotated, List
 from pydantic import BaseModel, Field
-from btflow.state import StateManager
+from btflow.core.state import StateManager
 
 # 1. 定义测试用的 Schema
 class TestState(BaseModel):

@@ -8,14 +8,10 @@ import asyncio
 import operator
 from typing import Annotated, List
 from pydantic import BaseModel, Field
-import py_trees
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from btflow.state import StateManager
-from btflow.runtime import ReactiveRunner
-from btflow.agent import BTAgent
-from btflow.nodes.mock import MockLLMAction
+# 统一 import
+from btflow import BTAgent, StateManager, Sequence, MockLLMAction
 
 # === 1. 定义状态 Schema ===
 class AgentState(BaseModel):
@@ -35,14 +31,13 @@ async def main():
     })
 
     # 3. 构建行为树 (不需要传 state_manager，Runner 会自动注入)
-    root = py_trees.composites.Sequence(name="MainSequence", memory=True)
+    root = Sequence(name="MainSequence", memory=True)
     node1 = MockLLMAction(name="LLM_Node_1")
     node2 = MockLLMAction(name="LLM_Node_2")
     root.add_children([node1, node2])
 
-    # 4. 创建 BTAgent 并运行
-    runner = ReactiveRunner(root, state_manager)
-    agent = BTAgent(runner)
+    # 4. 创建 BTAgent (无需手动创建 Runner)
+    agent = BTAgent(root, state_manager)
     
     print(f"📊 初始状态: {state_manager.get().model_dump()}")
     

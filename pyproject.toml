@@ -1,17 +1,37 @@
 [tool.poetry]
 name = "btflow"
-version = "0.1.1" 
+version = "0.1.2" 
 description = "Event-driven, Async Behavior Tree framework for LLM Agents"
 authors = ["Piri Gao <piri.gao@outlook.com>"]
+license = "MIT"
+readme = "README.md"
+
+packages = [
+    { include = "btflow" },
+    { include = "btflow_studio" }
+]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 py_trees = "^2.2.3"
 pydantic = "^2.0.0"
 anyio = "^4.0.0"
-google-genai = "^0.2.0"  # 或者不写版本号让它装最新的
+google-genai = "^0.2.0"
 python-dotenv = "^1.0.0"
 loguru = "^0.7.0"
+fastapi = "^0.100.0"
+uvicorn = "^0.20.0"
+websockets = "^11.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
+httpx = "^0.27.0"  # For TestClient
+ruff = "^0.3.0"
+mypy = "^1.8.0"
+
+[tool.poetry.scripts]
+btflow-studio = "btflow_studio.backend.app.main:start"
 
 [build-system]
 requires = ["poetry-core"]

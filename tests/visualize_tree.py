@@ -1,13 +1,17 @@
 import sys
 import os
-import py_trees
-from py_trees import display
+from btflow import (
+    Sequence, 
+    Selector, 
+    Parallel, 
+    StateManager, 
+    MockLLMAction, 
+    display
+)
 
 # 路径补丁
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from btflow.state import StateManager
-from btflow.nodes.mock import MockLLMAction
 from pydantic import BaseModel
 
 class DummyState(BaseModel):
@@ -19,14 +23,14 @@ def build_demo_tree():
     
     # 根节点：Sequence (带记忆)
     # 图标解释: [-] 代表 Sequence (顺序执行)
-    root = py_trees.composites.Sequence(name="MainProcess", memory=True)
+    root = Sequence(name="MainProcess", memory=True)
     
     # 1. 第一阶段
     node_a = MockLLMAction(name="SayHello", state_manager=state_manager)
     
     # 2. 第二阶段：Selector (带记忆)
     # 图标解释: [?] 代表 Selector (选择执行/Fallback)
-    decision_node = py_trees.composites.Selector(name="ReasoningLogic", memory=True)
+    decision_node = Selector(name="ReasoningLogic", memory=True)
     plan_a = MockLLMAction(name="TryPlanA", state_manager=state_manager)
     plan_b = MockLLMAction(name="FallbackPlanB", state_manager=state_manager)
     decision_node.add_children([plan_a, plan_b])

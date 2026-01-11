@@ -16,17 +16,12 @@ import asyncio
 import json
 from typing import Annotated
 from pydantic import BaseModel
-import py_trees
-from py_trees.composites import Parallel
-from py_trees.common import ParallelPolicy
 from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from btflow.core import AsyncBehaviour
-from btflow.state import StateManager, ActionField
-from btflow.runtime import ReactiveRunner
-from btflow.agent import BTAgent
+# 统一 import
+from btflow import BTAgent, StateManager, ActionField, AsyncBehaviour, Parallel, ParallelPolicy, Status, Behaviour
 
 from google import genai
 from google.genai import types
@@ -71,7 +66,7 @@ class LLMBrainNode(AsyncBehaviour):
         self.model = model
         self.client = get_gemini_client()
     
-    async def update_async(self) -> py_trees.common.Status:
+    async def update_async(self) -> Status:
         state = self.state_manager.get()
         
         print(f"\n🧠 [Brain] LLM 正在规划路径...")
@@ -129,27 +124,28 @@ class LLMBrainNode(AsyncBehaviour):
             print(f"   📍 新路径点: {waypoint}")
             print(f"   💭 推理: {reasoning}")
             
-            return py_trees.common.Status.SUCCESS
+            return Status.SUCCESS
             
         except asyncio.TimeoutError:
             print(f"🔥 [Brain] LLM 超时!")
-            return py_trees.common.Status.FAILURE
+            return Status.FAILURE
         except Exception as e:
             print(f"🔥 [Brain] 错误: {e}")
-            return py_trees.common.Status.FAILURE
+            return Status.FAILURE
 
 
 # === 4. 肌肉节点：同步控制 ===
-class MuscleNode(py_trees.behaviour.Behaviour):
+class MuscleNode(Behaviour):
     """
     实时控制：根据当前位置和路径点计算速度
     每帧执行，读取大脑的 waypoint
     """
-    def __init__(self, name: str, state_manager: StateManager):
+    def __init__(self, name: str):
         super().__init__(name)
-        self.state_manager = state_manager
+        # 依赖注入：由 Runner 在运行时赋值
+        self.state_manager: StateManager = None
     
-    def update(self) -> py_trees.common.Status:
+    def update(self) -> Status:
         state = self.state_manager.get()
         
         # 计算到路径点的方向
@@ -171,7 +167,7 @@ class MuscleNode(py_trees.behaviour.Behaviour):
             "velocity_y": vy
         })
         
-        return py_trees.common.Status.SUCCESS
+        return Status.SUCCESS
 
 
 # === 5. 简单环境模拟 ===
@@ -228,7 +224,7 @@ async def main():
     
     # 构建行为树
     brain_node = LLMBrainNode("LLM_Brain", state_manager)
-    muscle_node = MuscleNode("Muscle", state_manager)
+    muscle_node = MuscleNode("Muscle")
     
     root = Parallel(
         name="BrainMuscle",
@@ -236,8 +232,8 @@ async def main():
         children=[brain_node, muscle_node]
     )
     
-    runner = ReactiveRunner(root, state_manager)
-    agent = BTAgent(runner)
+    # 创建 Agent (无需手动创建 Runner)
+    agent = BTAgent(root, state_manager)
     
     # 创建环境
     env = GridWorldEnv()

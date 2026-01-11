@@ -1,4 +1,4 @@
-from btflow.core import AsyncBehaviour
+from btflow.core.behaviour import AsyncBehaviour
 import asyncio
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status

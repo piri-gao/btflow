@@ -13,16 +13,11 @@ import asyncio
 import operator
 from typing import Annotated, List
 from pydantic import BaseModel, Field
-import py_trees
 from dotenv import load_dotenv
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from btflow.state import StateManager
-from btflow.runtime import ReactiveRunner
-from btflow.agent import BTAgent
-from btflow.core import AsyncBehaviour
-from py_trees.common import Status
+# 统一 import
+from btflow import BTAgent, StateManager, Sequence, AsyncBehaviour, Status
 
 # 引入 Google GenAI SDK
 from google import genai
@@ -53,9 +48,9 @@ def get_gemini_client():
 class PlannerNode(AsyncBehaviour):
     """第一阶段：分析问题，制定计划"""
     
-    def __init__(self, name: str, state_manager: StateManager, model: str = "gemini-2.5-flash"):
+    def __init__(self, name: str, model: str = "gemini-2.5-flash"):
         super().__init__(name)
-        self.state_manager = state_manager
+        self.state_manager: StateManager = None
         self.model = model
         self.client = get_gemini_client()
     
@@ -95,9 +90,9 @@ class PlannerNode(AsyncBehaviour):
 class ExecutorNode(AsyncBehaviour):
     """第二阶段：执行计划，生成答案"""
     
-    def __init__(self, name: str, state_manager: StateManager, model: str = "gemini-2.5-flash"):
+    def __init__(self, name: str, model: str = "gemini-2.5-flash"):
         super().__init__(name)
-        self.state_manager = state_manager
+        self.state_manager: StateManager = None
         self.model = model
         self.client = get_gemini_client()
     
@@ -146,9 +141,9 @@ class ExecutorNode(AsyncBehaviour):
 class ReviewerNode(AsyncBehaviour):
     """第三阶段：检查答案，给出评价"""
     
-    def __init__(self, name: str, state_manager: StateManager, model: str = "gemini-2.5-flash"):
+    def __init__(self, name: str, model: str = "gemini-2.5-flash"):
         super().__init__(name)
-        self.state_manager = state_manager
+        self.state_manager: StateManager = None
         self.model = model
         self.client = get_gemini_client()
     
@@ -208,17 +203,16 @@ async def main():
     state_manager.initialize()
     
     # 构建 CoT Chain
-    root = py_trees.composites.Sequence(name="CoT_Chain", memory=True)
+    root = Sequence(name="CoT_Chain", memory=True)
     
-    planner = PlannerNode("Planner", state_manager)
-    executor = ExecutorNode("Executor", state_manager)
-    reviewer = ReviewerNode("Reviewer", state_manager)
+    planner = PlannerNode("Planner")
+    executor = ExecutorNode("Executor")
+    reviewer = ReviewerNode("Reviewer")
     
     root.add_children([planner, executor, reviewer])
     
-    # 创建 Agent
-    runner = ReactiveRunner(root, state_manager)
-    agent = BTAgent(runner)
+    # 创建 Agent (无需手动创建 Runner)
+    agent = BTAgent(root, state_manager)
     
     # 运行
     question = "为什么天空是蓝色的？"

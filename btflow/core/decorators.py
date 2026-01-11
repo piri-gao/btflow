@@ -2,9 +2,9 @@ import inspect
 import asyncio
 from typing import Callable, Any, Dict, Type
 from py_trees.common import Status
-from btflow.core import AsyncBehaviour
-from btflow.state import StateManager
-from btflow.logging import logger
+from btflow.core.behaviour import AsyncBehaviour
+from btflow.core.state import StateManager
+from btflow.core.logging import logger
 
 def action(func: Callable):
     """

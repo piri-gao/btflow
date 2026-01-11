@@ -6,13 +6,8 @@ import asyncio
 import operator
 from typing import Annotated, List, Optional
 from pydantic import BaseModel, Field
-from py_trees.common import Status
-import py_trees
 
-from btflow.core import AsyncBehaviour
-from btflow.state import StateManager, ActionField
-from btflow.runtime import ReactiveRunner
-from btflow.agent import BTAgent
+from btflow import BTAgent, StateManager, ActionField, AsyncBehaviour, ReactiveRunner, Status, Behaviour
 
 
 # 测试用 State Schema
@@ -25,11 +20,11 @@ class TestState(BaseModel):
 
 
 # 同步动作节点（模拟"肌肉节点"，用于 step 模式测试）
-class SyncActionNode(py_trees.behaviour.Behaviour):
+class SyncActionNode(Behaviour):
     """同步节点：立即写入动作并返回 SUCCESS"""
-    def __init__(self, name: str, state_manager: StateManager):
+    def __init__(self, name: str):
         super().__init__(name)
-        self.state_manager = state_manager
+        self.state_manager: StateManager = None
     
     def update(self) -> Status:
         obs = self.state_manager.get().observation
@@ -41,9 +36,9 @@ class SyncActionNode(py_trees.behaviour.Behaviour):
 # 异步动作节点（模拟"大脑节点"）
 class AsyncActionNode(AsyncBehaviour):
     """异步节点：写入动作后成功（需要多帧）"""
-    def __init__(self, name: str, state_manager: StateManager):
+    def __init__(self, name: str):
         super().__init__(name)
-        self.state_manager = state_manager
+        self.state_manager: StateManager = None
     
     async def update_async(self) -> Status:
         obs = self.state_manager.get().observation
@@ -60,7 +55,7 @@ class TestBTAgentStep(unittest.IsolatedAsyncioTestCase):
         self.state.initialize()
         
         # 简单的单节点树（同步节点用于 step 测试）
-        self.root = SyncActionNode("Action", self.state)
+        self.root = SyncActionNode("Action")
         self.runner = ReactiveRunner(self.root, self.state)
         self.agent = BTAgent(self.runner)
     
@@ -103,7 +98,7 @@ class TestBTAgentReset(unittest.IsolatedAsyncioTestCase):
         self.state = StateManager(TestState)
         self.state.initialize()
         
-        self.root = SyncActionNode("Action", self.state)
+        self.root = SyncActionNode("Action")
         self.runner = ReactiveRunner(self.root, self.state)
         self.agent = BTAgent(self.runner)
     

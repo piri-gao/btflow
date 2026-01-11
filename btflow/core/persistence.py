@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import Any, Dict, Optional
 from pydantic import BaseModel
-from btflow.logging import logger
+from btflow.core.logging import logger
 
 class Checkpoint(BaseModel):
     """存档数据结构"""

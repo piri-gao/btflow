@@ -3,10 +3,10 @@ import traceback
 from typing import Callable, Optional, TYPE_CHECKING
 import py_trees
 from py_trees.common import Status
-from btflow.logging import logger
+from btflow.core.logging import logger
 
 if TYPE_CHECKING:
-    from btflow.state import StateManager
+    from btflow.core.state import StateManager
 
 class AsyncBehaviour(py_trees.behaviour.Behaviour):
     """

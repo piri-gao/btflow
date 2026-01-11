@@ -2,9 +2,9 @@ import os
 import asyncio
 from typing import List, Dict, Any
 from py_trees.common import Status
-from btflow.core import AsyncBehaviour
+from btflow.core.behaviour import AsyncBehaviour
 from dotenv import load_dotenv
-from btflow.logging import logger
+from btflow.core.logging import logger
 
 # 引入 Google GenAI SDK
 from google import genai

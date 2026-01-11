@@ -117,8 +117,8 @@ node_registry.register_metadata(NodeMetadata(
 ))
 
 # 2. Debug & Action Nodes
-from btflow.nodes.debug import Log
-from btflow.nodes.action import Wait
+from btflow.nodes.common.debug import Log
+from btflow.nodes.common.action import Wait
 
 node_registry.register(
     Log,

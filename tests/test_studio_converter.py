@@ -1,12 +1,8 @@
-import sys
-import os
 import unittest
-import py_trees
-sys.path.append(os.path.join(os.getcwd(), 'btflow-studio'))
-
-from backend.app.workflow_schema import WorkflowDefinition, NodeDefinition, EdgeDefinition, StateDefinition, StateFieldDefinition
-from backend.app.converter import WorkflowConverter
-from backend.app.node_registry import node_registry, NodeMetadata
+from btflow import Sequence, Selector, Parallel, Status
+from btflow_studio.backend.app.workflow_schema import WorkflowDefinition, NodeDefinition, EdgeDefinition, StateDefinition, StateFieldDefinition
+from btflow_studio.backend.app.converter import WorkflowConverter
+from btflow_studio.backend.app.node_registry import node_registry, NodeMetadata
 
 class TestWorkflowConverter(unittest.TestCase):
     
@@ -34,7 +30,7 @@ class TestWorkflowConverter(unittest.TestCase):
         root = converter.compile()
         
         # Verify Root
-        self.assertIsInstance(root, py_trees.composites.Sequence)
+        self.assertIsInstance(root, Sequence)
         self.assertEqual(root.name, "Main Sequence")
         
         # Verify Children
@@ -42,10 +38,10 @@ class TestWorkflowConverter(unittest.TestCase):
         child1 = root.children[0]
         child2 = root.children[1]
         
-        self.assertIsInstance(child1, py_trees.composites.Parallel)
+        self.assertIsInstance(child1, Parallel)
         self.assertEqual(child1.name, "Worker 1")
         
-        self.assertIsInstance(child2, py_trees.composites.Selector)
+        self.assertIsInstance(child2, Selector)
         self.assertEqual(child2.name, "Worker 2")
 
     def test_state_schema_generation(self):

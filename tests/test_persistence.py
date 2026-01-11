@@ -9,14 +9,15 @@ from pydantic import BaseModel, Field
 # === 环境配置 ===
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from py_trees.common import Status
-from py_trees.blackboard import Client as BlackboardClient
-import py_trees
-
-from btflow.core import AsyncBehaviour
-from btflow.state import StateManager
-from btflow.runtime import ReactiveRunner
-from btflow.persistence import SimpleCheckpointer
+from btflow import (
+    AsyncBehaviour, 
+    StateManager, 
+    ReactiveRunner, 
+    SimpleCheckpointer, 
+    Status, 
+    Sequence,
+    BlackboardClient
+)
 
 # === 1. 定义测试用 State ===
 class AgentState(BaseModel):
@@ -29,10 +30,9 @@ class ControlledAction(AsyncBehaviour):
     一个完全受控的节点。
     它不依赖时间(sleep)，而是依赖外部信号(Event)来决定何时开始、何时结束。
     """
-    def __init__(self, name: str, state_manager: StateManager, 
-                 start_event: asyncio.Event, finish_event: asyncio.Event):
+    def __init__(self, name: str, start_event: asyncio.Event, finish_event: asyncio.Event):
         super().__init__(name)
-        self.state_manager = state_manager
+        self.state_manager: StateManager = None
         # 信号灯
         self.start_event = start_event   # 绿灯：告诉外界“我跑起来了”
         self.finish_event = finish_event # 红灯：外界控制“你可以结束了”
@@ -83,9 +83,9 @@ async def test_stable_persistence():
     state_mgr_1 = StateManager(schema=AgentState)
     state_mgr_1.initialize({"messages": []})
     
-    root_1 = py_trees.composites.Sequence(name="MainSeq", memory=True)
+    root_1 = Sequence(name="MainSeq", memory=True)
     # 这个节点会卡住
-    node_1 = ControlledAction("Node_Crash", state_mgr_1, p1_start_event, p1_finish_event)
+    node_1 = ControlledAction("Node_Crash", p1_start_event, p1_finish_event)
     root_1.add_child(node_1)
     
     checkpointer_1 = SimpleCheckpointer(storage_dir=db_path)
@@ -128,9 +128,9 @@ async def test_stable_persistence():
     state_mgr_2 = StateManager(schema=AgentState)
     # 注意：这里不需要手动 initialize 数据，runner 会从 checkpoint 加载
     
-    root_2 = py_trees.composites.Sequence(name="MainSeq", memory=True)
+    root_2 = Sequence(name="MainSeq", memory=True)
     # 使用新的事件对象
-    node_2 = ControlledAction("Node_Crash", state_mgr_2, p2_start_event, p2_finish_event)
+    node_2 = ControlledAction("Node_Crash", p2_start_event, p2_finish_event)
     root_2.add_child(node_2)
     
     checkpointer_2 = SimpleCheckpointer(storage_dir=db_path)

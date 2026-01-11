@@ -7,7 +7,7 @@ import json
 from typing import List, Dict, Any, Optional
 import google.generativeai as genai
 from dotenv import load_dotenv
-from btflow.logging import logger
+from btflow.core.logging import logger
 
 # Load environment variables
 load_dotenv()

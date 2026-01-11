@@ -3,10 +3,14 @@ BTAgent: 统一接入层
 支持 step() 和 run() 双模驱动
 """
 import asyncio
-from typing import Literal, Dict, Any, Optional
+from typing import Literal, Dict, Any, Optional, Union, TYPE_CHECKING
 from py_trees.common import Status
+from py_trees.behaviour import Behaviour
 
-from btflow.runtime import ReactiveRunner
+from btflow.core.runtime import ReactiveRunner
+
+if TYPE_CHECKING:
+    from btflow.core.state import StateManager
 
 
 class BTAgent:
@@ -17,25 +21,43 @@ class BTAgent:
     - step(): 步进模式，用于 RL 训练 / 高频仿真
     - run(): 任务模式，用于对话机器人 / 工作流
     
-    Example:
-        runner = ReactiveRunner(root, state_manager)
-        agent = BTAgent(runner)
-        
-        # RL 场景（纯同步节点）
-        for _ in range(1000):
-            action = await agent.step({"observation": obs})
-        
-        # 脑肌结合场景（同步 + 异步节点）
-        for _ in range(1000):
-            action = await agent.step({"observation": obs}, yield_to_async=True)
+    Example (推荐用法):
+        agent = BTAgent(root, state_manager)
         
         # 对话场景
         result = await agent.run({"user_input": "你好"})
+        
+        # RL 场景
+        action = await agent.step({"observation": obs})
+    
+    Example (兼容旧 API):
+        runner = ReactiveRunner(root, state_manager)
+        agent = BTAgent(runner)
     """
     
-    def __init__(self, runner: ReactiveRunner):
-        self.runner = runner
-        self.state_manager = runner.state_manager
+    def __init__(
+        self, 
+        root_or_runner: Union[Behaviour, ReactiveRunner],
+        state_manager: Optional["StateManager"] = None
+    ):
+        """
+        创建 BTAgent。
+        
+        Args:
+            root_or_runner: 行为树根节点，或者已创建的 ReactiveRunner（兼容旧 API）
+            state_manager: 状态管理器（当第一个参数是根节点时必需）
+        """
+        if isinstance(root_or_runner, ReactiveRunner):
+            # 兼容旧 API: BTAgent(runner)
+            self.runner = root_or_runner
+            self.state_manager = root_or_runner.state_manager
+        else:
+            # 新 API: BTAgent(root, state_manager)
+            if state_manager is None:
+                raise ValueError("state_manager is required when passing root node")
+            self.runner = ReactiveRunner(root_or_runner, state_manager)
+            self.state_manager = state_manager
+        
         self._mode: Literal["idle", "step", "run"] = "idle"
     
     async def step(

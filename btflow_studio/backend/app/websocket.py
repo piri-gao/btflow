@@ -1,6 +1,6 @@
 from typing import List, Dict
 from fastapi import WebSocket
-from btflow.logging import logger
+from btflow.core.logging import logger
 
 class ConnectionManager:
     def __init__(self):

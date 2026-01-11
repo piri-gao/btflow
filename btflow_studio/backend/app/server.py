@@ -1,21 +1,24 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+import os
 from typing import List, Dict, Optional, Any
 import uuid
 import asyncio
 from pydantic import BaseModel
-import py_trees
+import btflow
 
 from .workflow_schema import WorkflowDefinition
 from .node_registry import node_registry, NodeMetadata
 from .converter import WorkflowConverter
 from .websocket import manager
 from fastapi import WebSocket, WebSocketDisconnect
-from btflow.agent import BTAgent
-from btflow.runtime import ReactiveRunner
-from btflow.logging import logger
+from btflow.core.agent import BTAgent
+from btflow.core.runtime import ReactiveRunner
+from btflow.core.logging import logger
 
-class StudioVisitor(py_trees.visitors.VisitorBase):
+class StudioVisitor(btflow.VisitorBase):
     """Captures node status after each tick and schedules a broadcast."""
     def __init__(self, workflow_id: str):
         super().__init__()
@@ -27,7 +30,7 @@ class StudioVisitor(py_trees.visitors.VisitorBase):
         """Reset status map at the start of each tick."""
         self.status_map = {}
 
-    def run(self, behaviour: py_trees.behaviour.Behaviour):
+    def run(self, behaviour: btflow.Behaviour):
         """Collect status for each visited behaviour."""
         self.status_map[behaviour.name] = behaviour.status.name
 
@@ -129,7 +132,7 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
     agent.runner.tree.visitors.append(visitor)
 
     # Set up log broadcast callback
-    from btflow.nodes.debug import Log
+    from btflow.nodes.common.debug import Log
     def broadcast_log(msg_type: str, message: str):
         asyncio.create_task(manager.broadcast(workflow_id, {
             "type": msg_type,
@@ -247,3 +250,25 @@ async def generate_workflow_from_chat(request: ChatRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+# === Static Files & SPA Support ===
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+
+# Only mount if directory exists (PROD mode)
+if os.path.exists(static_dir):
+    # Mount assets (JS/CSS)
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    # Catch-all route for SPA (React Router)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api/") or full_path.startswith("ws/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        file_path = os.path.join(static_dir, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+
+        return FileResponse(os.path.join(static_dir, "index.html"))

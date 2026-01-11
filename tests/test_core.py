@@ -1,7 +1,6 @@
 import unittest
 import asyncio
-from py_trees.common import Status
-from btflow.core import AsyncBehaviour
+from btflow import AsyncBehaviour, Status
 
 # 定义一个简单的实现类
 class SimpleNode(AsyncBehaviour):

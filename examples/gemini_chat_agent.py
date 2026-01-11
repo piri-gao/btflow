@@ -8,14 +8,10 @@ import asyncio
 import operator
 from typing import Annotated, List
 from pydantic import BaseModel, Field
-import py_trees
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from btflow.state import StateManager
-from btflow.runtime import ReactiveRunner
-from btflow.agent import BTAgent
-from btflow.nodes.llm import GeminiNode
+# 一行 import 搞定！
+from btflow import BTAgent, StateManager, Sequence, GeminiNode
 
 # === 1. 定义状态 ===
 class AgentState(BaseModel):
@@ -36,7 +32,7 @@ async def main():
     })
 
     # === 3. 构建树 (不需要传 state_manager，Runner 会自动注入) ===
-    root = py_trees.composites.Sequence(name="GeminiFlow", memory=True)
+    root = Sequence(name="GeminiFlow", memory=True)
     gemini_node = GeminiNode(
         name="Gemini", 
         model="gemini-2.5-flash", 
@@ -44,9 +40,8 @@ async def main():
     )
     root.add_children([gemini_node])
 
-    # === 4. 创建 BTAgent ===
-    runner = ReactiveRunner(root, state_manager)
-    agent = BTAgent(runner)
+    # === 4. 创建 BTAgent (无需手动创建 Runner！) ===
+    agent = BTAgent(root, state_manager)
 
     # === 5. 进入聊天循环 ===
     while True:

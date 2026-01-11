@@ -11,13 +11,11 @@ import os
 import asyncio
 from typing import Annotated, List
 from pydantic import BaseModel, Field
-import py_trees
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from btflow.state import StateManager, ActionField
-from btflow.runtime import ReactiveRunner
-from btflow.agent import BTAgent
+# 统一 import
+from btflow import BTAgent, StateManager, ActionField, Behaviour, Status
 
 
 # === 1. 定义 State Schema ===
@@ -32,15 +30,15 @@ class RLAgentState(BaseModel):
 
 
 # === 2. 定义同步行为节点（肌肉节点） ===
-class ObstacleAvoidanceNode(py_trees.behaviour.Behaviour):
+class ObstacleAvoidanceNode(Behaviour):
     """
     简单的避障逻辑（同步节点，立即返回）
     """
-    def __init__(self, name: str, state_manager: StateManager):
+    def __init__(self, name: str):
         super().__init__(name)
-        self.state_manager = state_manager
+        self.state_manager: StateManager = None
     
-    def update(self) -> py_trees.common.Status:
+    def update(self) -> Status:
         state = self.state_manager.get()
         
         # 根据观测决策动作
@@ -55,7 +53,7 @@ class ObstacleAvoidanceNode(py_trees.behaviour.Behaviour):
             # 无障碍，全速前进
             self.state_manager.update({"speed": 1.0, "turn": 0.0})
         
-        return py_trees.common.Status.SUCCESS
+        return Status.SUCCESS
 
 
 # === 模拟环境 ===
@@ -116,9 +114,8 @@ async def main():
     state_manager.initialize()
     
     # 构建行为树
-    root = ObstacleAvoidanceNode("AvoidObstacle", state_manager)
-    runner = ReactiveRunner(root, state_manager)
-    agent = BTAgent(runner)
+    root = ObstacleAvoidanceNode("AvoidObstacle")
+    agent = BTAgent(root, state_manager)
     
     # 创建环境
     env = SimpleEnv()

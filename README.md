@@ -2,116 +2,105 @@
 
 > **Event-driven, State-managed Behavior Tree Framework for LLM Agents.**
 >
-> A behavior tree framework designed for building complex, interruptible, and long-term memory AI agents (v0.2.0 Alpha).
+> A behavior tree framework designed for building complex, interruptible, and long-term memory AI agents.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.9+-green.svg)
-![Status](https://img.shields.io/badge/status-alpha-red)
+[![Python](https://img.shields.io/badge/python-3.10+-green.svg)]()
+[![Status](https://img.shields.io/badge/status-alpha-red)]()
 
 [English](README.md) | [简体中文](README_CN.md)
 
 ## 🌟 Key Features
 
-* **⚡ Event-Driven**: Reactive kernel based on `asyncio.Event`. No busy waiting or polling. Ticks are triggered only by state changes or task completion, ensuring zero latency and high efficiency.
-* **🎮 Dual-Mode Support**: `BTAgent` supports both `step()` mode for RL training and `run()` mode for task-driven agents like chatbots.
-* **🧠 State Management**: Pydantic-based typed blackboard supporting `Reducer` (e.g., append-only messages), `ActionField` for per-frame reset, and change notifications.
-* **💾 Persistence & Memory**: Supports "Resumable Execution". System state and execution progress can be perfectly restored from the latest checkpoint after a crash or interruption.
-* **🌳 Visualization**: Built-in tools to export complex agent logic as ASCII trees or PNG flowcharts.
+* **⚡ Event-Driven**: Reactive kernel based on `asyncio.Event`. No busy waiting or polling. Ticks are triggered only by state changes or task completion.
+* **🧠 Typed State**: Pydantic-based blackboard with automatic validation and change notifications.
+* **🔌 Zero Boilerplate**: Auto-injected `state_manager` for all nodes. No more manually passing arguments.
+* **🎨 BTflow Studio**: Included visual editor to create, debug, and run workflows directly from your browser.
+* **💾 Resumable**: Complete state persistence allows agents to crash and resume exactly where they left off.
 
 ## 📦 Installation
 
 ```bash
-# Recommended using poetry or pip
-pip install -e .
-
+pip install btflow
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Studio)
 
-### 1. Define State Schema
+The easiest way to get started is using the visual studio:
+
+```bash
+# Start the Studio UI
+btflow-studio
+```
+
+Open your browser at `http://localhost:8000` to create your first agent.
+
+## 💻 Quick Start (Python API)
+
+### 1. Define Agent State
 
 ```python
-import operator
 from typing import Annotated, List
 from pydantic import BaseModel, Field
+import operator
 
 class AgentState(BaseModel):
     # Automatically append new messages instead of overwriting
     messages: Annotated[List[str], operator.add] = Field(default_factory=list)
-
 ```
 
-### 2. Build the Tree
-
-```python
-import py_trees
-from btflow.state import StateManager
-from btflow.runtime import ReactiveRunner
-from btflow.agent import BTAgent
-from btflow.nodes.mock import MockLLMAction
-
-# Initialize State
-state_manager = StateManager(schema=AgentState)
-state_manager.initialize({"messages": []})
-
-# Define Flow: Sequence
-root = py_trees.composites.Sequence(name="MainSeq", memory=True)
-node1 = MockLLMAction(name="Think", state_manager=state_manager)
-node2 = MockLLMAction(name="Reply", state_manager=state_manager)
-root.add_children([node1, node2])
-
-# Create BTAgent
-runner = ReactiveRunner(root, state_manager)
-agent = BTAgent(runner)
-
-```
-
-### 3. Run
+### 2. Build and Run
 
 ```python
 import asyncio
+from btflow import StateManager, ReactiveRunner, BTAgent, Sequence
+from btflow.nodes.llm import GeminiNode
 
 async def main():
-    # Run with initial input
-    await agent.run(
-        input_data={"messages": ["User: Hello!"]},
-        max_ticks=10
-    )
+    # 1. Initialize State
+    state_manager = StateManager(schema=AgentState)
+    state_manager.initialize({"messages": []})
+
+    # 2. Build Tree
+    root = Sequence(name="MainSeq", memory=True)
+    # Note: StateManager is auto-injected!
+    node1 = GeminiNode(name="Think", model="gemini-1.5-flash")
+    root.add_children([node1])
+
+    # 3. Run Agent
+    runner = ReactiveRunner(root, state_manager)
+    agent = BTAgent(runner)
+    
+    await agent.run(input_data={"messages": ["Hello!"]})
 
 if __name__ == "__main__":
     asyncio.run(main())
-
 ```
 
+## 🛠️ Development
 
-## 🏗️ Architecture
-
-```text
-btflow/
-├── core.py         # [Kernel] Event-driven Async Node Base (AsyncBehaviour)
-├── state.py        # [Memory] Typed Blackboard with Observer Pattern
-├── runtime.py      # [Engine] Reactive Runner based on Signals
-├── persistence.py  # [Storage] JSONL Checkpoint System
-└── nodes/          # [Actions] Concrete Business Nodes (LLM, Tool...)
-
-```
-
-## 🧪 Testing & Validation
-
-The project includes complete unit and integration tests.
+If you want to contribute or build from source:
 
 ```bash
-# Run unit tests (Core logic)
-python -m unittest discover tests
+# 1. Install dependencies
+make install
 
-# Run persistence integration tests (Simulate crash & recovery)
-python tests/test_persistence.py
+# 2. Run Tests
+make test
 
-# Generate behavior tree visualization
-python tests/visualize_tree.py
+# 3. Build & Publish (Backend + Frontend)
+make publish
+```
 
+### Directory Structure
+```text
+btflow/
+├── btflow/          # Core Framework
+├── btflow_studio/   # Visual Studio (FastAPI + React)
+├── examples/        # Usage Examples
+└── tests/           # Unit & Integration Tests
 ```
 
 ## 📄 License
 
-MIT © 2025 Piri Gao
+MIT © 2026 Piri Gao

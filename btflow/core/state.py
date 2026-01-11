@@ -1,7 +1,7 @@
 import threading
 from typing import Any, Dict, Type, TypeVar, Optional, get_origin, get_args, Annotated, Callable, get_type_hints, List
 from pydantic import BaseModel, ValidationError
-from btflow.logging import logger
+from btflow.core.logging import logger
 
 T = TypeVar("T", bound=BaseModel)
 

@@ -2,7 +2,7 @@ import asyncio
 import random
 from typing import List
 from py_trees.common import Status
-from btflow.core import AsyncBehaviour
+from btflow.core.behaviour import AsyncBehaviour
 
 
 class MockLLMAction(AsyncBehaviour):

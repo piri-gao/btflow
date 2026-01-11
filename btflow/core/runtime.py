@@ -4,8 +4,8 @@ import py_trees
 from py_trees.trees import BehaviourTree
 from py_trees.common import Status
 from py_trees.composites import Composite, Selector, Sequence
-from btflow.core import AsyncBehaviour
-from btflow.logging import logger
+from btflow.core.behaviour import AsyncBehaviour
+from btflow.core.logging import logger
 
 class ReactiveRunner:
     """
@@ -33,6 +33,13 @@ class ReactiveRunner:
             # 2a. 注入 StateManager（自动依赖注入）
             if hasattr(node, "bind_state_manager"):
                 node.bind_state_manager(self.state_manager)
+            elif hasattr(node, "state_manager"):
+                # 对于普通的 PyTrees 节点，如果预留了 state_manager 槽位，直接注入
+                node.state_manager = self.state_manager
+            else:
+                # 甚至可以强制注入（虽然动态语言允许这样做，但有点黑魔法）
+                # 暂时选择保守策略：如果不显式声明属性或方法，可能是无状态节点
+                pass
             
             # 2b. 注入唤醒回调（Task Driven）
             if isinstance(node, AsyncBehaviour):

@@ -1,10 +1,6 @@
 import unittest
-import sys
-import os
-sys.path.append(os.path.join(os.getcwd(), 'btflow-studio'))
-
 from fastapi.testclient import TestClient
-from backend.app.server import app
+from btflow_studio.backend.app.server import app
 
 class TestStudioAPI(unittest.TestCase):
     def setUp(self):
