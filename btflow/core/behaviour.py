@@ -1,5 +1,4 @@
 import asyncio
-import traceback
 from typing import Callable, Optional, TYPE_CHECKING
 import py_trees
 from py_trees.common import Status
@@ -90,11 +89,6 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
 
         except asyncio.CancelledError:
             return Status.INVALID
-        except Exception as e:
-            logger.error("🔥 [AsyncBehaviour] Node '{}' crashed!", self.name)
-            traceback.print_exc()
-            self.feedback_message = str(e)
-            return Status.FAILURE
 
     def terminate(self, new_status: Status) -> None:
         """
