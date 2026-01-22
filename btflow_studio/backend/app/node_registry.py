@@ -21,7 +21,7 @@ class NodeMetadata(BaseModel):
     config_schema: Dict[str, Any] = Field(default_factory=dict)
     
     # Runtime binding
-    node_class: Optional[Type] = Field(None, exclude=True)
+    node_class: Optional[Union[Type, Callable]] = Field(None, exclude=True)
 
 class NodeRegistry:
     def __init__(self):
