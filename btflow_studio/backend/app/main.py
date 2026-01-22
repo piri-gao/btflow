@@ -14,4 +14,4 @@ def start():
 
 if __name__ == "__main__":
     # Dev mode
-    uvicorn.run("backend.app.server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("btflow_studio.backend.app.server:app", host="0.0.0.0", port=8000, reload=True)
