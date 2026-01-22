@@ -7,6 +7,7 @@ from btflow.core.runtime import ReactiveRunner
 from btflow.core.agent import BTAgent
 from btflow.core.persistence import SimpleCheckpointer
 from btflow.core.decorators import action
+from btflow.core.composites import LoopUntilSuccess
 
 __all__ = [
     "AsyncBehaviour",
@@ -16,4 +17,5 @@ __all__ = [
     "BTAgent",
     "SimpleCheckpointer",
     "action",
+    "LoopUntilSuccess",
 ]
