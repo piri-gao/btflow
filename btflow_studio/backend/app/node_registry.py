@@ -151,3 +151,65 @@ node_registry.register(
         }
     }
 )
+# 3. Import and Register Advanced Patterns
+from btflow.core.composites import LoopUntilSuccess
+from btflow.patterns.react import ReActGeminiNode, ToolExecutor, IsFinalAnswer
+from btflow.patterns.reflexion import SelfRefineGeminiNode, IsGoodEnough
+
+# LoopUntilSuccess
+node_registry.register_metadata(NodeMetadata(
+    id="LoopUntilSuccess", label="Loop Until Success", category="Control Flow", icon="🔄",
+    description="Loop child until it succeeds (converts FAILURE to RUNNING).",
+    config_schema={
+        "max_iterations": {"type": "number", "default": 10}
+    },
+    node_class=LoopUntilSuccess
+))
+node_registry._class_map["LoopUntilSuccess"] = LoopUntilSuccess # Manual map since register_metadata doesn't
+
+# ReAct Nodes
+node_registry.register(
+    ReActGeminiNode,
+    id="ReActGeminiNode", label="ReAct LLM", category="Agent (ReAct)", icon="🤖",
+    description="LLM Node for ReAct Pattern (Thought/Action/Answer)",
+    config_schema={
+        "model": {"type": "text", "default": "gemini-2.5-flash"},
+        "system_prompt": {"type": "textarea", "default": ""}
+    }
+)
+
+node_registry.register(
+    ToolExecutor,
+    id="ToolExecutor", label="Tool Executor", category="Agent (ReAct)", icon="🛠️",
+    description="Executes tools based on Action from LLM",
+    config_schema={} # Tools usually injected via code, harder to config in UI for now
+)
+
+node_registry.register(
+    IsFinalAnswer,
+    id="IsFinalAnswer", label="Is Final Answer?", category="Agent (ReAct)", icon="✅",
+    description="Check if Final Answer is present",
+    config_schema={
+        "max_rounds": {"type": "number", "default": 10}
+    }
+)
+
+# Reflexion Nodes
+node_registry.register(
+    SelfRefineGeminiNode,
+    id="SelfRefineGeminiNode", label="Self-Refine LLM", category="Agent (Reflexion)", icon="🪞",
+    description="Generate answer and self-evaluate score",
+    config_schema={
+        "model": {"type": "text", "default": "gemini-2.5-flash"}
+    }
+)
+
+node_registry.register(
+    IsGoodEnough,
+    id="IsGoodEnough", label="Is Good Enough?", category="Agent (Reflexion)", icon="⚖️",
+    description="Check if score meets threshold",
+    config_schema={
+        "threshold": {"type": "number", "default": 8.0},
+        "max_rounds": {"type": "number", "default": 5}
+    }
+)
