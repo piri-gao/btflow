@@ -35,6 +35,21 @@ const categoryStyles: Record<string, { bg: string, border: string, hover: string
         border: 'border-green-300',
         hover: 'hover:bg-green-100 hover:border-green-400'
     },
+    'Tools': {
+        bg: 'bg-yellow-50',
+        border: 'border-yellow-300',
+        hover: 'hover:bg-yellow-100 hover:border-yellow-400'
+    },
+    'Agent (ReAct)': {
+        bg: 'bg-orange-50',
+        border: 'border-orange-300',
+        hover: 'hover:bg-orange-100 hover:border-orange-400'
+    },
+    'Agent (Reflexion)': {
+        bg: 'bg-indigo-50',
+        border: 'border-indigo-300',
+        hover: 'hover:bg-indigo-100 hover:border-indigo-400'
+    },
 };
 
 export default function Sidebar({ nodeMetas }: SidebarProps) {
@@ -47,8 +62,14 @@ export default function Sidebar({ nodeMetas }: SidebarProps) {
     }, {} as Record<string, NodeMeta[]>);
 
     // Category order
-    const categoryOrder = ['Control Flow', 'Action', 'Debug', 'Other'];
-    const sortedCategories = categoryOrder.filter(cat => groupedNodes[cat]);
+    const categoryOrder = ['Control Flow', 'Action', 'Tools', 'Debug', 'Agent (ReAct)', 'Agent (Reflexion)', 'Other'];
+
+    // Sort all categories: predefined first, then others alphabetically
+    const allCategories = Object.keys(groupedNodes);
+    const sortedCategories = [
+        ...categoryOrder.filter(cat => groupedNodes[cat]),
+        ...allCategories.filter(cat => !categoryOrder.includes(cat)).sort()
+    ];
 
     return (
         <div className="w-64 bg-white border-r border-gray-200 p-4 shadow-sm z-10 flex flex-col h-full overflow-y-auto">

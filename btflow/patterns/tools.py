@@ -2,7 +2,9 @@
 BTflow Patterns: Tool abstraction for ReAct and other patterns.
 """
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
+from py_trees.behaviour import Behaviour
+from py_trees.common import Status
 
 
 class Tool(ABC):
@@ -87,3 +89,17 @@ class WikipediaTool(Tool):
     def run(self, input: str) -> str:
         # 简化的模拟实现
         return f"Wikipedia summary for '{input}': This is a mock Wikipedia tool. In production, integrate with real Wikipedia API."
+
+
+class ToolNode(Behaviour):
+    """
+    一个 Behaviour 包装器，允许 Tool 作为一个节点存在于树中。
+    这主要用于 Studio 的可视化连线和动态注入。
+    """
+    def __init__(self, name: str, tool: Tool):
+        super().__init__(name)
+        self.tool = tool
+    
+    def update(self) -> Status:
+        # 作为一个孤立节点时，它不执行任何操作
+        return Status.SUCCESS

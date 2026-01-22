@@ -151,10 +151,30 @@ node_registry.register(
         }
     }
 )
-# 3. Import and Register Advanced Patterns
+# 3. Import and Register Advanced Patterns & Tools
 from btflow.core.composites import LoopUntilSuccess
 from btflow.patterns.react import ReActGeminiNode, ToolExecutor, IsFinalAnswer
 from btflow.patterns.reflexion import SelfRefineGeminiNode, IsGoodEnough
+from btflow.patterns.tools import CalculatorTool, SearchTool, WikipediaTool, ToolNode
+
+# Tools
+node_registry.register_metadata(NodeMetadata(
+    id="CalculatorTool", label="Calculator", category="Tools", icon="🧮",
+    description="Perform mathematical calculations",
+    node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", "Calculator"), tool=CalculatorTool())
+))
+
+node_registry.register_metadata(NodeMetadata(
+    id="SearchTool", label="Google Search", category="Tools", icon="🔍",
+    description="Search the web (requires Google Search API)",
+    node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", "Search"), tool=SearchTool())
+))
+
+node_registry.register_metadata(NodeMetadata(
+    id="WikipediaTool", label="Wikipedia", category="Tools", icon="📖",
+    description="Search and browse Wikipedia",
+    node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", "Wikipedia"), tool=WikipediaTool())
+))
 
 # LoopUntilSuccess
 node_registry.register_metadata(NodeMetadata(
@@ -165,7 +185,7 @@ node_registry.register_metadata(NodeMetadata(
     },
     node_class=LoopUntilSuccess
 ))
-node_registry._class_map["LoopUntilSuccess"] = LoopUntilSuccess # Manual map since register_metadata doesn't
+node_registry._class_map["LoopUntilSuccess"] = LoopUntilSuccess
 
 # ReAct Nodes
 node_registry.register(
@@ -182,7 +202,7 @@ node_registry.register(
     ToolExecutor,
     id="ToolExecutor", label="Tool Executor", category="Agent (ReAct)", icon="🛠️",
     description="Executes tools based on Action from LLM",
-    config_schema={} # Tools usually injected via code, harder to config in UI for now
+    config_schema={} 
 )
 
 node_registry.register(

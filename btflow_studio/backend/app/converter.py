@@ -82,13 +82,25 @@ class WorkflowConverter:
             child_ids_sorted = sorted(child_ids, key=get_x_position)
             
             children_nodes = []
+            from btflow.patterns.tools import ToolNode
+            from btflow.patterns.react import ToolExecutor
+            
             for child_id in child_ids_sorted:
                 if child_id not in self.node_map:
-                    continue # Edge points to non-existent node
+                    continue 
                     
                 # Recursively assemble children's children
                 self._assemble_children(child_id, children_map)
-                children_nodes.append(self.node_map[child_id])
+                child_node = self.node_map[child_id]
+                
+                # 特殊逻辑：如果是连接到 ToolExecutor 的 ToolNode，则进行注入
+                if isinstance(parent_node, ToolExecutor) and isinstance(child_node, ToolNode):
+                    logger.info("🔧 [Converter] Injecting tool {} into {}", child_node.tool.name, parent_node.name)
+                    parent_node.register_tool(child_node.tool)
+                    # 注意：我们通常不把工具作为“行为节点”挂载，因为它不 update。
+                    # 所以这里不加入 children_nodes。
+                else:
+                    children_nodes.append(child_node)
                 
             if isinstance(parent_node, btflow.Composite):
                 parent_node.add_children(children_nodes)
@@ -97,6 +109,10 @@ class WorkflowConverter:
                     parent_node.decorate(children_nodes[0])
                 else:
                     logger.warning("Decorator {} has {} children. Expected 1.", parent_id, len(children_nodes))
+            elif isinstance(parent_node, ToolExecutor):
+                # 虽然 ToolExecutor 可能不是复合节点，但如果它有普通子节点，
+                # 目前 btflow 逻辑中它不管理子节点执行。
+                pass
             else:
                  # Warning: Leaf node has children?
                  pass
