@@ -9,6 +9,12 @@ from btflow.patterns.react import (
     IsFinalAnswer,
     ReActAgent
 )
+from btflow.patterns.reflexion import (
+    ReflexionState,
+    SelfRefineGeminiNode,
+    IsGoodEnough,
+    ReflexionAgent
+)
 
 __all__ = [
     # Tools
@@ -22,4 +28,9 @@ __all__ = [
     "ToolExecutor",
     "IsFinalAnswer",
     "ReActAgent",
+    # Reflexion Pattern
+    "ReflexionState",
+    "SelfRefineGeminiNode",
+    "IsGoodEnough",
+    "ReflexionAgent",
 ]
