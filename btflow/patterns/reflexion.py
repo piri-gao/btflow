@@ -46,6 +46,8 @@ class ReflexionState(BaseModel):
     score_history: Annotated[List[float], operator.add] = Field(default_factory=list)
     # 反思/改进建议
     reflection: Optional[str] = None
+    # 反思历史
+    reflection_history: Annotated[List[str], operator.add] = Field(default_factory=list)
     # 当前轮数
     round: int = 0
     # 是否完成
@@ -169,10 +171,13 @@ Please improve your answer based on the feedback, then re-evaluate and provide y
                 "score": score,
                 "score_history": [score],
                 "reflection": reflection,
+                "reflection_history": [reflection] if reflection else [],
                 "round": state.round + 1
             })
             
             logger.info("💭 [{}] Round {} - Score: {:.1f}", self.name, state.round + 1, score)
+            if reflection:
+                logger.info("   Reflection: {}", reflection)
             logger.debug("   Answer: {}...", answer[:100] if len(answer) > 100 else answer)
             
             return Status.SUCCESS
@@ -181,7 +186,7 @@ Please improve your answer based on the feedback, then re-evaluate and provide y
             logger.warning("⏰ [{}] 请求超时", self.name)
             return Status.FAILURE
         except Exception as e:
-            logger.error("🔥 [{}] Gemini 调用失败: {}", self.name, e)
+            logger.warning("⚠️ [{}] Gemini 调用失败 (将自动重试): {}", self.name, e)
             return Status.FAILURE
     
     def _parse_response(self, content: str) -> tuple:

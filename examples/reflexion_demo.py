@@ -58,8 +58,8 @@ async def demo_explanation():
     
     agent = ReflexionAgent.create_with_gemini(
         model="gemini-2.5-flash",
-        threshold=8.5,   # 较高阈值
-        max_rounds=4     # 允许更多改进
+        threshold=9.8,   # 极高阈值，强制多轮改进
+        max_rounds=5     # 允许更多改进
     )
     
     task = "Explain quantum computing to a 10-year-old in 3 sentences"
@@ -79,7 +79,12 @@ async def demo_explanation():
     if len(state.answer_history) > 1:
         print(f"\n📜 Improvement History:")
         for i, (ans, score) in enumerate(zip(state.answer_history, state.score_history)):
-            print(f"  Round {i+1} (Score: {score:.1f}): {ans[:80]}...")
+            print(f"  Round {i+1} (Score: {score:.1f}):")
+            print(f"    Answer: {ans[:80]}..." if len(ans) > 80 else f"    Answer: {ans}")
+            if i < len(state.reflection_history):
+                ref = state.reflection_history[i]
+                if ref:
+                    print(f"    Reflection: {ref[:80]}..." if len(ref) > 80 else f"    Reflection: {ref}")
 
 
 async def main():
