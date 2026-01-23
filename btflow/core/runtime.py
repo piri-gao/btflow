@@ -66,7 +66,8 @@ class ReactiveRunner:
                   max_ticks: int = None, 
                   checkpointer = None,
                   checkpoint_interval: int = 1,
-                  thread_id: str = "default_thread"):
+                  thread_id: str = "default_thread",
+                  max_fps: float = 60.0):
         """
         事件驱动模式运行。
         
@@ -75,9 +76,14 @@ class ReactiveRunner:
             checkpointer: 检查点管理器
             checkpoint_interval: 保存检查点的间隔（每 N 次 tick 保存一次，默认 1）
             thread_id: 会话线程 ID
+            max_fps: 最大帧率（默认 60），用于控制 Tick 频率上限
         """
         
-        logger.info("🚀 [Runner] 启动 (Thread: {}) [Mode: Event-Driven]...", thread_id)
+        # 计算最小帧间隔 (例如 60 FPS -> 0.016s)
+        min_tick_interval = 1.0 / max_fps
+        
+        logger.info("🚀 [Runner] 启动 (Thread: {}) [Mode: Event-Driven, max_fps={}]...", thread_id, max_fps)
+
         
         # 开启自动驾驶模式
         self.auto_driving = True
@@ -153,21 +159,39 @@ class ReactiveRunner:
                 await self.tick_signal.wait()
                 self.tick_signal.clear()
 
-                # 3. 执行 Tick
+                # 3. 记录帧开始时间
+                tick_start_time = time.monotonic()
+                
+                # 4. 执行 Tick
                 self.tree.tick()
-                tick_count += 1  # 计数
+                tick_count += 1
                 status = self.root.status
                 
-                # 4. Hot Loop 检测：如果 1 秒内超过 100 次 tick，警告
-                if not hot_loop_warned and tick_count >= 100:
-                    elapsed = time.monotonic() - start_time
+                # 5. 智能节流：如果执行太快，主动 sleep 补足时间差
+                tick_elapsed = time.monotonic() - tick_start_time
+                if tick_elapsed < min_tick_interval:
+                    await asyncio.sleep(min_tick_interval - tick_elapsed)
+                else:
+                    # 如果本来就很慢（如 LLM 调用），只释放控制权
+                    await asyncio.sleep(0)
+
+                
+                # 5. Hot Loop 检测：如果 1 秒内超过 20 次 tick 且一直没有 async 节点阻塞，警告
+                elapsed = time.monotonic() - start_time
+                if not hot_loop_warned and tick_count >= 20: 
                     if elapsed < 1.0:
                         logger.warning(
-                            "⚠️ [Runner] 疑似 Hot Loop: {} ticks in {:.2f}s. "
-                            "检查是否有同步节点在 update() 中调用 state.update()",
+                            "⚠️ [Runner] 疑似严重 Hot Loop: {} ticks in {:.2f}s. "
+                            "检测到高频重试，系统已强制限流。",
                             tick_count, elapsed
                         )
                         hot_loop_warned = True
+                
+                # 如果时间超过 1s，或者已经产生警告，周期性重置以开始新的一轮监测
+                if elapsed >= 1.0:
+                    start_time = time.monotonic()
+                    tick_count = 0
+                    hot_loop_warned = False # 允许下一秒再次警告
                 
                 # 收集状态用于存档
                 current_state_data = self.state_manager.get().model_dump()

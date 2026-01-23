@@ -122,8 +122,9 @@ class StateManager:
             pending_writes = {}
             
             for name, update_val in updates.items():
-                if name not in self.schema.model_fields:
-                    continue 
+                # 移除了字段过滤，允许 extra="allow" 模式下的动态字段更新
+                # if name not in self.schema.model_fields:
+                #     continue 
 
                 if name in self.reducers:
                     reducer = self.reducers[name]

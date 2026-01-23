@@ -2,14 +2,14 @@ import btflow
 from typing import Dict, Any, Type, List
 from pydantic import create_model
 from btflow.core.state import StateManager
-from btflow.core.state import StateManager
 from .workflow_schema import WorkflowDefinition, NodeDefinition
 from .node_registry import node_registry
-from btflow import Sequence, Selector, Parallel
 from btflow import Sequence, Selector, Parallel
 from btflow import ParallelPolicy
 import inspect
 from btflow.core.logging import logger
+from btflow.patterns.tools import Tool, ToolNode
+from btflow.patterns.react import ToolExecutor
 
 class WorkflowConverter:
     """
@@ -72,18 +72,33 @@ class WorkflowConverter:
             child_ids = children_map[parent_id]
             
             # Get position info from workflow nodes
-            def get_x_position(node_id: str) -> float:
+            def get_sort_key(node_id: str) -> tuple:
+                x = 0
+                y = 0
+                node_type = ""
                 for node_def in self.workflow.nodes:
                     if node_def.id == node_id:
-                        return node_def.position.x if node_def.position else 0
-                return 0
+                        if node_def.position:
+                            x = node_def.position.x
+                            y = node_def.position.y
+                        node_type = node_def.type
+                        break
+                
+                # Sort order: 
+                # Strictly Left to Right (X), then Top to Bottom (Y).
+                # No magic priorities or ID fallbacks.
+                key = (x, y)
+                return key
             
-            # Sort by X coordinate
-            child_ids_sorted = sorted(child_ids, key=get_x_position)
+            # Debug Log: Print keys before sorting
+            debug_keys = {cid: get_sort_key(cid) for cid in child_ids}
+            logger.info("🔍 [Sort] Parent {}: Candidates: {}", parent_id, debug_keys)
+            
+            # Sort by X coordinate and node priority
+            child_ids_sorted = sorted(child_ids, key=get_sort_key)
+            logger.info("✅ [Sort] Result: {}", child_ids_sorted)
             
             children_nodes = []
-            from btflow.patterns.tools import ToolNode
-            from btflow.patterns.react import ToolExecutor
             
             for child_id in child_ids_sorted:
                 if child_id not in self.node_map:
@@ -93,9 +108,15 @@ class WorkflowConverter:
                 self._assemble_children(child_id, children_map)
                 child_node = self.node_map[child_id]
                 
-                # 特殊逻辑：如果是连接到 ToolExecutor 的 ToolNode，则进行注入
-                if isinstance(parent_node, ToolExecutor) and isinstance(child_node, ToolNode):
-                    logger.info("🔧 [Converter] Injecting tool {} into {}", child_node.tool.name, parent_node.name)
+                # Debug: log node types and capabilities
+                logger.info("🔍 [Converter] Processing child {} (type: {}) for parent {} (type: {})", 
+                            child_id, type(child_node).__name__, parent_id, type(parent_node).__name__)
+                logger.info("🔍 [Converter] Parent has register_tool: {}, Child has tool attr: {}", 
+                            hasattr(parent_node, "register_tool"), hasattr(child_node, "tool"))
+                
+                # Duck Typing: 如果父节点支持 register_tool，且子节点是 ToolNode
+                if hasattr(parent_node, "register_tool") and hasattr(child_node, "tool"):
+                    logger.info("🔧 [Converter] Injecting tool {} into {} (Duck Typed)", child_node.tool.name, parent_node.name)
                     parent_node.register_tool(child_node.tool)
                     # 注意：我们通常不把工具作为“行为节点”挂载，因为它不 update。
                     # 所以这里不加入 children_nodes。
@@ -109,6 +130,9 @@ class WorkflowConverter:
                     parent_node.decorate(children_nodes[0])
                 else:
                     logger.warning("Decorator {} has {} children. Expected 1.", parent_id, len(children_nodes))
+            elif hasattr(parent_node, "decorate") and len(children_nodes) == 1:
+                # 特殊处理：像 LoopUntilSuccess 这样不继承 Decorator 但实现 decorate 的节点
+                parent_node.decorate(children_nodes[0])
             elif isinstance(parent_node, ToolExecutor):
                 # 虽然 ToolExecutor 可能不是复合节点，但如果它有普通子节点，
                 # 目前 btflow 逻辑中它不管理子节点执行。
@@ -136,19 +160,50 @@ class WorkflowConverter:
             # TODO: Handle ActionField annotation if field.is_action is True
             fields[field.name] = (py_type, field.default)
         
-        # Create Dynamic Model
+        # Create Dynamic Model with extra='allow'
+        model_config = {"extra": "allow"}
+        
         try:
-            DynamicState = create_model(self.workflow.state.schema_name or "DynamicState", **fields)
+            DynamicState = create_model(
+                self.workflow.state.schema_name or "DynamicState", 
+                __config__=model_config,
+                **fields
+            )
         except Exception:
-            DynamicState = create_model("DynamicState", **fields)
-            
-        return StateManager(schema=DynamicState)
+            DynamicState = create_model(
+                "DynamicState", 
+                 __config__=model_config,
+                **fields
+            )
+        
+        # Create StateManager and initialize with default values
+        sm = StateManager(schema=DynamicState)
+        
+        # Build initial state from field defaults
+        initial_state = {}
+        logger.info("📋 [Converter] workflow.state.fields has {} items: {}", 
+                    len(self.workflow.state.fields), 
+                    [(f.name, f.default) for f in self.workflow.state.fields])
+        for field in self.workflow.state.fields:
+            # 修复：不要跳过空字符串和空列表，只跳过 None
+            initial_state[field.name] = field.default
+        
+        logger.info("📋 [Converter] Initializing state with: {}", initial_state)
+        sm.initialize(initial_state)
+        logger.info("📋 [Converter] State after init: {}", sm.get().model_dump())
+        return sm
+
+
+
         
     def _create_node(self, node_def: NodeDefinition) -> btflow.Behaviour:
+        logger.info("🔍 [Converter] Creating node {} (type: {})", node_def.id, node_def.type)
+        
         meta = node_registry.get(node_def.type)
         if not meta:
             # Check built-in fallbacks if generic
-             return btflow.Dummy(name=node_def.id)
+            logger.warning("❌ [Converter] No metadata found for type {}, returning Dummy", node_def.type)
+            return btflow.Dummy(name=node_def.id)
             
         # 1. Handle Built-in Composites
         if node_def.type == "Sequence":
@@ -164,8 +219,10 @@ class WorkflowConverter:
             
         # 2. Handle Custom Nodes (Registered Classes)
         cls = node_registry.get_class(node_def.type)
+        logger.info("🔍 [Converter] Got class for {}: {} (callable: {})", node_def.type, cls, callable(cls))
         if not cls:
-             return btflow.Dummy(name=node_def.id)
+            logger.warning("❌ [Converter] No class found for type {}, returning Dummy", node_def.type)
+            return btflow.Dummy(name=node_def.id)
 
         # Prepare kwargs
         kwargs = {}
@@ -193,7 +250,23 @@ class WorkflowConverter:
             logger.error("Error inspecting signature for {}: {}", node_def.type, e)
         
         try:
-            return cls(**kwargs)
+            instance = cls(**kwargs)
+            
+            # Debug log for tool detection
+            logger.info("🔍 [Converter] Created instance {} (type: {}), has run: {}, has description: {}, is Behaviour: {}", 
+                       node_def.id, type(instance).__name__, 
+                       hasattr(instance, "run"), hasattr(instance, "description"), isinstance(instance, btflow.Behaviour))
+            
+            # Special handling for Tools: Wrap in ToolNode
+            # Use Duck Typing to avoid import issues
+            if hasattr(instance, "run") and hasattr(instance, "description") and not isinstance(instance, btflow.Behaviour):
+                logger.info("🔧 [Converter] Wrapping tool {} in ToolNode (Duck Typed)", getattr(instance, "name", "unnamed"))
+                # Use label as node name and instance as tool
+                return ToolNode(name=node_def.label or f"{getattr(instance, 'name', 'tool')}_node", tool=instance)
+                
+            return instance
         except Exception as e:
             logger.error("Failed to instantiate {}: {}", node_def.type, e)
+            import traceback
+            logger.error("Traceback: {}", traceback.format_exc())
             return btflow.Dummy(name=node_def.id)

@@ -76,6 +76,9 @@ class NodeRegistry:
     def register_metadata(self, meta: NodeMetadata):
         """Register metadata without a python class (for virtual nodes)."""
         self._nodes[meta.id] = meta
+        # Also add to class map if node_class is provided (e.g., for lambda factories)
+        if meta.node_class is not None:
+            self._class_map[meta.id] = meta.node_class
 
     def get(self, node_id: str) -> Optional[NodeMetadata]:
         return self._nodes.get(node_id)
@@ -118,7 +121,7 @@ node_registry.register_metadata(NodeMetadata(
 
 # 2. Debug & Action Nodes
 from btflow.nodes.common.debug import Log
-from btflow.nodes.common.action import Wait
+from btflow.nodes.common.action import Wait, SetTask
 
 node_registry.register(
     Log,
@@ -151,9 +154,27 @@ node_registry.register(
         }
     }
 )
+
+node_registry.register(
+    SetTask,
+    id="SetTask",
+    label="Set Agent Task",
+    category="Action",
+    icon="🎯",
+    description="Set the goal or task for the agent",
+    config_schema={
+        "task_content": {
+            "type": "textarea",
+            "default": "",
+            "label": "Task Content"
+        }
+    }
+)
 # 3. Import and Register Advanced Patterns & Tools
 from btflow.core.composites import LoopUntilSuccess
+from btflow.core.composites import LoopUntilSuccess
 from btflow.patterns.react import ReActGeminiNode, ToolExecutor, IsFinalAnswer
+from btflow.nodes.common.mock import MockReActLLMNode
 from btflow.patterns.reflexion import SelfRefineGeminiNode, IsGoodEnough
 from btflow.patterns.tools import CalculatorTool, SearchTool, WikipediaTool, ToolNode
 
@@ -196,6 +217,13 @@ node_registry.register(
         "model": {"type": "text", "default": "gemini-2.5-flash"},
         "system_prompt": {"type": "textarea", "default": ""}
     }
+)
+
+node_registry.register(
+    MockReActLLMNode,
+    id="MockReActLLMNode", label="Mock ReAct LLM", category="Agent (ReAct)", icon="🎭",
+    description="Mock LLM for testing ReAct without API",
+    config_schema={}
 )
 
 node_registry.register(

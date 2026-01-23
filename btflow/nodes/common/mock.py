@@ -43,3 +43,40 @@ class MockLLMAction(AsyncBehaviour):
         
         print(f"   ✅ [{self.name}] 回复生成完毕: {response_text}")
         return Status.SUCCESS
+
+
+class MockReActLLMNode(AsyncBehaviour):
+    """
+    Mock LLM Node for testing ReAct workflow without API calls.
+    Simulates: Thought -> Action -> Observation -> Final Answer
+    """
+    def __init__(self, name: str = "MockLLM", **kwargs):
+        super().__init__(name)
+        self.call_count = 0
+        
+        # Predefined responses to simulate ReAct pattern
+        self.responses = [
+            "Thought: I need to calculate 25 * 4 + 10.\nAction: calculator\nInput: 25 * 4",
+            "Thought: Observation is 100. Now I add 10.\nAction: calculator\nInput: 100 + 10",
+            "Thought: The result is 110.\nFinal Answer: 110"
+        ]
+    
+    async def update_async(self) -> Status:
+        state = self.state_manager.get()
+        
+        # Get response based on call count
+        if self.call_count < len(self.responses):
+            response = self.responses[self.call_count]
+            self.call_count += 1
+        else:
+            response = "Final Answer: The result is 110."
+        
+        # Update state with mock response
+        self.state_manager.update({
+            "messages": [response],
+            "round": getattr(state, "round", 0) + 1
+        })
+        
+        print(f"   🎭 [{self.name}] Mock Response #{self.call_count}: {response[:80]}")
+        
+        return Status.SUCCESS

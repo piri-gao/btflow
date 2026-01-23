@@ -21,6 +21,10 @@ from pydantic import BaseModel, Field
 from py_trees.common import Status
 from py_trees.composites import Sequence
 from py_trees.behaviour import Behaviour
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.behaviour import AsyncBehaviour
@@ -73,8 +77,10 @@ class ReActGeminiNode(AsyncBehaviour):
         
         self.client = genai.Client(api_key=api_key)
     
-    def _get_default_prompt(self) -> str:
-        tools_section = f"\nAvailable tools:\n{self.tools_description}" if self.tools_description else ""
+    
+    def _get_default_prompt(self, dynamic_tools_desc: str = "") -> str:
+        description = dynamic_tools_desc or self.tools_description
+        tools_section = f"\nAvailable tools:\n{description}" if description else "No tools available."
         
         return f"""You are a helpful assistant that can use tools to answer questions.
 
@@ -105,24 +111,48 @@ Always think step by step."""
         
         try:
             state = self.state_manager.get()
-            
             # 构建 prompt
-            prompt_content = "\n".join(state.messages)
+            messages = list(state.messages) if hasattr(state, "messages") else []
+            task = getattr(state, "task", None)
+            
+            # 动态获取工具描述 (由 ToolExecutor 写入)
+            tools_desc = getattr(state, "tools_desc", "")
+            
+            # Debug: 打印实际的 state 内容
+            logger.debug("📋 [{}] State dump: messages={}, task={}", self.name, messages, task)
+
+            if not messages and task:
+                logger.info("🎯 [{}] Initializing conversation with task: {}", self.name, task)
+                messages = [f"User Question: {task}"]
+                self.state_manager.update({"messages": messages})
+            
+            # 如果 messages 仍然为空，尝试使用 task 作为 fallback
+            if not messages:
+                logger.warning("⚠️ [{}] No messages and no task, cannot call LLM", self.name)
+                return Status.FAILURE
+
+            prompt_content = "\n".join(messages)
             
             logger.debug("🤖 [{}] 调用 Gemini ({})...", self.name, self.model)
             
+            # 动态生成 System Prompt
+            system_instruction = self.system_prompt
+            if not system_instruction or "Available tools:" not in system_instruction:
+                 system_instruction = self._get_default_prompt(tools_desc)
+
             # 调用 API
             response = await asyncio.wait_for(
                 self.client.aio.models.generate_content(
                     model=self.model,
                     contents=prompt_content,
                     config=types.GenerateContentConfig(
-                        system_instruction=self.system_prompt,
+                        system_instruction=system_instruction,
                         temperature=0.7
                     )
                 ),
                 timeout=60.0
             )
+
             
             content = response.text.strip()
             
@@ -170,10 +200,31 @@ class ToolExecutor(AsyncBehaviour):
             for tool in tools:
                 self.register_tool(tool)
     
+    
+    def setup(self, **kwargs):
+        """
+        Setup: Register tools from children if any.
+        This allows connecting ToolNodes as children in the visual editor.
+        """
+        super().setup(**kwargs)
+        
+        for child in self.children:
+            # Check if child is a ToolNode (has .tool attribute)
+            if hasattr(child, "tool"):
+                self.register_tool(child.tool)
+        
+        # 将工具描述写入 State，供 LLM 使用
+        if hasattr(self, "state_manager") and self.state_manager:
+            desc = self.get_tools_description()
+            logger.info("🔧 [{}] Updating state.tools_desc with {} tools", self.name, len(self.tools))
+            self.state_manager.update({"tools_desc": desc})
+
+                
     def register_tool(self, tool: Tool):
         """注册工具"""
         self.tools[tool.name.lower()] = tool
         logger.debug("🔧 [{}] 注册工具: {}", self.name, tool.name)
+
     
     def get_tools_description(self) -> str:
         """获取所有工具的描述（用于 LLM prompt）"""
@@ -273,9 +324,7 @@ class IsFinalAnswer(Behaviour):
         
         logger.debug("🔄 [{}] 未检测到 Final Answer，继续下一轮 (Round {}/{})", 
                     self.name, state.round, self.max_rounds)
-        # 触发 tick_signal，确保 event-driven 模式下 Repeat 能继续执行
-        self.state_manager.update({})
-        return Status.FAILURE  # 失败 → Repeat 重试
+        return Status.FAILURE  # 失败 → LoopUntilSuccess 会捕获并处理重试
     
     def _extract_final_answer(self, messages: List[str]) -> Optional[str]:
         """从消息中提取 Final Answer"""
