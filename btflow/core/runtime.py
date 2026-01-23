@@ -16,7 +16,6 @@ class ReactiveRunner:
         self.root = root
         self.state_manager = state_manager 
         self.tree = BehaviourTree(root)
-        self.tree.setup(timeout=setup_timeout)
         
         # 核心信号量：事件锁
         self.tick_signal = asyncio.Event()
@@ -24,9 +23,6 @@ class ReactiveRunner:
         # Gatekeeper 开关：控制信号触发
         # step 模式下关闭（忽略内部信号），run 模式下开启
         self.auto_driving = False
-
-        # 1. 订阅状态变化 (State Driven)
-        self.state_manager.subscribe(self._on_wake_signal)
 
         # 2. 遍历所有节点，完成依赖注入
         for node in self.root.iterate():
@@ -40,8 +36,23 @@ class ReactiveRunner:
                 # 甚至可以强制注入（虽然动态语言允许这样做，但有点黑魔法）
                 # 暂时选择保守策略：如果不显式声明属性或方法，可能是无状态节点
                 pass
-            
-            # 2b. 注入唤醒回调（Task Driven）
+
+        # 3. 先完成 setup（此时节点已可访问 state_manager）
+        self.tree.setup(timeout=setup_timeout)
+
+        # 4. 绑定回调（订阅状态变化 + 异步节点唤醒）
+        self._bind_callbacks()
+
+    def _bind_callbacks(self):
+        """
+        绑定所有回调（用于初始化和每次 run() 开始时）。
+        """
+        # 订阅状态变化 (State Driven) - 避免重复订阅
+        self.state_manager.unsubscribe(self._on_wake_signal)
+        self.state_manager.subscribe(self._on_wake_signal)
+        
+        # 绑定 AsyncBehaviour 唤醒回调 (Task Driven)
+        for node in self.root.iterate():
             if isinstance(node, AsyncBehaviour):
                 node.bind_wake_up(self._on_wake_signal)
 
@@ -84,6 +95,8 @@ class ReactiveRunner:
         
         logger.info("🚀 [Runner] 启动 (Thread: {}) [Mode: Event-Driven, max_fps={}]...", thread_id, max_fps)
 
+        # [Fix] 支持多轮 run()：每次 run() 开始时重新绑定回调
+        self._bind_callbacks()
         
         # 开启自动驾驶模式
         self.auto_driving = True
@@ -144,9 +157,11 @@ class ReactiveRunner:
         # 启动时先手动触发一次，保证第一帧执行
         self.tick_signal.set()
 
-        tick_count = 0
-        start_time = time.monotonic()  # Hot loop 检测计时器
-        hot_loop_warned = False  # 避免重复警告
+        # [Fix #1] 分离计数器：total_tick_count（单调递增）vs hot_loop_count（每秒重置）
+        total_tick_count = 0      # 用于 max_ticks 熔断 + checkpoint 保存
+        hot_loop_count = 0        # 仅用于 hot loop 检测（每秒重置）
+        hot_loop_start = time.monotonic()
+        hot_loop_warned = False
         
         # Hot Loop 阈值动态化：1.5 倍 max_fps，作为"逻辑防线"
         # 由于已有 Adaptive Throttling，正常 max_fps 运行不应触发
@@ -156,8 +171,8 @@ class ReactiveRunner:
         try:
             while True: # [修改] 改为死循环
                 # 1. 检查最大步数限制 (仅在设置了 max_ticks 时检查)
-                if max_ticks is not None and tick_count >= max_ticks:
-                    logger.warning("⚠️ [Runner] 达到最大 Tick 限制 (熔断保护)，停止。")
+                if max_ticks is not None and total_tick_count >= max_ticks:
+                    logger.warning("⚠️ [Runner] 达到最大 Tick 限制 ({})，停止。", max_ticks)
                     break
 
                 # 2. 等待信号
@@ -169,7 +184,8 @@ class ReactiveRunner:
                 
                 # 4. 执行 Tick
                 self.tree.tick()
-                tick_count += 1
+                total_tick_count += 1
+                hot_loop_count += 1
                 status = self.root.status
                 
                 # 5. 智能节流：如果执行太快，主动 sleep 补足时间差
@@ -181,31 +197,31 @@ class ReactiveRunner:
                     await asyncio.sleep(0)
 
                 
-                # 5. Hot Loop 检测：异常高频重试检测（限流机制失效时触发）
-                elapsed = time.monotonic() - start_time
-                if not hot_loop_warned and tick_count > hot_loop_threshold: 
-                    if elapsed < 1.0:
+                # 5. Hot Loop 检测（仅重置 hot_loop_count，不影响 total_tick_count）
+                hot_loop_elapsed = time.monotonic() - hot_loop_start
+                if not hot_loop_warned and hot_loop_count > hot_loop_threshold: 
+                    if hot_loop_elapsed < 1.0:
                         logger.warning(
                             "⚠️ [Runner] 疑似严重 Hot Loop: {} ticks in {:.2f}s (threshold: {}). "
                             "检测到高频重试，系统已强制限流。",
-                            tick_count, elapsed, hot_loop_threshold
+                            hot_loop_count, hot_loop_elapsed, hot_loop_threshold
                         )
                         hot_loop_warned = True
                 
-                # 如果时间超过 1s，或者已经产生警告，周期性重置以开始新的一轮监测
-                if elapsed >= 1.0:
-                    start_time = time.monotonic()
-                    tick_count = 0
-                    hot_loop_warned = False # 允许下一秒再次警告
+                # 每秒重置 hot loop 计数器（不影响 total_tick_count）
+                if hot_loop_elapsed >= 1.0:
+                    hot_loop_start = time.monotonic()
+                    hot_loop_count = 0
+                    hot_loop_warned = False
                 
                 # 收集状态用于存档
                 current_state_data = self.state_manager.get().model_dump()
                 current_tree_state = {n.name: n.status.name for n in self.root.iterate()}
 
-                logger.debug("⏱️ [Tick {}] Root Status: {}", tick_count+1, status.name)
+                logger.debug("⏱️ [Tick {}] Root Status: {}", total_tick_count, status.name)
 
-                if checkpointer and tick_count % checkpoint_interval == 0:
-                    checkpointer.save(thread_id, tick_count, current_state_data, current_tree_state)
+                if checkpointer and total_tick_count % checkpoint_interval == 0:
+                    checkpointer.save(thread_id, total_tick_count, current_state_data, current_tree_state)
 
                 if status == Status.SUCCESS:
                     logger.info("✅ [Runner] 执行成功 (SUCCESS).")
