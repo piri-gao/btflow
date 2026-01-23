@@ -5,15 +5,13 @@ Supports multi-turn conversations and workflow modifications.
 import os
 import json
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 from btflow.core.logging import logger
 
 # Load environment variables
 load_dotenv()
-
-# Configure Gemini
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # System prompt for workflow generation
 SYSTEM_PROMPT = """You are a workflow generation assistant for BTflow Studio, a behavior tree orchestration tool.
@@ -147,27 +145,15 @@ class WorkflowLLM:
     """Handles LLM interactions for workflow generation."""
     
     def __init__(self, model_name: str = "models/gemini-2.5-flash"):
-        try:
-            self.model = genai.GenerativeModel(
-                model_name=model_name,
-                generation_config={
-                    "temperature": 0.3,
-                    "top_p": 0.95,
-                    "top_k": 40,
-                }
-            )
-        except Exception as e:
-            logger.warning("⚠️ Failed to initialize model {}: {}", model_name, e)
-            logger.info("Trying fallback model...")
-            # Fallback to a known working model
-            self.model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                generation_config={
-                    "temperature": 0.3,
-                    "top_p": 0.95,
-                    "top_k": 40,
-                }
-            )
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            logger.warning("⚠️ GEMINI_API_KEY/GOOGLE_API_KEY not found in env!")
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = model_name
+        if model_name.startswith("models/"):
+            self.fallback_model_name = "models/gemini-1.5-flash"
+        else:
+            self.fallback_model_name = "gemini-1.5-flash"
         
     def generate_workflow(
         self, 
@@ -224,8 +210,31 @@ class WorkflowLLM:
         
         # Generate response
         try:
-            chat = self.model.start_chat(history=messages[:-1])
-            response = chat.send_message(messages[-1]["parts"][0])
+            contents = [
+                types.Content(role=msg["role"], parts=[types.Part.from_text(msg["parts"][0])])
+                for msg in messages
+            ]
+            config = types.GenerateContentConfig(
+                temperature=0.3,
+                top_p=0.95,
+                top_k=40,
+            )
+
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=contents,
+                    config=config,
+                )
+            except Exception as e:
+                logger.warning("⚠️ Failed to use model {}: {}", self.model_name, e)
+                logger.info("Trying fallback model...")
+                response = self.client.models.generate_content(
+                    model=self.fallback_model_name,
+                    contents=contents,
+                    config=config,
+                )
+
             reply_text = response.text
             
             # Extract workflow JSON
