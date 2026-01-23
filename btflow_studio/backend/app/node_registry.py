@@ -173,10 +173,10 @@ node_registry.register(
 # 3. Import and Register Advanced Patterns & Tools
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.composites import LoopUntilSuccess
-from btflow.patterns.react import ReActGeminiNode, ToolExecutor, IsFinalAnswer
+from btflow.nodes.agents.react import ReActGeminiNode, ToolExecutor, IsFinalAnswer
 from btflow.nodes.common.mock import MockReActLLMNode
-from btflow.patterns.reflexion import SelfRefineGeminiNode, IsGoodEnough
-from btflow.patterns.tools import CalculatorTool, SearchTool, WikipediaTool, ToolNode
+from btflow.nodes.agents.reflexion import SelfRefineGeminiNode, IsGoodEnough
+from btflow.tools import CalculatorTool, SearchTool, WikipediaTool, ToolNode
 
 # Tools
 node_registry.register_metadata(NodeMetadata(

@@ -11,10 +11,8 @@ from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
-from btflow.patterns.reflexion import (
-    ReflexionState,
-    IsGoodEnough
-)
+from btflow.patterns.reflexion import ReflexionState
+from btflow.nodes.agents.reflexion import IsGoodEnough
 
 
 class MockSelfRefineNode(AsyncBehaviour):

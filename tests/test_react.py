@@ -14,12 +14,9 @@ from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
-from btflow.patterns.react import (
-    ReActState, 
-    ToolExecutor, 
-    IsFinalAnswer
-)
-from btflow.patterns.tools import Tool
+from btflow.patterns.react import ReActState
+from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer
+from btflow.tools import Tool
 
 
 class MockCalculatorTool(Tool):

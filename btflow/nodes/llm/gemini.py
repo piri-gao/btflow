@@ -5,10 +5,7 @@ from py_trees.common import Status
 from btflow.core.behaviour import AsyncBehaviour
 from dotenv import load_dotenv
 from btflow.core.logging import logger
-
-# 引入 Google GenAI SDK
-from google import genai
-from google.genai import types
+from btflow.llm import GeminiProvider
 
 load_dotenv()
 
@@ -27,12 +24,11 @@ class GeminiNode(AsyncBehaviour):
         self.model = model
         self.system_prompt = system_prompt
         
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         if not api_key:
-            logger.warning("⚠️ [GeminiNode] Warning: GOOGLE_API_KEY not found in env!")
+            logger.warning("⚠️ [GeminiNode] Warning: GOOGLE_API_KEY/GEMINI_API_KEY not found in env!")
 
-        # 初始化客户端 (同步/异步共用同一个 client 实例)
-        self.client = genai.Client(api_key=api_key)
+        self.provider = GeminiProvider(api_key=api_key)
 
     async def update_async(self) -> Status:
         try:
@@ -46,17 +42,13 @@ class GeminiNode(AsyncBehaviour):
 
             # 2. 调用 API (原生异步)
             # 关键点：使用 .aio 访问异步方法
-            response = await asyncio.wait_for(
-                            self.client.aio.models.generate_content(
-                                model=self.model,
-                                contents=prompt_content,
-                                config=types.GenerateContentConfig(
-                                    system_instruction=self.system_prompt,
-                                    temperature=0.7
-                                )
-                            ),
-                            timeout=30.0 # 30秒超时
-                        )
+            response = await self.provider.generate_text(
+                prompt_content,
+                model=self.model,
+                system_instruction=self.system_prompt,
+                temperature=0.7,
+                timeout=30.0,
+            )
             
             content = response.text
             # print(f"   📥 [Gemini] 回复: {content[:50]}...")
