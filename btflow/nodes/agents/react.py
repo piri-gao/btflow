@@ -9,6 +9,7 @@ from py_trees.behaviour import Behaviour
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
 from btflow.tools import Tool
+from btflow.tools.base import ToolError, ToolResult
 from btflow.llm import GeminiProvider
 
 
@@ -131,9 +132,19 @@ class ToolExecutor(AsyncBehaviour):
         re.IGNORECASE | re.DOTALL
     )
 
-    def __init__(self, name: str = "ToolExecutor", tools: Optional[List[Tool]] = None):
+    def __init__(
+        self,
+        name: str = "ToolExecutor",
+        tools: Optional[List[Tool]] = None,
+        max_retries: int = 0,
+        retry_backoff: float = 0.2,
+        observation_format: str = "text",
+    ):
         super().__init__(name)
         self.tools: Dict[str, Tool] = {}
+        self.max_retries = max_retries
+        self.retry_backoff = retry_backoff
+        self.observation_format = observation_format
         if tools:
             for tool in tools:
                 self.register_tool(tool)
@@ -188,21 +199,60 @@ class ToolExecutor(AsyncBehaviour):
         return schema
 
     def _normalize_tool_result(self, tool_name: str, result: Any, error: Optional[str]) -> str:
+        if self.observation_format not in ("text", "json"):
+            self.observation_format = "text"
+
+        payload = {
+            "tool": tool_name,
+            "ok": error is None,
+            "output": None,
+            "error": error,
+        }
+
+        if error is None:
+            if hasattr(result, "to_dict"):
+                try:
+                    payload.update(result.to_dict())
+                except Exception:
+                    payload["output"] = str(result)
+            else:
+                payload["output"] = result
+
+        if self.observation_format == "json":
+            return f"Observation: {json.dumps(payload, ensure_ascii=True)}"
+
         if error:
             return f"Observation: {error}"
-
-        if hasattr(result, "to_dict"):
-            try:
-                payload = result.to_dict()
-            except Exception:
-                payload = {"tool": tool_name, "ok": True, "output": str(result), "error": None}
-            return f"Observation: {json.dumps(payload, ensure_ascii=True)}"
 
         if isinstance(result, str):
             return f"Observation: {result}"
 
-        payload = {"tool": tool_name, "ok": True, "output": result, "error": None}
         return f"Observation: {json.dumps(payload, ensure_ascii=True)}"
+
+    def _parse_tool_input(self, tool: Tool, raw_input: str) -> tuple[Any, Optional[str]]:
+        schema = getattr(tool, "input_schema", None) or {"type": "string"}
+        schema_type = schema.get("type", "string")
+
+        if schema_type == "string":
+            return raw_input, None
+
+        try:
+            parsed = json.loads(raw_input)
+        except json.JSONDecodeError:
+            return None, f"Invalid input for tool '{tool.name}': expected JSON {schema_type}"
+
+        type_map = {
+            "number": (int, float),
+            "integer": (int,),
+            "boolean": (bool,),
+            "object": (dict,),
+            "array": (list,),
+        }
+        expected = type_map.get(schema_type)
+        if expected and not isinstance(parsed, expected):
+            return None, f"Invalid input for tool '{tool.name}': expected {schema_type}"
+
+        return parsed, None
 
     async def update_async(self) -> Status:
         state = self.state_manager.get()
@@ -225,20 +275,41 @@ class ToolExecutor(AsyncBehaviour):
         tool = self.tools.get(tool_name)
 
         if tool:
-            try:
-                result = tool.run(tool_input)
-                observation = self._normalize_tool_result(tool_name, result, error=None)
-            except Exception as e:
-                logger.warning("⚠️ [{}] 工具执行失败: {}", self.name, e)
-                observation = self._normalize_tool_result(
-                    tool_name, None, error=f"Error executing {tool_name}: {e}"
-                )
+            parsed_input, input_error = self._parse_tool_input(tool, tool_input)
+            if input_error:
+                observation = self._normalize_tool_result(tool_name, None, error=input_error)
+            else:
+                attempts = 0
+                while True:
+                    attempts += 1
+                    try:
+                        result = tool.run(parsed_input)
+                        if isinstance(result, ToolResult):
+                            observation = self._normalize_tool_result(tool_name, result, error=result.error)
+                            retryable = result.retryable and not result.ok
+                        else:
+                            observation = self._normalize_tool_result(tool_name, result, error=None)
+                            retryable = False
+                    except ToolError as e:
+                        logger.warning("⚠️ [{}] 工具异常: {}", self.name, e)
+                        observation = self._normalize_tool_result(tool_name, None, error=f"{e.code}: {e}")
+                        retryable = e.retryable
+                    except Exception as e:
+                        logger.warning("⚠️ [{}] 工具执行失败: {}", self.name, e)
+                        observation = self._normalize_tool_result(
+                            tool_name, None, error=f"tool_error: {e}"
+                        )
+                        retryable = False
+
+                    if not retryable or attempts > self.max_retries:
+                        break
+                    await asyncio.sleep(self.retry_backoff * attempts)
         else:
             logger.warning("⚠️ [{}] 未知工具: {}", self.name, tool_name)
             observation = self._normalize_tool_result(
                 tool_name,
                 None,
-                error=f"Tool '{tool_name}' not found. Available tools: {list(self.tools.keys())}",
+                error=f"tool_not_found: Tool '{tool_name}' not found. Available tools: {list(self.tools.keys())}",
             )
 
         self.state_manager.update({"messages": [observation]})

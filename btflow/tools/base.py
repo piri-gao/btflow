@@ -26,9 +26,23 @@ class ToolResult:
     ok: bool
     output: Any = None
     error: Optional[str] = None
+    retryable: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"ok": self.ok, "output": self.output, "error": self.error}
+        return {
+            "ok": self.ok,
+            "output": self.output,
+            "error": self.error,
+            "retryable": self.retryable,
+        }
+
+
+class ToolError(Exception):
+    """Structured tool failure for classification and retry policies."""
+    def __init__(self, message: str, code: str = "tool_error", retryable: bool = False):
+        super().__init__(message)
+        self.code = code
+        self.retryable = retryable
 
 
 class Tool(ABC):
@@ -43,7 +57,7 @@ class Tool(ABC):
     output_schema: Dict[str, Any] = {"type": "string", "description": "Tool output string"}
 
     @abstractmethod
-    def run(self, input: str) -> str:
+    def run(self, input: Any) -> Any:
         """
         Execute the tool with given input.
 
