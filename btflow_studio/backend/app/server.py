@@ -3,6 +3,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from typing import List, Dict, Optional, Any
 import uuid
 import asyncio
@@ -18,6 +22,9 @@ from btflow.core.agent import BTAgent
 from btflow.core.runtime import ReactiveRunner
 from btflow.core.logging import logger
 
+# 配置持久化日志用于调试
+logger.add("studio_backend.log", rotation="10 MB", level="DEBUG")
+
 class StudioVisitor(btflow.VisitorBase):
     """Captures node status after each tick and schedules a broadcast."""
     def __init__(self, workflow_id: str):
@@ -25,6 +32,7 @@ class StudioVisitor(btflow.VisitorBase):
         self.workflow_id = workflow_id
         self.status_map = {}
         self.full = True # Visit all nodes
+        self._last_broadcast_time = 0
 
     def initialise(self):
         """Reset status map at the start of each tick."""
@@ -35,9 +43,14 @@ class StudioVisitor(btflow.VisitorBase):
         self.status_map[behaviour.name] = behaviour.status.name
 
     def finalise(self):
-        """Broadcast collected statuses after tick completes."""
+        """Broadcast collected statuses after tick completes (with rate limiting)."""
+        import time
+        now = time.time()
+        if now - self._last_broadcast_time < 0.1: # 限制在 10Hz
+            return
+            
+        self._last_broadcast_time = now
         logger.debug("📡 [Visitor] Broadcasting node_update: {}", self.status_map)
-        # Broadcast via asyncio (fire and forget)
         asyncio.create_task(manager.broadcast(self.workflow_id, {
             "type": "node_update",
             "data": self.status_map
@@ -132,13 +145,26 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
     agent.runner.tree.visitors.append(visitor)
 
     # Set up log broadcast callback
-    from btflow.nodes.common.debug import Log
     def broadcast_log(msg_type: str, message: str):
         asyncio.create_task(manager.broadcast(workflow_id, {
             "type": msg_type,
             "message": message
         }))
+    
+    # 注入全局 Log 节点广播
+    from btflow.nodes.common.debug import Log
     Log._broadcast_callback = broadcast_log
+
+    # 注入 loguru sink 以捕获内部日志
+    def studio_log_sink(message):
+        record = message.record
+        msg_type = "log" if record["level"].name != "ERROR" else "error"
+        asyncio.create_task(manager.broadcast(workflow_id, {
+            "type": msg_type,
+            "message": f"[{record['name']}] {record['message']}"
+        }))
+    
+    sink_id = logger.add(studio_log_sink, level="INFO", format="{message}")
 
     try:
         await manager.broadcast(workflow_id, {"type": "status", "status": "running"})
@@ -147,7 +173,8 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
         
     except asyncio.CancelledError:
         logger.info("⏹️ [API] Workflow {} cancelled", workflow_id)
-        await manager.broadcast(workflow_id, {"type": "status", "status": "stopped"})
+        # 使用 create_task 而不是 await，确保不会阻塞取消流程
+        asyncio.create_task(manager.broadcast(workflow_id, {"type": "status", "status": "stopped"}))
         raise  # Re-raise to properly cancel the task
     except Exception as e:
         logger.error("🔥 [API] Workflow {} failed: {}", workflow_id, e)
@@ -156,6 +183,7 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
         await manager.broadcast(workflow_id, {"type": "error", "message": str(e)})
     finally:
         logger.info("💤 [API] Workflow {} finished", workflow_id)
+        logger.remove(sink_id) # 重要：移除沉降器防止内存泄漏
         if workflow_id in running_agents:
             del running_agents[workflow_id]
         if workflow_id in running_tasks:
@@ -190,6 +218,15 @@ async def run_workflow(workflow_id: str, background_tasks: BackgroundTasks):
         
         # 2. Setup Runner & Agent
         runner = ReactiveRunner(root, state_manager)
+        
+        # 显式调用 setup 以触发 ToolExecutor 的工具注册
+        logger.info("🔧 [Server] Setting up behavior tree...")
+        root.setup(timeout=15)
+        
+        # Debug: 打印树结构
+        import py_trees
+        logger.info("🌳 [Server] Tree Structure:\n{}", py_trees.display.ascii_tree(root))
+
         agent = BTAgent(runner)
         
         # 3. Store reference
