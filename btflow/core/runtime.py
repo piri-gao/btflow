@@ -148,6 +148,11 @@ class ReactiveRunner:
         start_time = time.monotonic()  # Hot loop 检测计时器
         hot_loop_warned = False  # 避免重复警告
         
+        # Hot Loop 阈值动态化：1.5 倍 max_fps，作为"逻辑防线"
+        # 由于已有 Adaptive Throttling，正常 max_fps 运行不应触发
+        # 仅当限流机制失效时才会触发警告
+        hot_loop_threshold = int(max_fps * 1.5)
+        
         try:
             while True: # [修改] 改为死循环
                 # 1. 检查最大步数限制 (仅在设置了 max_ticks 时检查)
@@ -176,14 +181,14 @@ class ReactiveRunner:
                     await asyncio.sleep(0)
 
                 
-                # 5. Hot Loop 检测：如果 1 秒内超过 20 次 tick 且一直没有 async 节点阻塞，警告
+                # 5. Hot Loop 检测：异常高频重试检测（限流机制失效时触发）
                 elapsed = time.monotonic() - start_time
-                if not hot_loop_warned and tick_count >= 20: 
+                if not hot_loop_warned and tick_count > hot_loop_threshold: 
                     if elapsed < 1.0:
                         logger.warning(
-                            "⚠️ [Runner] 疑似严重 Hot Loop: {} ticks in {:.2f}s. "
+                            "⚠️ [Runner] 疑似严重 Hot Loop: {} ticks in {:.2f}s (threshold: {}). "
                             "检测到高频重试，系统已强制限流。",
-                            tick_count, elapsed
+                            tick_count, elapsed, hot_loop_threshold
                         )
                         hot_loop_warned = True
                 
