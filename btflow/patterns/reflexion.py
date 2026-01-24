@@ -19,7 +19,7 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
 from btflow.nodes.agents.reflexion import SelfRefineLLMNode, IsGoodEnough
-from btflow.llm import LLMProvider, GeminiProvider
+from btflow.llm import LLMProvider, GeminiProvider, AutoProviderFactory
 from btflow.memory import BaseMemory
 
 
@@ -50,7 +50,7 @@ class ReflexionAgent:
 
     @staticmethod
     def create(
-        provider: LLMProvider,
+        provider: Optional[LLMProvider] = None,
         model: str = "gemini-2.5-flash",
         memory: Optional[BaseMemory] = None,
         memory_top_k: int = 5,
@@ -59,6 +59,7 @@ class ReflexionAgent:
         state_schema: Type[BaseModel] = ReflexionState
     ) -> BTAgent:
         """使用指定 Provider 创建 Reflexion Agent。"""
+        provider = provider or AutoProviderFactory().select()
         llm_node = SelfRefineLLMNode(
             name="SelfRefine",
             model=model,

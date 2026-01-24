@@ -20,7 +20,7 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
 from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
-from btflow.llm import LLMProvider, GeminiProvider
+from btflow.llm import LLMProvider, GeminiProvider, AutoProviderFactory
 from btflow.tools import Tool
 from btflow.memory import BaseMemory
 
@@ -67,7 +67,7 @@ class ReActAgent:
 
     @staticmethod
     def create(
-        provider: LLMProvider,
+        provider: Optional[LLMProvider] = None,
         tools: Optional[List[Tool]] = None,
         model: str = "gemini-2.5-flash",
         memory: Optional[BaseMemory] = None,
@@ -77,6 +77,7 @@ class ReActAgent:
     ) -> BTAgent:
         """使用指定 Provider 创建 ReAct Agent。"""
         tools = tools or []
+        provider = provider or AutoProviderFactory().select()
 
         tool_executor = ToolExecutor(name="ToolExecutor", tools=tools)
         tools_desc = tool_executor.get_tools_description()
