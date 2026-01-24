@@ -17,6 +17,7 @@ import asyncio
 import os
 
 from btflow.patterns.reflexion import ReflexionAgent
+from btflow.llm import GeminiProvider
 
 
 async def demo_haiku():
@@ -25,7 +26,8 @@ async def demo_haiku():
     print("📝 Demo: Generate a Haiku")
     print("="*60 + "\n")
     
-    agent = ReflexionAgent.create_with_gemini(
+    agent = ReflexionAgent.create(
+        provider=GeminiProvider(),
         model="gemini-2.5-flash",
         threshold=8.0,   # 分数阈值
         max_rounds=3     # 最大改进轮数
@@ -56,7 +58,8 @@ async def demo_explanation():
     print("🧠 Demo: Explain a Concept")
     print("="*60 + "\n")
     
-    agent = ReflexionAgent.create_with_gemini(
+    agent = ReflexionAgent.create(
+        provider=GeminiProvider(),
         model="gemini-2.5-flash",
         threshold=9.8,   # 极高阈值，强制多轮改进
         max_rounds=5     # 允许更多改进

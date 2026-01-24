@@ -82,7 +82,7 @@ Your role is to help users create and modify workflows through natural conversat
    - Child of Root: `Sequence` (memory: true)
    - Children of Sequence:
      * `SetTask` (At the beginning)
-     * `SelfRefineGeminiNode`
+     * `SelfRefineLLMNode`
      * `IsGoodEnough`
 
 3. **Tool Connections**:

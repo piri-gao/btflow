@@ -175,7 +175,7 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.composites import LoopUntilSuccess
 from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
 from btflow.nodes.common.mock import MockReActLLMNode
-from btflow.nodes.agents.reflexion import SelfRefineGeminiNode, IsGoodEnough
+from btflow.nodes.agents.reflexion import SelfRefineLLMNode, IsGoodEnough
 from btflow.tools import CalculatorTool, SearchTool, WikipediaTool, ToolNode
 
 # Tools
@@ -244,8 +244,8 @@ node_registry.register(
 
 # Reflexion Nodes
 node_registry.register(
-    SelfRefineGeminiNode,
-    id="SelfRefineGeminiNode", label="Self-Refine LLM", category="Agent (Reflexion)", icon="🪞",
+    SelfRefineLLMNode,
+    id="SelfRefineLLMNode", label="Self-Refine LLM", category="Agent (Reflexion)", icon="🪞",
     description="Generate answer and self-evaluate score",
     config_schema={
         "model": {"type": "text", "default": "gemini-2.5-flash"}

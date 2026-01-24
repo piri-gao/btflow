@@ -7,10 +7,10 @@ from py_trees.behaviour import Behaviour
 
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
-from btflow.llm import GeminiProvider
+from btflow.llm import LLMProvider, GeminiProvider
 
 
-class SelfRefineGeminiNode(AsyncBehaviour):
+class SelfRefineLLMNode(AsyncBehaviour):
     """
     Self-Refine 节点：生成答案 + 自我评估。
     """
@@ -19,12 +19,13 @@ class SelfRefineGeminiNode(AsyncBehaviour):
         self,
         name: str = "SelfRefine",
         model: str = "gemini-2.5-flash",
+        provider: Optional[LLMProvider] = None,
         system_prompt: Optional[str] = None
     ):
         super().__init__(name)
         self.model = model
         self.system_prompt = system_prompt or self._get_default_prompt()
-        self.provider = GeminiProvider()
+        self.provider = provider or GeminiProvider()
 
     def _get_default_prompt(self) -> str:
         return """You are a helpful assistant that generates high-quality answers and evaluates your own work.

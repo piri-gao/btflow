@@ -18,7 +18,8 @@ from py_trees.composites import Sequence
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
-from btflow.nodes.agents.reflexion import SelfRefineGeminiNode, IsGoodEnough
+from btflow.nodes.agents.reflexion import SelfRefineLLMNode, IsGoodEnough
+from btflow.llm import LLMProvider, GeminiProvider
 
 
 # ============ State Schema ============
@@ -44,18 +45,18 @@ class ReflexionAgent:
     """
 
     @staticmethod
-    def create_with_gemini(
+    def create(
+        provider: LLMProvider,
         model: str = "gemini-2.5-flash",
         threshold: float = 8.0,
         max_rounds: int = 10,
         state_schema: Type[BaseModel] = ReflexionState
     ) -> BTAgent:
-        """
-        使用 Gemini 创建 Reflexion Agent。
-        """
-        llm_node = SelfRefineGeminiNode(
+        """使用指定 Provider 创建 Reflexion Agent。"""
+        llm_node = SelfRefineLLMNode(
             name="SelfRefine",
-            model=model
+            model=model,
+            provider=provider,
         )
 
         loop_body = Sequence(name="ReflexionLoop", memory=True, children=[
