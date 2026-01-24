@@ -1,4 +1,6 @@
 import asyncio
+import threading
+import time
 import unittest
 import py_trees
 from pydantic import BaseModel
@@ -87,6 +89,27 @@ class TestRunnerCounters(unittest.IsolatedAsyncioTestCase):
             ticker_task.cancel()
             with self.assertRaises(asyncio.CancelledError):
                 await ticker_task
+
+
+class TestThreadedWake(unittest.IsolatedAsyncioTestCase):
+    async def test_wake_signal_from_other_thread(self):
+        state = StateManager(SimpleState)
+        state.initialize({"count": 0})
+        root = WaitForCount("WaitForCount")
+        runner = ReactiveRunner(root, state)
+
+        def trigger():
+            time.sleep(0.05)
+            state.update({"count": 1})
+
+        thread = threading.Thread(target=trigger)
+        thread.start()
+        try:
+            await asyncio.wait_for(runner.run(max_ticks=10), timeout=1.0)
+        finally:
+            thread.join()
+
+        self.assertEqual(runner.root.status, Status.SUCCESS)
 
 
 class TestSetupInjection(unittest.TestCase):
