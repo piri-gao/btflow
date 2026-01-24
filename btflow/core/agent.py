@@ -159,12 +159,12 @@ class BTAgent:
             if reset_data:
                 self.state_manager.initialize()
             
-            # 3. 注入初始数据
+            # 3. 清除残留信号 (在 update 之前，避免误伤 update 产生的新信号)
+            self.runner.tick_signal.clear()
+
+            # 4. 注入初始数据
             if input_data:
                 self.state_manager.update(input_data)
-            
-            # 4. 清除残留信号
-            self.runner.tick_signal.clear()
             
             # 5. 进入事件驱动循环
             return await self.runner.run(
