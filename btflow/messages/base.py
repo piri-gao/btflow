@@ -1,14 +1,14 @@
-from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union, List
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class Message:
+class Message(BaseModel):
     role: str
-    content: str
+    # content can be text or structured blocks (e.g., multimodal/tool payloads)
+    content: Union[str, List[Any]]
     name: Optional[str] = None
     tool: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         data = {
