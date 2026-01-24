@@ -173,7 +173,7 @@ node_registry.register(
 # 3. Import and Register Advanced Patterns & Tools
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.composites import LoopUntilSuccess
-from btflow.nodes.agents.react import ReActGeminiNode, ToolExecutor, IsFinalAnswer
+from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
 from btflow.nodes.common.mock import MockReActLLMNode
 from btflow.nodes.agents.reflexion import SelfRefineGeminiNode, IsGoodEnough
 from btflow.tools import CalculatorTool, SearchTool, WikipediaTool, ToolNode
@@ -210,8 +210,8 @@ node_registry._class_map["LoopUntilSuccess"] = LoopUntilSuccess
 
 # ReAct Nodes
 node_registry.register(
-    ReActGeminiNode,
-    id="ReActGeminiNode", label="ReAct LLM", category="Agent (ReAct)", icon="🤖",
+    ReActLLMNode,
+    id="ReActLLMNode", label="ReAct LLM", category="Agent (ReAct)", icon="🤖",
     description="LLM Node for ReAct Pattern (Thought/Action/Answer)",
     config_schema={
         "model": {"type": "text", "default": "gemini-2.5-flash"},

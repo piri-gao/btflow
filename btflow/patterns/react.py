@@ -6,7 +6,7 @@ ReAct (Reasoning + Acting) 是一种 LLM Agent 模式，交替进行推理和工
 Tree Structure (使用 btflow.LoopUntilSuccess):
     Root (LoopUntilSuccess)
     └── Sequence (memory=True)
-        ├── ReActGeminiNode    → 调用 LLM，输出 Thought/Action/Final Answer
+        ├── ReActLLMNode       → 调用 LLM，输出 Thought/Action/Final Answer
         ├── ToolExecutor       → 检测并执行 Action（无则跳过）
         └── IsFinalAnswer      → 条件：有 Final Answer → SUCCESS，否则 FAILURE
 """
@@ -19,7 +19,8 @@ from py_trees.composites import Sequence
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
-from btflow.nodes.agents.react import ReActGeminiNode, ToolExecutor, IsFinalAnswer
+from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
+from btflow.llm import LLMProvider, GeminiProvider
 from btflow.tools import Tool
 
 
@@ -50,7 +51,8 @@ class ReActAgent:
             def run(self, input: str) -> str:
                 return str(eval(input))
 
-        agent = ReActAgent.create_with_gemini(
+        agent = ReActAgent.create(
+            provider=GeminiProvider(),
             tools=[Calculator()],
             max_rounds=10
         )
@@ -60,23 +62,23 @@ class ReActAgent:
     """
 
     @staticmethod
-    def create_with_gemini(
+    def create(
+        provider: LLMProvider,
         tools: Optional[List[Tool]] = None,
         model: str = "gemini-2.5-flash",
         max_rounds: int = 10,
         state_schema: Type[BaseModel] = ReActState
     ) -> BTAgent:
-        """
-        使用 Gemini 创建 ReAct Agent。
-        """
+        """使用指定 Provider 创建 ReAct Agent。"""
         tools = tools or []
 
         tool_executor = ToolExecutor(name="ToolExecutor", tools=tools)
         tools_desc = tool_executor.get_tools_description()
 
-        llm_node = ReActGeminiNode(
+        llm_node = ReActLLMNode(
             name="ReActLLM",
             model=model,
+            provider=provider,
             tools_description=tools_desc
         )
 

@@ -10,10 +10,10 @@ from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
 from btflow.tools import Tool
 from btflow.tools.base import ToolError, ToolResult
-from btflow.llm import GeminiProvider
+from btflow.llm import LLMProvider, GeminiProvider
 
 
-class ReActGeminiNode(AsyncBehaviour):
+class ReActLLMNode(AsyncBehaviour):
     """
     ReAct 推理节点：调用 Gemini 进行思考。
 
@@ -22,8 +22,9 @@ class ReActGeminiNode(AsyncBehaviour):
 
     def __init__(
         self,
-        name: str = "ReActGemini",
+        name: str = "ReActLLM",
         model: str = "gemini-2.5-flash",
+        provider: Optional[LLMProvider] = None,
         system_prompt: Optional[str] = None,
         tools_description: str = ""
     ):
@@ -31,7 +32,7 @@ class ReActGeminiNode(AsyncBehaviour):
         self.model = model
         self.tools_description = tools_description
         self.system_prompt = system_prompt or self._get_default_prompt()
-        self.provider = GeminiProvider()
+        self.provider = provider or GeminiProvider()
 
     def _get_default_prompt(self, dynamic_tools_desc: str = "") -> str:
         description = dynamic_tools_desc or self.tools_description

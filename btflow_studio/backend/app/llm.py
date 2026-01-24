@@ -73,7 +73,7 @@ Your role is to help users create and modify workflows through natural conversat
    - Child of Root: `Sequence` (memory: true)
    - Children of Sequence (in order): 
      * `SetTask` (At the beginning to define the problem)
-     * `ReActGeminiNode`
+     * `ReActLLMNode`
      * `ToolExecutor` (MUST connect tools like `CalculatorTool` as children here)
      * `IsFinalAnswer` (SUCCESS=Finish, FAILURE=Continue)
 

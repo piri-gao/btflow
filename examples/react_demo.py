@@ -6,7 +6,7 @@ ReAct Agent Demo - 使用 Gemini 实现 ReAct 模式
 Tree Structure (使用 btflow.LoopUntilSuccess):
     Root (LoopUntilSuccess)
     └── Sequence (memory=True)
-        ├── ReActGeminiNode    → 调用 LLM
+        ├── ReActLLMNode       → 调用 LLM
         ├── ToolExecutor       → 执行工具
         └── IsFinalAnswer      → 条件检查 (SUCCESS=结束, FAILURE=继续)
 
@@ -19,6 +19,7 @@ import os
 
 from btflow.tools import Tool, CalculatorTool, SearchTool
 from btflow.patterns.react import ReActAgent
+from btflow.llm import GeminiProvider
 
 
 # ============ 自定义工具 ============
@@ -51,7 +52,8 @@ async def demo_calculator():
     print("🧮 Demo: Calculator Tool")
     print("="*60 + "\n")
     
-    agent = ReActAgent.create_with_gemini(
+    agent = ReActAgent.create(
+        provider=GeminiProvider(),
         tools=[CalculatorTool()],
         model="gemini-2.5-flash",
         max_rounds=10
@@ -84,7 +86,8 @@ async def demo_multi_tools():
     print("🛠️ Demo: Multiple Tools")
     print("="*60 + "\n")
     
-    agent = ReActAgent.create_with_gemini(
+    agent = ReActAgent.create(
+        provider=GeminiProvider(),
         tools=[CalculatorTool(), WeatherTool()],
         model="gemini-2.5-flash",
         max_rounds=10
