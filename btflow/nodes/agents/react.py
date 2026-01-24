@@ -14,6 +14,9 @@ from btflow.tools.base import ToolError, ToolResult
 from btflow.llm import LLMProvider, GeminiProvider
 
 
+from btflow.messages import Message, human, ai, tool
+from btflow.context.builder import ContextBuilder
+
 class ReActLLMNode(AsyncBehaviour):
     """
     ReAct 推理节点：调用 Gemini 进行思考。
@@ -32,8 +35,15 @@ class ReActLLMNode(AsyncBehaviour):
         super().__init__(name)
         self.model = model
         self.tools_description = tools_description
+        self._uses_default_prompt = system_prompt is None
         self.system_prompt = system_prompt or self._get_default_prompt()
         self.provider = provider or GeminiProvider()
+        
+        # Internal context builder (tools are embedded in system prompt)
+        self.context_builder = ContextBuilder(
+            system_prompt=self.system_prompt,
+            # We can inject memory here later
+        )
 
     def _get_default_prompt(self, dynamic_tools_desc: str = "") -> str:
         description = dynamic_tools_desc or self.tools_description
@@ -61,38 +71,75 @@ IMPORTANT RULES:
 
 Always think step by step."""
 
+    def _messages_to_prompt(self, messages: List[Message]) -> str:
+        """Convert structured messages to ReAct-style string prompt."""
+        # Simple serialization for text-based completion models
+        # Future: Use chat API if provider supports it
+        lines = []
+        for msg in messages:
+            if msg.role == "system":
+                # System prompt involves instructions
+                lines.append(f"System: {msg.content}")
+            elif msg.role == "user":
+                lines.append(f"User: {msg.content}")
+            elif msg.role == "assistant":
+                lines.append(f"Assistant: {msg.content}")
+            elif msg.role == "tool":
+                lines.append(f"Observation: {msg.content}")
+            else:
+                lines.append(f"{msg.role}: {msg.content}")
+        return "\n".join(lines)
+
     async def update_async(self) -> Status:
         """调用 Gemini 进行 ReAct 推理"""
         try:
             state = self.state_manager.get()
-            messages = list(state.messages) if hasattr(state, "messages") else []
+            messages: List[Message] = list(state.messages) if hasattr(state, "messages") else []
             task = getattr(state, "task", None)
 
+            # Re-configure builder if tools description changed dynamically
             tools_desc = getattr(state, "tools_desc", "")
+            if tools_desc and tools_desc != self.tools_description:
+                 self.tools_description = tools_desc
+                 # Also update system prompt if it was default
+                 if self._uses_default_prompt:
+                      self.context_builder.system_prompt = self._get_default_prompt(tools_desc)
 
-            logger.debug("📋 [{}] State dump: messages={}, task={}", self.name, messages, task)
+            logger.debug("📋 [{}] State dump: messages_count={}, task={}", self.name, len(messages), task)
 
             if not messages and task:
                 logger.info("🎯 [{}] Initializing conversation with task: {}", self.name, task)
-                messages = [f"User Question: {task}"]
+                # Initialize with HumanMessage
+                initial_msg = human(f"User Question: {task}")
+                messages = [initial_msg]
                 self.state_manager.update({"messages": messages})
 
             if not messages:
                 logger.warning("⚠️ [{}] No messages and no task, cannot call LLM", self.name)
                 return Status.FAILURE
 
-            prompt_content = "\n".join(messages)
+            # Build full context (System + Tools + History)
+            full_messages = self.context_builder.build(messages)
+            
+            # Serialize to prompt string
+            # Note: Since ReAct prompt template is complex and partly in system prompt,
+            # ContextBuilder puts system prompt at the beginning.
+            # We just join them for now.
+            # TODO: Update LLMProvider to support List[Message] natively.
+            prompt_content = self._messages_to_prompt(full_messages)
 
-            logger.debug("🤖 [{}] 调用 Gemini ({})...", self.name, self.model)
+            logger.debug("🤖 [{}] 调用 LLM ({})...", self.name, self.model)
+            # logger.debug("Prompt:\n{}", prompt_content)
 
-            system_instruction = self.system_prompt
-            if not system_instruction or "Available tools:" not in system_instruction:
-                system_instruction = self._get_default_prompt(tools_desc)
-
+            # Only verify system instruction logic for providers that separate it
+            # But here we embedded it in prompt_content for safety via ContextBuilder
+            # For providers taking system_instruction sep, maybe redundant but safe.
+            
             response = await self.provider.generate_text(
                 prompt_content,
                 model=self.model,
-                system_instruction=system_instruction,
+                # context_builder already added system prompt to messages
+                # system_instruction=None, 
                 temperature=0.7,
                 timeout=60.0,
             )
@@ -103,8 +150,10 @@ Always think step by step."""
                 logger.warning("⚠️ [{}] LLM 返回空响应", self.name)
                 return Status.FAILURE
 
+            # Append structured AIMessage
+            new_msg = ai(content)
             self.state_manager.update({
-                "messages": [content],
+                "messages": [new_msg],
                 "round": state.round + 1
             })
 
@@ -204,7 +253,7 @@ class ToolExecutor(AsyncBehaviour):
                 })
         return schema
 
-    def _normalize_tool_result(self, tool_name: str, result: Any, error: Optional[str]) -> str:
+    def _normalize_tool_result(self, tool_name: str, result: Any, error: Optional[str]) -> Message:
         if self.observation_format not in ("text", "json"):
             self.observation_format = "text"
 
@@ -225,15 +274,15 @@ class ToolExecutor(AsyncBehaviour):
                 payload["output"] = result
 
         if self.observation_format == "json":
-            return f"Observation: {json.dumps(payload, ensure_ascii=True)}"
-
-        if error:
-            return f"Observation: {error}"
-
-        if isinstance(result, str):
-            return f"Observation: {result}"
-
-        return f"Observation: {json.dumps(payload, ensure_ascii=True)}"
+            content = json.dumps(payload, ensure_ascii=True)
+        elif error:
+            content = str(error)
+        elif isinstance(result, str):
+            content = result
+        else:
+            content = json.dumps(payload, ensure_ascii=True)
+            
+        return tool(content=content, name=tool_name)
 
     def _parse_tool_input(self, tool: Tool, raw_input: str) -> tuple[Any, Optional[str]]:
         schema = getattr(tool, "input_schema", None) or {"type": "string"}
@@ -266,8 +315,21 @@ class ToolExecutor(AsyncBehaviour):
         if not state.messages:
             return Status.SUCCESS
 
-        last_msg = state.messages[-1]
-        match = self.ACTION_PATTERN.search(last_msg)
+        # Find the most recent assistant message to parse Action/Input
+        content = None
+        for msg in reversed(state.messages):
+            if isinstance(msg, Message) and msg.role == "assistant":
+                content = msg.content
+                break
+            if not isinstance(msg, Message):
+                content = str(msg)
+                break
+
+        if content is None:
+            logger.debug("📭 [{}] 未检测到可解析的 assistant 消息", self.name)
+            return Status.SUCCESS
+
+        match = self.ACTION_PATTERN.search(content)
 
         if not match:
             logger.debug("📭 [{}] 未检测到 Action，跳过", self.name)
@@ -371,12 +433,15 @@ class IsFinalAnswer(Behaviour):
         )
         return Status.FAILURE
 
-    def _extract_final_answer(self, messages: List[str]) -> Optional[str]:
+    def _extract_final_answer(self, messages: List[Message]) -> Optional[str]:
         if not messages:
             return None
 
+        # Check the last message content
         last_msg = messages[-1]
-        match = self.FINAL_ANSWER_PATTERN.search(last_msg)
+        content = last_msg.content if isinstance(last_msg, Message) else str(last_msg)
+        
+        match = self.FINAL_ANSWER_PATTERN.search(content)
         if match:
             return match.group(1).strip()
         return None

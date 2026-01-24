@@ -17,6 +17,7 @@ from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
 from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer
 from btflow.tools import Tool, ToolRegistry
+from btflow.messages import human, ai
 
 
 class MockCalculatorTool(Tool):
@@ -44,7 +45,7 @@ class MockLLMNode(AsyncBehaviour):
             self.call_count += 1
             state = self.state_manager.get()
             self.state_manager.update({
-                "messages": [response],
+                "messages": [ai(response)],
                 "round": state.round + 1
             })
             return Status.SUCCESS
@@ -69,7 +70,7 @@ class TestIsFinalAnswer(unittest.TestCase):
     def test_no_final_answer_returns_failure(self):
         """没有 Final Answer 返回 FAILURE"""
         self.state_manager.update({
-            "messages": ["Thought: thinking...\nAction: calculator\nInput: 2+2"]
+            "messages": [ai("Thought: thinking...\nAction: calculator\nInput: 2+2")]
         })
         self.check.setup()
         result = self.check.update()
@@ -78,7 +79,7 @@ class TestIsFinalAnswer(unittest.TestCase):
     def test_with_final_answer_returns_success(self):
         """有 Final Answer 返回 SUCCESS"""
         self.state_manager.update({
-            "messages": ["Thought: done.\nFinal Answer: 42"]
+            "messages": [ai("Thought: done.\nFinal Answer: 42")]
         })
         self.check.setup()
         result = self.check.update()
@@ -88,7 +89,7 @@ class TestIsFinalAnswer(unittest.TestCase):
     def test_max_rounds_exceeded(self):
         """超过最大轮数返回 SUCCESS（强制停止）"""
         self.state_manager.update({
-            "messages": ["Thought: thinking..."],
+            "messages": [ai("Thought: thinking...")],
             "round": 10  # max_rounds = 10
         })
         self.check.setup()
@@ -109,7 +110,7 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
     async def test_no_action_skips(self):
         """无 Action 时跳过执行"""
         self.state_manager.update({
-            "messages": ["Thought: thinking..."]
+            "messages": [ai("Thought: thinking...")]
         })
         self.executor.setup()
         self.executor.initialise()
@@ -121,7 +122,7 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
     async def test_executes_action(self):
         """正确执行 Action"""
         self.state_manager.update({
-            "messages": ["Thought: need to calculate.\nAction: calculator\nInput: 2 + 3"]
+            "messages": [ai("Thought: need to calculate.\nAction: calculator\nInput: 2 + 3")]
         })
         self.executor.setup()
         self.executor.initialise()
@@ -129,19 +130,20 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
         self.assertEqual(len(messages), 2)
-        self.assertEqual(messages[-1], "Observation: 5")
+        self.assertEqual(messages[-1].role, "tool")
+        self.assertEqual(messages[-1].content, "5")
     
     async def test_unknown_tool(self):
         """未知工具返回错误"""
         self.state_manager.update({
-            "messages": ["Action: unknown_tool\nInput: test"]
+            "messages": [ai("Action: unknown_tool\nInput: test")]
         })
         self.executor.setup()
         self.executor.initialise()
         result = await self.executor.update_async()
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
-        self.assertIn("not found", messages[-1])
+        self.assertIn("not found", messages[-1].content)
 
     async def test_registry_registers_function_tool(self):
         """ToolRegistry 的函数工具应能执行并产生 Observation"""
@@ -155,7 +157,7 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         executor = ToolExecutor("executor", registry=registry)
         executor.state_manager = self.state_manager
         self.state_manager.update({
-            "messages": ["Action: echo\nInput: hello"]
+            "messages": [ai("Action: echo\nInput: hello")]
         })
 
         executor.setup()
@@ -163,7 +165,8 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         result = await executor.update_async()
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
-        self.assertEqual(messages[-1], "Observation: echo:hello")
+        self.assertEqual(messages[-1].role, "tool")
+        self.assertEqual(messages[-1].content, "echo:hello")
 
 
 class TestReActIntegration(unittest.IsolatedAsyncioTestCase):
@@ -192,7 +195,7 @@ class TestReActIntegration(unittest.IsolatedAsyncioTestCase):
         
         # 状态管理
         state_manager = StateManager(schema=ReActState)
-        state_manager.initialize({"messages": ["Question: What is 10 + 5?"]})
+        state_manager.initialize({"messages": [human("Question: What is 10 + 5?")]})
         
         # 运行
         runner = ReactiveRunner(root, state_manager)

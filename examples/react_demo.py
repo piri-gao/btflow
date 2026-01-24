@@ -20,6 +20,7 @@ import os
 from btflow.tools import Tool, CalculatorTool, SearchTool
 from btflow.patterns.react import ReActAgent
 from btflow.llm import GeminiProvider
+from btflow.messages import human
 
 
 # ============ 自定义工具 ============
@@ -63,7 +64,7 @@ async def demo_calculator():
     print(f"👤 Question: {question}\n")
     
     result = await agent.run(
-        input_data={"messages": [f"Question: {question}"]},
+        input_data={"messages": [human(f"Question: {question}")]},
         max_ticks=100
     )
     
@@ -75,8 +76,10 @@ async def demo_calculator():
     print("\n📜 Conversation:")
     print("-" * 40)
     for i, msg in enumerate(state.messages):
-        preview = msg[:150] + "..." if len(msg) > 150 else msg
-        print(f"[{i+1}] {preview}")
+        role_label = msg.role.upper()
+        content = msg.content
+        preview = content[:150] + "..." if len(content) > 150 else content
+        print(f"[{i+1}][{role_label}] {preview}")
         print("-" * 40)
 
 
@@ -97,7 +100,7 @@ async def demo_multi_tools():
     print(f"👤 Question: {question}\n")
     
     result = await agent.run(
-        input_data={"messages": [f"Question: {question}"]},
+        input_data={"messages": [human(f"Question: {question}")]},
         max_ticks=100
     )
     

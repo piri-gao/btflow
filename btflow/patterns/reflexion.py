@@ -24,9 +24,12 @@ from btflow.llm import LLMProvider, GeminiProvider
 
 # ============ State Schema ============
 
+from btflow.messages import Message
+
 class ReflexionState(BaseModel):
     """Reflexion Agent 的状态定义"""
     task: str = ""
+    messages: Annotated[List[Message], operator.add] = Field(default_factory=list) # Audit/History
     answer: Optional[str] = None
     answer_history: Annotated[List[str], operator.add] = Field(default_factory=list)
     score: float = 0.0

@@ -1,6 +1,6 @@
 import asyncio
 import re
-from typing import Optional
+from typing import Optional, List
 
 from py_trees.common import Status
 from py_trees.behaviour import Behaviour
@@ -9,6 +9,9 @@ from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
 from btflow.llm import LLMProvider, GeminiProvider
 
+
+from btflow.messages import Message, human, ai
+from btflow.context.builder import ContextBuilder
 
 class SelfRefineLLMNode(AsyncBehaviour):
     """
@@ -26,6 +29,7 @@ class SelfRefineLLMNode(AsyncBehaviour):
         self.model = model
         self.system_prompt = system_prompt or self._get_default_prompt()
         self.provider = provider or GeminiProvider()
+        self.context_builder = ContextBuilder(system_prompt=self.system_prompt)
 
     def _get_default_prompt(self) -> str:
         return """You are a helpful assistant that generates high-quality answers and evaluates your own work.
@@ -52,18 +56,31 @@ Scoring guidelines:
 
 Be critical and honest in your self-evaluation. Don't give yourself a high score unless the answer is truly excellent."""
 
+    def _messages_to_prompt(self, messages: List[Message]) -> str:
+        lines = []
+        for msg in messages:
+            if msg.role == "system":
+                lines.append(f"System: {msg.content}")
+            elif msg.role == "user":
+                lines.append(f"User: {msg.content}")
+            elif msg.role == "assistant":
+                lines.append(f"Assistant: {msg.content}")
+            else:
+                lines.append(f"{msg.role}: {msg.content}")
+        return "\n".join(lines)
+
     async def update_async(self) -> Status:
         """生成/改进答案并自我评估"""
         try:
             state = self.state_manager.get()
 
             if state.round == 0:
-                prompt = (
+                prompt_content = (
                     f"Task: {state.task}\n\n"
                     "Generate your best answer, evaluate it, and provide your score and reflection."
                 )
             else:
-                prompt = f"""Task: {state.task}
+                prompt_content = f"""Task: {state.task}
 
 Previous Answer: {state.answer}
 
@@ -75,10 +92,15 @@ Please improve your answer based on the feedback, then re-evaluate and provide y
 
             logger.debug("🤖 [{}] Round {} - 调用 Gemini...", self.name, state.round + 1)
 
+            # Build messages
+            user_msg = human(prompt_content)
+            full_messages = self.context_builder.build([user_msg])
+            prompt_str = self._messages_to_prompt(full_messages)
+
             response = await self.provider.generate_text(
-                prompt,
+                prompt_str,
                 model=self.model,
-                system_instruction=self.system_prompt,
+                # system_instruction handled by ContextBuilder -> prompt_str
                 temperature=0.7,
                 timeout=60.0,
             )
@@ -95,6 +117,9 @@ Please improve your answer based on the feedback, then re-evaluate and provide y
                 logger.warning("⚠️ [{}] 无法解析 LLM 响应", self.name)
                 return Status.FAILURE
 
+            ai_msg = ai(content)
+            
+            # Update explicit fields AND message history
             self.state_manager.update({
                 "answer": answer,
                 "answer_history": [answer],
@@ -102,6 +127,7 @@ Please improve your answer based on the feedback, then re-evaluate and provide y
                 "score_history": [score],
                 "reflection": reflection,
                 "reflection_history": [reflection] if reflection else [],
+                "messages": [user_msg, ai_msg], # Append interactions
                 "round": state.round + 1
             })
 

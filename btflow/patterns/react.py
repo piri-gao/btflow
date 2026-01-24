@@ -26,9 +26,11 @@ from btflow.tools import Tool
 
 # ============ State Schema ============
 
+from btflow.messages import Message
+
 class ReActState(BaseModel):
     """ReAct Agent 的状态定义"""
-    messages: Annotated[List[str], operator.add] = Field(default_factory=list)
+    messages: Annotated[List[Message], operator.add] = Field(default_factory=list)
     final_answer: Optional[str] = None
     round: int = 0
     tools_desc: str = ""
@@ -57,7 +59,8 @@ class ReActAgent:
             max_rounds=10
         )
 
-        result = await agent.run({"messages": ["Question: What is 2+2?"]})
+        from btflow.messages import human
+        result = await agent.run({"messages": [human("Question: What is 2+2?")]})
         print(result.final_answer)
     """
 
