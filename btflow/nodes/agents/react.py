@@ -9,6 +9,7 @@ from py_trees.behaviour import Behaviour
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
 from btflow.tools import Tool
+from btflow.tools.registry import ToolRegistry
 from btflow.tools.base import ToolError, ToolResult
 from btflow.llm import LLMProvider, GeminiProvider
 
@@ -137,6 +138,7 @@ class ToolExecutor(AsyncBehaviour):
         self,
         name: str = "ToolExecutor",
         tools: Optional[List[Tool]] = None,
+        registry: Optional[ToolRegistry] = None,
         max_retries: int = 0,
         retry_backoff: float = 0.2,
         observation_format: str = "text",
@@ -148,6 +150,9 @@ class ToolExecutor(AsyncBehaviour):
         self.observation_format = observation_format
         if tools:
             for tool in tools:
+                self.register_tool(tool)
+        if registry:
+            for tool in registry.list():
                 self.register_tool(tool)
 
     def setup(self, **kwargs):

@@ -16,7 +16,7 @@ from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
 from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer
-from btflow.tools import Tool
+from btflow.tools import Tool, ToolRegistry
 
 
 class MockCalculatorTool(Tool):
@@ -142,6 +142,28 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
         self.assertIn("not found", messages[-1])
+
+    async def test_registry_registers_function_tool(self):
+        """ToolRegistry 的函数工具应能执行并产生 Observation"""
+        registry = ToolRegistry()
+        registry.register_function(
+            name="echo",
+            description="Echo input",
+            fn=lambda x: f"echo:{x}"
+        )
+
+        executor = ToolExecutor("executor", registry=registry)
+        executor.state_manager = self.state_manager
+        self.state_manager.update({
+            "messages": ["Action: echo\nInput: hello"]
+        })
+
+        executor.setup()
+        executor.initialise()
+        result = await executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertEqual(messages[-1], "Observation: echo:hello")
 
 
 class TestReActIntegration(unittest.IsolatedAsyncioTestCase):
