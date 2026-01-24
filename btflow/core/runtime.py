@@ -1,5 +1,6 @@
 import asyncio
 import time
+import threading
 import py_trees
 from py_trees.trees import BehaviourTree
 from py_trees.common import Status
@@ -43,6 +44,10 @@ class ReactiveRunner:
         # 4. 绑定回调（订阅状态变化 + 异步节点唤醒）
         self._bind_callbacks()
 
+        # Thread-safe context
+        self._loop = None
+        self._loop_thread = None
+
     def _bind_callbacks(self):
         """
         绑定所有回调（用于初始化和每次 run() 开始时）。
@@ -56,14 +61,30 @@ class ReactiveRunner:
             if isinstance(node, AsyncBehaviour):
                 node.bind_wake_up(self._on_wake_signal)
 
+    def _signal_tick(self):
+        """
+        Thread-safe wrapper to trigger the tick signal.
+        Handles loop closing race conditions gracefully.
+        """
+        loop = self._loop
+        if loop is None:
+            logger.warning("⚠️ [Runner] Wake signal received without active event loop; ignoring.")
+            return
+        if threading.get_ident() == self._loop_thread:
+            self.tick_signal.set()
+            return
+        try:
+            loop.call_soon_threadsafe(self.tick_signal.set)
+        except RuntimeError:
+            logger.warning("⚠️ [Runner] Event loop closed; wake signal dropped.")
+
     def _on_wake_signal(self):
         """任何风吹草动，都会调用这个方法"""
         # Gatekeeper：只有在 auto_driving 模式下才触发信号
         if not self.auto_driving:
             return
-        # 触发 Event，唤醒正在 wait 的 run 循环
-        # 注意：asyncio.Event 是线程安全的（在同个 Loop 内），如果是多线程需用 call_soon_threadsafe
-        self.tick_signal.set()
+        
+        self._signal_tick()
     
     def tick_once(self) -> Status:
         """
@@ -73,12 +94,13 @@ class ReactiveRunner:
         self.tree.tick()
         return self.root.status
 
-    async def run(self, 
+    async def run(
+                  self,
                   max_ticks: int = None, 
                   checkpointer = None,
                   checkpoint_interval: int = 1,
                   thread_id: str = "default_thread",
-                  max_fps: float = 60.0):
+                  max_fps: float = 60.0) -> Status:
         """
         事件驱动模式运行。
         
@@ -97,6 +119,15 @@ class ReactiveRunner:
 
         # [Fix] 支持多轮 run()：每次 run() 开始时重新绑定回调
         self._bind_callbacks()
+        
+        # Capture loop context for thread-safe signaling
+        try:
+            self._loop = asyncio.get_running_loop()
+            self._loop_thread = threading.get_ident()
+        except RuntimeError:
+            logger.warning("⚠️ [Runner] run() called without active event loop?")
+            self._loop = None
+            self._loop_thread = None
         
         # 开启自动驾驶模式
         self.auto_driving = True
@@ -168,11 +199,17 @@ class ReactiveRunner:
         # 仅当限流机制失效时才会触发警告
         hot_loop_threshold = int(max_fps * 1.5)
         
+        result_status = None
+
         try:
             while True: # [修改] 改为死循环
                 # 1. 检查最大步数限制 (仅在设置了 max_ticks 时检查)
                 if max_ticks is not None and total_tick_count >= max_ticks:
                     logger.warning("⚠️ [Runner] 达到最大 Tick 限制 ({})，停止。", max_ticks)
+                    if self.root.status in (Status.SUCCESS, Status.FAILURE):
+                        result_status = self.root.status
+                    else:
+                        result_status = Status.FAILURE
                     break
 
                 # 2. 等待信号
@@ -225,9 +262,11 @@ class ReactiveRunner:
 
                 if status == Status.SUCCESS:
                     logger.info("✅ [Runner] 执行成功 (SUCCESS).")
+                    result_status = Status.SUCCESS
                     break
                 elif status == Status.FAILURE:
                     logger.error("❌ [Runner] 执行失败 (FAILURE).")
+                    result_status = Status.FAILURE
                     break
                 
                 # [注意] 这里删除了原来的 if RUNNING: await sleep()
@@ -241,11 +280,16 @@ class ReactiveRunner:
             raise  # Re-raise to propagate cancellation to caller
         except KeyboardInterrupt:
             logger.warning("🛑 [Runner] 用户手动中断。")
+            result_status = Status.FAILURE
         except AssertionError as e:
             logger.error("🔥 [Runner] 树结构状态异常: {}", e)
             raise e
         finally:
             self.auto_driving = False  # 关闭自动驾驶
+            # Clean up context to avoid stale references
+            self._loop = None
+            self._loop_thread = None
+            
             logger.debug("🧹 [Runner] 正在清理资源...")
             # 取消订阅，防止内存泄漏
             self.state_manager.unsubscribe(self._on_wake_signal)
@@ -255,3 +299,8 @@ class ReactiveRunner:
                     node.bind_wake_up(None)
             self.tree.interrupt()
             logger.info("💤 [Runner] 结束。")
+
+        if result_status is None:
+            result_status = self.root.status
+
+        return result_status
