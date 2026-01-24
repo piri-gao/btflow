@@ -15,6 +15,7 @@ from btflow.llm import LLMProvider, GeminiProvider
 
 
 from btflow.messages import Message, human, ai, tool, messages_to_prompt
+from btflow.memory import BaseMemory
 from btflow.context.builder import ContextBuilder
 
 class ReActLLMNode(AsyncBehaviour):
@@ -30,7 +31,9 @@ class ReActLLMNode(AsyncBehaviour):
         model: str = "gemini-2.5-flash",
         provider: Optional[LLMProvider] = None,
         system_prompt: Optional[str] = None,
-        tools_description: str = ""
+        tools_description: str = "",
+        memory: Optional[BaseMemory] = None,
+        memory_top_k: int = 5,
     ):
         super().__init__(name)
         self.model = model
@@ -42,7 +45,8 @@ class ReActLLMNode(AsyncBehaviour):
         # Internal context builder (tools are embedded in system prompt)
         self.context_builder = ContextBuilder(
             system_prompt=self.system_prompt,
-            # We can inject memory here later
+            memory=memory,
+            memory_top_k=memory_top_k,
         )
 
     def _get_default_prompt(self, dynamic_tools_desc: str = "") -> str:

@@ -20,6 +20,7 @@ from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
 from btflow.nodes.agents.reflexion import SelfRefineLLMNode, IsGoodEnough
 from btflow.llm import LLMProvider, GeminiProvider
+from btflow.memory import BaseMemory
 
 
 # ============ State Schema ============
@@ -51,6 +52,8 @@ class ReflexionAgent:
     def create(
         provider: LLMProvider,
         model: str = "gemini-2.5-flash",
+        memory: Optional[BaseMemory] = None,
+        memory_top_k: int = 5,
         threshold: float = 8.0,
         max_rounds: int = 10,
         state_schema: Type[BaseModel] = ReflexionState
@@ -60,6 +63,8 @@ class ReflexionAgent:
             name="SelfRefine",
             model=model,
             provider=provider,
+            memory=memory,
+            memory_top_k=memory_top_k,
         )
 
         loop_body = Sequence(name="ReflexionLoop", memory=True, children=[

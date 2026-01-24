@@ -11,6 +11,7 @@ from btflow.llm import LLMProvider, GeminiProvider
 
 
 from btflow.messages import Message, human, ai, messages_to_prompt
+from btflow.memory import BaseMemory
 from btflow.context.builder import ContextBuilder
 
 class SelfRefineLLMNode(AsyncBehaviour):
@@ -23,13 +24,19 @@ class SelfRefineLLMNode(AsyncBehaviour):
         name: str = "SelfRefine",
         model: str = "gemini-2.5-flash",
         provider: Optional[LLMProvider] = None,
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
+        memory: Optional[BaseMemory] = None,
+        memory_top_k: int = 5,
     ):
         super().__init__(name)
         self.model = model
         self.system_prompt = system_prompt or self._get_default_prompt()
         self.provider = provider or GeminiProvider()
-        self.context_builder = ContextBuilder(system_prompt=self.system_prompt)
+        self.context_builder = ContextBuilder(
+            system_prompt=self.system_prompt,
+            memory=memory,
+            memory_top_k=memory_top_k,
+        )
 
     def _get_default_prompt(self) -> str:
         return """You are a helpful assistant that generates high-quality answers and evaluates your own work.

@@ -22,6 +22,7 @@ from btflow.core.agent import BTAgent
 from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
 from btflow.llm import LLMProvider, GeminiProvider
 from btflow.tools import Tool
+from btflow.memory import BaseMemory
 
 
 # ============ State Schema ============
@@ -69,6 +70,8 @@ class ReActAgent:
         provider: LLMProvider,
         tools: Optional[List[Tool]] = None,
         model: str = "gemini-2.5-flash",
+        memory: Optional[BaseMemory] = None,
+        memory_top_k: int = 5,
         max_rounds: int = 10,
         state_schema: Type[BaseModel] = ReActState
     ) -> BTAgent:
@@ -82,7 +85,9 @@ class ReActAgent:
             name="ReActLLM",
             model=model,
             provider=provider,
-            tools_description=tools_desc
+            tools_description=tools_desc,
+            memory=memory,
+            memory_top_k=memory_top_k,
         )
 
         loop_body = Sequence(name="ReActLoop", memory=True, children=[
