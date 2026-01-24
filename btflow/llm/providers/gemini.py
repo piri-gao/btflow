@@ -6,6 +6,7 @@ from google import genai
 from google.genai import types
 
 from btflow.core.logging import logger
+from btflow.llm.base import LLMResponse
 
 
 class GeminiProvider:
@@ -33,7 +34,7 @@ class GeminiProvider:
             top_p=top_p,
             top_k=top_k,
         )
-        return await asyncio.wait_for(
+        response = await asyncio.wait_for(
             self.client.aio.models.generate_content(
                 model=model,
                 contents=prompt,
@@ -41,3 +42,4 @@ class GeminiProvider:
             ),
             timeout=timeout,
         )
+        return LLMResponse(text=response.text, raw=response)
