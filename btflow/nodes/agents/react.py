@@ -14,7 +14,7 @@ from btflow.tools.base import ToolError, ToolResult
 from btflow.llm import LLMProvider, GeminiProvider
 
 
-from btflow.messages import Message, human, ai, tool
+from btflow.messages import Message, human, ai, tool, messages_to_prompt
 from btflow.context.builder import ContextBuilder
 
 class ReActLLMNode(AsyncBehaviour):
@@ -71,25 +71,6 @@ IMPORTANT RULES:
 
 Always think step by step."""
 
-    def _messages_to_prompt(self, messages: List[Message]) -> str:
-        """Convert structured messages to ReAct-style string prompt."""
-        # Simple serialization for text-based completion models
-        # Future: Use chat API if provider supports it
-        lines = []
-        for msg in messages:
-            if msg.role == "system":
-                # System prompt involves instructions
-                lines.append(f"System: {msg.content}")
-            elif msg.role == "user":
-                lines.append(f"User: {msg.content}")
-            elif msg.role == "assistant":
-                lines.append(f"Assistant: {msg.content}")
-            elif msg.role == "tool":
-                lines.append(f"Observation: {msg.content}")
-            else:
-                lines.append(f"{msg.role}: {msg.content}")
-        return "\n".join(lines)
-
     async def update_async(self) -> Status:
         """调用 Gemini 进行 ReAct 推理"""
         try:
@@ -126,7 +107,7 @@ Always think step by step."""
             # ContextBuilder puts system prompt at the beginning.
             # We just join them for now.
             # TODO: Update LLMProvider to support List[Message] natively.
-            prompt_content = self._messages_to_prompt(full_messages)
+            prompt_content = messages_to_prompt(full_messages)
 
             logger.debug("🤖 [{}] 调用 LLM ({})...", self.name, self.model)
             # logger.debug("Prompt:\n{}", prompt_content)

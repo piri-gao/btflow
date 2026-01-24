@@ -10,7 +10,7 @@ from btflow.core.logging import logger
 from btflow.llm import LLMProvider, GeminiProvider
 
 
-from btflow.messages import Message, human, ai
+from btflow.messages import Message, human, ai, messages_to_prompt
 from btflow.context.builder import ContextBuilder
 
 class SelfRefineLLMNode(AsyncBehaviour):
@@ -56,19 +56,6 @@ Scoring guidelines:
 
 Be critical and honest in your self-evaluation. Don't give yourself a high score unless the answer is truly excellent."""
 
-    def _messages_to_prompt(self, messages: List[Message]) -> str:
-        lines = []
-        for msg in messages:
-            if msg.role == "system":
-                lines.append(f"System: {msg.content}")
-            elif msg.role == "user":
-                lines.append(f"User: {msg.content}")
-            elif msg.role == "assistant":
-                lines.append(f"Assistant: {msg.content}")
-            else:
-                lines.append(f"{msg.role}: {msg.content}")
-        return "\n".join(lines)
-
     async def update_async(self) -> Status:
         """生成/改进答案并自我评估"""
         try:
@@ -95,7 +82,7 @@ Please improve your answer based on the feedback, then re-evaluate and provide y
             # Build messages
             user_msg = human(prompt_content)
             full_messages = self.context_builder.build([user_msg])
-            prompt_str = self._messages_to_prompt(full_messages)
+            prompt_str = messages_to_prompt(full_messages)
 
             response = await self.provider.generate_text(
                 prompt_str,
