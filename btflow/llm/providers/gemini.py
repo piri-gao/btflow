@@ -12,11 +12,19 @@ from btflow.llm.base import LLMResponse
 class GeminiProvider:
     """Thin wrapper around google-genai for async content generation."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        self.base_url = base_url or os.getenv("BASE_URL")
+        
         if not self.api_key:
             logger.warning("⚠️ Gemini API key not found in env (GOOGLE_API_KEY/GEMINI_API_KEY)")
-        self.client = genai.Client(api_key=self.api_key)
+            
+        http_options = None
+        if self.base_url:
+            logger.debug(f"🔌 [GeminiProvider] Using custom Base URL: {self.base_url}")
+            http_options = types.HttpOptions(base_url=self.base_url)
+            
+        self.client = genai.Client(api_key=self.api_key, http_options=http_options)
 
     async def generate_text(
         self,

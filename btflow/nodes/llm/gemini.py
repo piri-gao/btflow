@@ -25,10 +25,23 @@ class GeminiNode(AsyncBehaviour):
         self.system_prompt = system_prompt
         
         api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        base_url = os.getenv("BASE_URL")
+
         if not api_key:
             logger.warning("⚠️ [GeminiNode] Warning: GOOGLE_API_KEY/GEMINI_API_KEY not found in env!")
 
-        self.provider = GeminiProvider(api_key=api_key)
+        # Check for Proxy/OpenAI-style key
+        if base_url or (api_key and api_key.startswith("sk-")):
+            logger.info(f"🔄 [GeminiNode] Detected Proxy/OpenAI-style key. Switching to OpenAIProvider.")
+            try:
+                from btflow.llm.providers.openai import OpenAIProvider
+                # OpenAIProvider expects OPENAI_API_KEY usually, but we inject it here
+                self.provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+            except ImportError:
+                 logger.error("❌ [GeminiNode] OpenAI provider require 'openai' package. Please install it.")
+                 self.provider = GeminiProvider(api_key=api_key)
+        else:
+            self.provider = GeminiProvider(api_key=api_key)
 
     async def update_async(self) -> Status:
         try:
