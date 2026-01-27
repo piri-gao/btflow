@@ -11,12 +11,43 @@ class ToolSpec:
     input_schema: Dict[str, Any]
     output_schema: Dict[str, Any]
 
+    def _normalize_parameters(self) -> Dict[str, Any]:
+        """Normalize input schema into a function-calling compatible JSON Schema."""
+        schema = self.input_schema or {}
+        schema_type = schema.get("type")
+        if schema_type == "object":
+            normalized = dict(schema)
+            normalized.setdefault("type", "object")
+            normalized.setdefault("properties", {})
+            return normalized
+        if schema_type is None and "properties" in schema:
+            normalized = dict(schema)
+            normalized.setdefault("type", "object")
+            return normalized
+        # Wrap non-object input as a single "input" field
+        return {
+            "type": "object",
+            "properties": {
+                "input": dict(schema) if schema else {"type": "string"}
+            },
+            "required": ["input"],
+        }
+
+    def to_openai(self) -> Dict[str, Any]:
+        """OpenAI-style function schema (name/description/parameters)."""
+        return {
+            "name": self.name,
+            "description": self.description,
+            "parameters": self._normalize_parameters(),
+        }
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "description": self.description,
             "input_schema": self.input_schema,
             "output_schema": self.output_schema,
+            "parameters": self._normalize_parameters(),
         }
 
 

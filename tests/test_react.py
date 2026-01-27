@@ -142,6 +142,19 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(messages), 2)
         self.assertEqual(messages[-1].role, "tool")
         self.assertEqual(messages[-1].content, "5")
+
+    async def test_executes_json_tool_call(self):
+        """JSON ToolCall 应能被解析执行"""
+        self.state_manager.update({
+            "messages": [ai('Thought: need to calculate.\nToolCall: {"tool":"calculator","arguments":{"input":"2+3"}}')]
+        })
+        self.executor.setup()
+        self.executor.initialise()
+        result = await self.executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertEqual(messages[-1].role, "tool")
+        self.assertEqual(messages[-1].content, "5")
     
     async def test_unknown_tool(self):
         """未知工具返回错误"""

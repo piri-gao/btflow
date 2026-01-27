@@ -56,8 +56,12 @@ class ReActLLMNode(AsyncBehaviour):
 
         return f"""You are a helpful assistant that can use tools to answer questions.
 
-You must follow this EXACT format:
+You must follow one of these formats:
 
+Thought: [your reasoning about what to do next]
+ToolCall: {"tool": "<tool_name>", "arguments": {...}}
+
+OR (legacy):
 Thought: [your reasoning about what to do next]
 Action: [tool name]
 Input: [tool input]
@@ -71,8 +75,9 @@ Final Answer: [your answer to the user]
 IMPORTANT RULES:
 1. Always start with "Thought:" to explain your reasoning
 2. Use EXACT tool names as shown above (lowercase)
-3. After seeing an Observation, continue with another "Thought:"
-4. Only use "Final Answer:" when you have the complete answer
+3. ToolCall must be valid JSON
+4. After seeing an Observation, continue with another "Thought:"
+5. Only use "Final Answer:" when you have the complete answer
 
 Always think step by step."""
 
@@ -260,7 +265,7 @@ class ToolExecutor(AsyncBehaviour):
         schema = []
         for tool in self.tools.values():
             if hasattr(tool, "spec"):
-                schema.append(tool.spec().to_dict())
+                schema.append(tool.spec().to_openai())
             else:
                 schema.append({
                     "name": tool.name,
@@ -299,17 +304,24 @@ class ToolExecutor(AsyncBehaviour):
             
         return tool(content=content, name=tool_name)
 
-    def _parse_tool_input(self, tool: Tool, raw_input: str) -> tuple[Any, Optional[str]]:
+    def _parse_tool_input(self, tool: Tool, raw_input: Any) -> tuple[Any, Optional[str]]:
         schema = getattr(tool, "input_schema", None) or {"type": "string"}
         schema_type = schema.get("type", "string")
 
         if schema_type == "string":
-            return raw_input, None
+            if isinstance(raw_input, str):
+                return raw_input, None
+            if isinstance(raw_input, dict) and "input" in raw_input and len(raw_input) == 1:
+                return str(raw_input["input"]), None
+            return str(raw_input), None
 
-        try:
-            parsed = json.loads(raw_input)
-        except json.JSONDecodeError:
-            return None, f"Invalid input for tool '{tool.name}': expected JSON {schema_type}"
+        if not isinstance(raw_input, str):
+            parsed = raw_input
+        else:
+            try:
+                parsed = json.loads(raw_input)
+            except json.JSONDecodeError:
+                return None, f"Invalid input for tool '{tool.name}': expected JSON {schema_type}"
 
         type_map = {
             "number": (int, float),
@@ -335,8 +347,48 @@ class ToolExecutor(AsyncBehaviour):
         from btflow.tools.execution import execute_tool
         return await execute_tool(tool, parsed_input)
 
-    def _parse_latest_action(self, messages: List[Message]) -> Optional[Tuple[str, str]]:
-        """从最近的 assistant 消息中解析 Action"""
+    def _extract_tool_call_from_dict(self, data: Any) -> Optional[Tuple[str, Any]]:
+        if not isinstance(data, dict):
+            return None
+
+        if "tool_calls" in data and isinstance(data["tool_calls"], list) and data["tool_calls"]:
+            return self._extract_tool_call_from_dict(data["tool_calls"][0])
+
+        if "function_call" in data and isinstance(data["function_call"], dict):
+            return self._extract_tool_call_from_dict(data["function_call"])
+
+        tool_name = data.get("tool") or data.get("name") or data.get("tool_name")
+        if not tool_name:
+            return None
+
+        args = data.get("arguments", data.get("args", data.get("input")))
+        if isinstance(args, str):
+            args_str = args.strip()
+            if args_str.startswith("{") or args_str.startswith("["):
+                try:
+                    args = json.loads(args_str)
+                except json.JSONDecodeError:
+                    pass
+
+        return str(tool_name).lower(), args
+
+    def _extract_tool_call_json(self, content: str) -> Optional[Tuple[str, Any]]:
+        decoder = json.JSONDecoder()
+        idx = content.find("{")
+        while idx != -1:
+            try:
+                obj, _ = decoder.raw_decode(content[idx:])
+            except json.JSONDecodeError:
+                idx = content.find("{", idx + 1)
+                continue
+            extracted = self._extract_tool_call_from_dict(obj)
+            if extracted:
+                return extracted
+            idx = content.find("{", idx + 1)
+        return None
+
+    def _parse_latest_action(self, messages: List[Message]) -> Optional[Tuple[str, Any]]:
+        """从最近的 assistant 消息中解析 ToolCall / Action"""
         content = None
         for msg in reversed(messages):
             if isinstance(msg, Message) and msg.role == "assistant":
@@ -350,6 +402,10 @@ class ToolExecutor(AsyncBehaviour):
             logger.debug("📭 [{}] 未检测到可解析的 assistant 消息", self.name)
             return None
 
+        extracted = self._extract_tool_call_json(content)
+        if extracted:
+            return extracted
+
         match = self.ACTION_PATTERN.search(content)
         if not match:
             logger.debug("📭 [{}] 未检测到 Action，跳过", self.name)
@@ -359,7 +415,7 @@ class ToolExecutor(AsyncBehaviour):
         tool_input = match.group(2).strip()
         return tool_name, tool_input
 
-    async def _execute_action(self, tool_name: str, tool_input: str) -> Message:
+    async def _execute_action(self, tool_name: str, tool_input: Any) -> Message:
         """执行具体的 Action 逻辑（包含重试、Trace、Result Normalize）"""
         logger.info("⚙️ [{}] 执行 Action: {} Input: {}", self.name, tool_name, tool_input)
         trace_emit("tool_call", {"node": self.name, "tool": tool_name, "mode": "react"})
