@@ -32,6 +32,16 @@ class MockCalculatorTool(Tool):
             return f"Error: {e}"
 
 
+class AsyncEchoTool(Tool):
+    """Async tool for testing"""
+    name = "echo_async"
+    description = "Echo input async"
+
+    async def run(self, input: str) -> str:
+        await asyncio.sleep(0.01)
+        return f"echo:{input}"
+
+
 class MockLLMNode(AsyncBehaviour):
     """Mock LLM node that returns predefined responses"""
     def __init__(self, name: str, responses: List[str]):
@@ -167,6 +177,48 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         messages = self.state_manager.get().messages
         self.assertEqual(messages[-1].role, "tool")
         self.assertEqual(messages[-1].content, "echo:hello")
+
+    async def test_registry_function_tool_kwargs(self):
+        """FunctionTool 应支持多参数函数的 kwargs 调用"""
+        registry = ToolRegistry()
+
+        def add(a: int, b: int) -> str:
+            return str(a + b)
+
+        registry.register_function(
+            name="add",
+            description="Add two numbers",
+            fn=add,
+            input_schema={"type": "object"},
+        )
+
+        executor = ToolExecutor("executor", registry=registry)
+        executor.state_manager = self.state_manager
+        self.state_manager.update({
+            "messages": [ai('Action: add\nInput: {"a": 1, "b": 2}')]
+        })
+
+        executor.setup()
+        executor.initialise()
+        result = await executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertEqual(messages[-1].content, "3")
+
+    async def test_async_tool_executes(self):
+        """Async 工具应被正确 await"""
+        executor = ToolExecutor("executor", tools=[AsyncEchoTool()])
+        executor.state_manager = self.state_manager
+        self.state_manager.update({
+            "messages": [ai("Action: echo_async\nInput: hi")]
+        })
+
+        executor.setup()
+        executor.initialise()
+        result = await executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertEqual(messages[-1].content, "echo:hi")
 
 
 class TestReActIntegration(unittest.IsolatedAsyncioTestCase):

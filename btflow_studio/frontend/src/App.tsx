@@ -25,7 +25,7 @@ import { fetchNodes, saveWorkflow, runWorkflow, stopWorkflow, createWorkflow } f
 
 interface LogEntry {
   timestamp: string;
-  type: 'log' | 'status' | 'error';
+  type: 'log' | 'status' | 'error' | 'trace';
   message: string;
 }
 
@@ -119,6 +119,18 @@ function Flow() {
         else if (msg.type === 'log') {
           const timestamp = new Date().toLocaleTimeString();
           setLogs(prev => [...prev, { timestamp, type: 'log', message: msg.message }]);
+        }
+        else if (msg.type === 'trace') {
+          const timestamp = new Date().toLocaleTimeString();
+          const data = msg.data || {};
+          const parts: string[] = [];
+          if (data.node) parts.push(`node=${data.node}`);
+          if (data.tool) parts.push(`tool=${data.tool}`);
+          if (data.model) parts.push(`model=${data.model}`);
+          if (typeof data.ok === 'boolean') parts.push(`ok=${data.ok}`);
+          if (data.error) parts.push(`error=${data.error}`);
+          const details = parts.length ? ` ${parts.join(' ')}` : '';
+          setLogs(prev => [...prev, { timestamp, type: 'trace', message: `trace:${msg.event}${details}` }]);
         }
       } catch (e) {
         console.error("WS Parse error", e);

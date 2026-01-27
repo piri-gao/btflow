@@ -21,8 +21,8 @@ class FunctionTool(Tool):
         if output_schema is not None:
             self.output_schema = output_schema
 
-    def run(self, input: Any) -> Any:
-        return self._fn(input)
+    def run(self, *args, **kwargs) -> Any:
+        return self._fn(*args, **kwargs)
 
 
 class ToolRegistry:

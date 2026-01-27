@@ -1,13 +1,14 @@
 import asyncio
 import json
 import re
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 from py_trees.common import Status
 from py_trees.behaviour import Behaviour
 
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
+from btflow.core.trace import emit as trace_emit
 from btflow.tools import Tool
 from btflow.tools.registry import ToolRegistry
 from btflow.tools.base import ToolError, ToolResult
@@ -114,6 +115,11 @@ Always think step by step."""
             prompt_content = messages_to_prompt(full_messages)
 
             logger.debug("🤖 [{}] 调用 LLM ({})...", self.name, self.model)
+            trace_emit("llm_call", {
+                "node": self.name,
+                "model": self.model,
+                "messages": len(full_messages),
+            })
             # logger.debug("Prompt:\n{}", prompt_content)
 
             # Only verify system instruction logic for providers that separate it
@@ -130,6 +136,11 @@ Always think step by step."""
             )
 
             content = response.text.strip()
+            trace_emit("llm_response", {
+                "node": self.name,
+                "model": self.model,
+                "content_len": len(content),
+            })
 
             if not content:
                 logger.warning("⚠️ [{}] LLM 返回空响应", self.name)
@@ -147,9 +158,11 @@ Always think step by step."""
 
         except asyncio.TimeoutError:
             logger.warning("⏰ [{}] 请求超时", self.name)
+            trace_emit("llm_error", {"node": self.name, "model": self.model, "error": "timeout"})
             return Status.FAILURE
         except Exception as e:
             logger.error("🔥 [{}] Gemini 调用失败: {}", self.name, e)
+            trace_emit("llm_error", {"node": self.name, "model": self.model, "error": str(e)})
             return Status.FAILURE
 
 
@@ -179,6 +192,7 @@ class ToolExecutor(AsyncBehaviour):
     ):
         super().__init__(name)
         self.tools: Dict[str, Tool] = {}
+        self.tool_nodes: Dict[str, Any] = {}
         self.max_retries = max_retries
         self.retry_backoff = retry_backoff
         self.observation_format = observation_format
@@ -197,7 +211,9 @@ class ToolExecutor(AsyncBehaviour):
         super().setup(**kwargs)
 
         for child in self.children:
-            if hasattr(child, "tool"):
+            if hasattr(child, "invoke_from_agent") and hasattr(child, "tool"):
+                self.register_tool_node(child)
+            elif hasattr(child, "tool"):
                 self.register_tool(child.tool)
 
         if hasattr(self, "state_manager") and self.state_manager:
@@ -209,6 +225,20 @@ class ToolExecutor(AsyncBehaviour):
     def register_tool(self, tool: Tool):
         self.tools[tool.name.lower()] = tool
         logger.debug("🔧 [{}] 注册工具: {}", self.name, tool.name)
+
+    def register_tool_node(self, node):
+        tool = getattr(node, "tool", None)
+        if tool is None:
+            return
+        
+        name_lower = tool.name.lower()
+        if name_lower in self.tool_nodes:
+            logger.warning("⚠️ [{}] Overwriting existing tool node for '{}'. Previous: {}, New: {}", 
+                           self.name, tool.name, self.tool_nodes[name_lower].name, node.name)
+            
+        self.tool_nodes[name_lower] = node
+        self.register_tool(tool)
+        logger.debug("🔧 [{}] 注册工具节点: {} -> {}", self.name, tool.name, node.name)
 
     def get_tools_description(self) -> str:
         if not self.tools:
@@ -294,15 +324,21 @@ class ToolExecutor(AsyncBehaviour):
 
         return parsed, None
 
-    async def update_async(self) -> Status:
-        state = self.state_manager.get()
+    def _safe_trace_payload(self, obj: Any) -> Any:
+        try:
+            json.dumps(obj)
+            return obj
+        except (TypeError, ValueError):
+            return str(obj)
 
-        if not state.messages:
-            return Status.SUCCESS
+    async def _run_tool(self, tool: Tool, parsed_input: Any) -> Any:
+        from btflow.tools.execution import execute_tool
+        return await execute_tool(tool, parsed_input)
 
-        # Find the most recent assistant message to parse Action/Input
+    def _parse_latest_action(self, messages: List[Message]) -> Optional[Tuple[str, str]]:
+        """从最近的 assistant 消息中解析 Action"""
         content = None
-        for msg in reversed(state.messages):
+        for msg in reversed(messages):
             if isinstance(msg, Message) and msg.role == "assistant":
                 content = msg.content
                 break
@@ -312,61 +348,155 @@ class ToolExecutor(AsyncBehaviour):
 
         if content is None:
             logger.debug("📭 [{}] 未检测到可解析的 assistant 消息", self.name)
-            return Status.SUCCESS
+            return None
 
         match = self.ACTION_PATTERN.search(content)
-
         if not match:
             logger.debug("📭 [{}] 未检测到 Action，跳过", self.name)
-            return Status.SUCCESS
+            return None
 
         tool_name = match.group(1).strip().lower()
         tool_input = match.group(2).strip()
+        return tool_name, tool_input
 
+    async def _execute_action(self, tool_name: str, tool_input: str) -> Message:
+        """执行具体的 Action 逻辑（包含重试、Trace、Result Normalize）"""
         logger.info("⚙️ [{}] 执行 Action: {} Input: {}", self.name, tool_name, tool_input)
+        trace_emit("tool_call", {"node": self.name, "tool": tool_name, "mode": "react"})
 
         tool = self.tools.get(tool_name)
+        tool_node = self.tool_nodes.get(tool_name)
 
-        if tool:
-            parsed_input, input_error = self._parse_tool_input(tool, tool_input)
-            if input_error:
-                observation = self._normalize_tool_result(tool_name, None, error=input_error)
-            else:
-                attempts = 0
-                while True:
-                    attempts += 1
-                    try:
-                        result = tool.run(parsed_input)
-                        if isinstance(result, ToolResult):
-                            observation = self._normalize_tool_result(tool_name, result, error=result.error)
-                            retryable = result.retryable and not result.ok
-                        else:
-                            observation = self._normalize_tool_result(tool_name, result, error=None)
-                            retryable = False
-                    except ToolError as e:
-                        logger.warning("⚠️ [{}] 工具异常: {}", self.name, e)
-                        observation = self._normalize_tool_result(tool_name, None, error=f"{e.code}: {e}")
-                        retryable = e.retryable
-                    except Exception as e:
-                        logger.warning("⚠️ [{}] 工具执行失败: {}", self.name, e)
-                        observation = self._normalize_tool_result(
-                            tool_name, None, error=f"tool_error: {e}"
-                        )
-                        retryable = False
-
-                    if not retryable or attempts > self.max_retries:
-                        break
-                    await asyncio.sleep(self.retry_backoff * attempts)
-        else:
+        if not tool:
             logger.warning("⚠️ [{}] 未知工具: {}", self.name, tool_name)
-            observation = self._normalize_tool_result(
-                tool_name,
-                None,
-                error=f"tool_not_found: Tool '{tool_name}' not found. Available tools: {list(self.tools.keys())}",
-            )
+            error_msg = f"tool_not_found: Tool '{tool_name}' not found. Available tools: {list(self.tools.keys())}"
+            trace_emit("tool_result", {
+                "node": self.name,
+                "tool": tool_name,
+                "ok": False,
+                "error": "tool_not_found",
+            })
+            return self._normalize_tool_result(tool_name, None, error=error_msg)
 
+        # Parse Input
+        parsed_input, input_error = self._parse_tool_input(tool, tool_input)
+        if input_error:
+            trace_emit("tool_result", {
+                "node": self.name,
+                "tool": tool_name,
+                "ok": False,
+                "error": input_error,
+            })
+            return self._normalize_tool_result(tool_name, None, error=input_error)
+
+        # Execution Loop with Retry
+        attempts = 0
+        while True:
+            attempts += 1
+            try:
+                # Execution
+                if tool_node is not None:
+                    result = tool_node.invoke_from_agent(parsed_input)
+                    if asyncio.iscoroutine(result):
+                        result = await result
+                    
+                    # ToolNode Writeback
+                    if tool_node.output_key and self.state_manager:
+                        should_write = True
+                        output_val = result
+                        if isinstance(result, ToolResult):
+                            if not result.ok:
+                                should_write = False
+                            else:
+                                output_val = result.output
+                        
+                        if should_write:
+                            self.state_manager.update({tool_node.output_key: output_val})
+                            logger.debug("💾 [{}] ToolNode '{}' output written to key '{}'", 
+                                         self.name, tool_name, tool_node.output_key)
+                else:
+                    result = await self._run_tool(tool, parsed_input)
+
+                # Normalize Result
+                if isinstance(result, ToolResult):
+                    observation = self._normalize_tool_result(tool_name, result, error=result.error)
+                    retryable = result.retryable and not result.ok
+                    ok = result.ok
+                    error_msg = result.error
+                    trace_result = result.output 
+                else:
+                    observation = self._normalize_tool_result(tool_name, result, error=None)
+                    retryable = False
+                    ok = True
+                    error_msg = None
+                    trace_result = result
+                    
+                trace_emit("tool_result", {
+                    "node": self.name,
+                    "tool": tool_name,
+                    "ok": ok,
+                    "error": error_msg,
+                    "result": self._safe_trace_payload(trace_result)
+                })
+                
+                if not retryable:
+                    return observation
+                if attempts <= self.max_retries:
+                    logger.warning(
+                        "⚠️ [{}] Tool '{}' failed (attempt {}/{}), retrying... Error: {}",
+                        self.name, tool_name, attempts, self.max_retries, error_msg,
+                    )
+
+            except ToolError as e:
+                logger.warning("⚠️ [{}] 工具异常: {}", self.name, e)
+                observation = self._normalize_tool_result(tool_name, None, error=f"{e.code}: {e}")
+                retryable = e.retryable
+                trace_emit("tool_result", {
+                    "node": self.name,
+                    "tool": tool_name,
+                    "ok": False,
+                    "error": f"{e.code}: {e}",
+                })
+                if not retryable:
+                    return observation
+
+            except Exception as e:
+                logger.warning("⚠️ [{}] 工具执行失败: {}", self.name, e)
+                observation = self._normalize_tool_result(tool_name, None, error=f"tool_error: {e}")
+                trace_emit("tool_result", {
+                    "node": self.name,
+                    "tool": tool_name,
+                    "ok": False,
+                    "error": str(e),
+                })
+                return observation
+
+            if attempts > self.max_retries:
+                return observation
+            
+            await asyncio.sleep(self.retry_backoff * attempts)
+
+    async def update_async(self) -> Status:
+        state = self.state_manager.get()
+
+        if not state.messages:
+            return Status.SUCCESS
+
+        # 1. Parse Action
+        action = self._parse_latest_action(state.messages)
+        if not action:
+            return Status.SUCCESS
+        
+        tool_name, tool_input = action
+
+        # 2. Execute Action
+        observation = await self._execute_action(tool_name, tool_input)
+
+        # 3. Update State
         self.state_manager.update({"messages": [observation]})
         return Status.SUCCESS
+
+
 
 
 class IsFinalAnswer(Behaviour):

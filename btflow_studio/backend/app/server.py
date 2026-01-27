@@ -21,6 +21,8 @@ from fastapi import WebSocket, WebSocketDisconnect
 from btflow.core.agent import BTAgent
 from btflow.core.runtime import ReactiveRunner
 from btflow.core.logging import logger
+from btflow.core.trace import subscribe as trace_subscribe, unsubscribe as trace_unsubscribe
+from btflow.core.trace import set_context as trace_set_context, reset_context as trace_reset_context
 
 # 配置持久化日志用于调试
 logger.add("studio_backend.log", rotation="10 MB", level="DEBUG")
@@ -144,6 +146,19 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
     visitor = StudioVisitor(workflow_id)
     agent.runner.tree.visitors.append(visitor)
 
+    # Trace subscription
+    def on_trace(event: str, data: dict):
+        if data.get("workflow_id") != workflow_id:
+            return
+        asyncio.create_task(manager.broadcast(workflow_id, {
+            "type": "trace",
+            "event": event,
+            "data": data
+        }))
+
+    trace_token = trace_set_context(workflow_id=workflow_id)
+    trace_subscribe(on_trace)
+
     # Set up log broadcast callback
     def broadcast_log(msg_type: str, message: str):
         asyncio.create_task(manager.broadcast(workflow_id, {
@@ -184,6 +199,8 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
     finally:
         logger.info("💤 [API] Workflow {} finished", workflow_id)
         logger.remove(sink_id) # 重要：移除沉降器防止内存泄漏
+        trace_unsubscribe(on_trace)
+        trace_reset_context(trace_token)
         if workflow_id in running_agents:
             del running_agents[workflow_id]
         if workflow_id in running_tasks:

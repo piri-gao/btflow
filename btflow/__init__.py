@@ -8,6 +8,13 @@ from btflow.core.state import ActionField, StateManager
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.runtime import ReactiveRunner
 from btflow.core.persistence import SimpleCheckpointer
+from btflow.core.trace import (
+    emit as trace_emit,
+    subscribe as trace_subscribe,
+    unsubscribe as trace_unsubscribe,
+    set_context as trace_set_context,
+    reset_context as trace_reset_context,
+)
 
 # Re-export py_trees composites for convenience
 from py_trees.composites import Sequence, Selector, Parallel, Composite
@@ -34,6 +41,11 @@ __all__ = [
     "AsyncBehaviour",
     "ReactiveRunner",
     "SimpleCheckpointer",
+    "trace_emit",
+    "trace_subscribe",
+    "trace_unsubscribe",
+    "trace_set_context",
+    "trace_reset_context",
     # Decorators
     "action",
     # py_trees composites
