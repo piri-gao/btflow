@@ -39,6 +39,29 @@ class ToolSpec:
             "name": self.name,
             "description": self.description,
             "parameters": self._normalize_parameters(),
+            "returns": self._normalize_output_schema(),
+        }
+
+    def _normalize_output_schema(self) -> Dict[str, Any]:
+        """Normalize output schema into an object-shaped JSON Schema."""
+        schema = self.output_schema or {}
+        schema_type = schema.get("type")
+        if schema_type == "object":
+            normalized = dict(schema)
+            normalized.setdefault("type", "object")
+            normalized.setdefault("properties", {})
+            return normalized
+        if schema_type is None and "properties" in schema:
+            normalized = dict(schema)
+            normalized.setdefault("type", "object")
+            return normalized
+        # Wrap non-object output as a single "output" field
+        return {
+            "type": "object",
+            "properties": {
+                "output": dict(schema) if schema else {"type": "string"}
+            },
+            "required": ["output"],
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -48,6 +71,7 @@ class ToolSpec:
             "input_schema": self.input_schema,
             "output_schema": self.output_schema,
             "parameters": self._normalize_parameters(),
+            "returns": self._normalize_output_schema(),
         }
 
 

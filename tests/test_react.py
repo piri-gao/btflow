@@ -41,6 +41,15 @@ class AsyncEchoTool(Tool):
         await asyncio.sleep(0.01)
         return f"echo:{input}"
 
+class NumberTool(Tool):
+    """Number tool for testing primitive input types"""
+    name = "number_tool"
+    description = "Echo number input"
+    input_schema = {"type": "number"}
+
+    def run(self, input: float) -> str:
+        return str(input)
+
 
 class MockLLMNode(AsyncBehaviour):
     """Mock LLM node that returns predefined responses"""
@@ -155,7 +164,21 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         messages = self.state_manager.get().messages
         self.assertEqual(messages[-1].role, "tool")
         self.assertEqual(messages[-1].content, "5")
-    
+
+    async def test_json_tool_call_number_schema(self):
+        """JSON ToolCall for number schema should unwrap input"""
+        executor = ToolExecutor("executor", tools=[NumberTool()])
+        executor.state_manager = self.state_manager
+        self.state_manager.update({
+            "messages": [ai('Thought: pass number.\nToolCall: {"tool":"number_tool","arguments":{"input": 3}}')]
+        })
+        executor.setup()
+        executor.initialise()
+        result = await executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertEqual(messages[-1].content, "3")
+
     async def test_unknown_tool(self):
         """未知工具返回错误"""
         self.state_manager.update({

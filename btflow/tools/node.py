@@ -59,20 +59,19 @@ class ToolNode(AsyncBehaviour):
                 "args": tool_args,
             })
             result = await self._run_tool(tool_args)
+            tool_result = self._coerce_tool_result(result)
 
-            if isinstance(result, ToolResult):
-                if not result.ok:
-                    logger.warning("⚠️ [{}] ToolResult not ok: {}", self.name, result.error)
-                    trace_emit("tool_result", {
-                        "node": self.name,
-                        "tool": getattr(self.tool, "name", type(self.tool).__name__),
-                        "ok": False,
-                        "error": result.error,
-                    })
-                    return Status.FAILURE
-                payload = result.output
-            else:
-                payload = result
+            if not tool_result.ok:
+                logger.warning("⚠️ [{}] ToolResult not ok: {}", self.name, tool_result.error)
+                trace_emit("tool_result", {
+                    "node": self.name,
+                    "tool": getattr(self.tool, "name", type(self.tool).__name__),
+                    "ok": False,
+                    "error": tool_result.error,
+                })
+                return Status.FAILURE
+
+            payload = tool_result.output
 
             if self.output_key:
                 self.state_manager.update({self.output_key: payload})
@@ -139,6 +138,11 @@ class ToolNode(AsyncBehaviour):
             if current is None:
                 break
         return current
+
+    def _coerce_tool_result(self, result: Any) -> ToolResult:
+        if isinstance(result, ToolResult):
+            return result
+        return ToolResult(ok=True, output=result)
 
     async def _run_tool(self, args: Any, injected: Optional[Dict[str, Any]] = None) -> Any:
         from btflow.tools.execution import execute_tool

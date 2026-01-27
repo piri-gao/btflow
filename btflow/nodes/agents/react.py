@@ -297,12 +297,22 @@ class ToolExecutor(AsyncBehaviour):
             content = json.dumps(payload, ensure_ascii=True)
         elif error:
             content = str(error)
+        elif isinstance(result, ToolResult):
+            if result.ok and isinstance(result.output, str):
+                content = result.output
+            else:
+                content = json.dumps(payload, ensure_ascii=True)
         elif isinstance(result, str):
             content = result
         else:
             content = json.dumps(payload, ensure_ascii=True)
             
         return tool(content=content, name=tool_name)
+
+    def _coerce_tool_result(self, result: Any) -> ToolResult:
+        if isinstance(result, ToolResult):
+            return result
+        return ToolResult(ok=True, output=result)
 
     def _parse_tool_input(self, tool: Tool, raw_input: Any) -> tuple[Any, Optional[str]]:
         schema = getattr(tool, "input_schema", None) or {"type": "string"}
@@ -314,6 +324,11 @@ class ToolExecutor(AsyncBehaviour):
             if isinstance(raw_input, dict) and "input" in raw_input and len(raw_input) == 1:
                 return str(raw_input["input"]), None
             return str(raw_input), None
+
+        # [FIX] Unwrap primitive types that were wrapped by tool schema normalization
+        if schema_type != "object":
+            if isinstance(raw_input, dict) and "input" in raw_input and len(raw_input) == 1:
+                raw_input = raw_input["input"]
 
         if not isinstance(raw_input, str):
             parsed = raw_input
@@ -357,11 +372,18 @@ class ToolExecutor(AsyncBehaviour):
         if "function_call" in data and isinstance(data["function_call"], dict):
             return self._extract_tool_call_from_dict(data["function_call"])
 
+        # [NEW] Support standard OpenAI "function" field inside tool_calls
+        if "function" in data and isinstance(data["function"], dict):
+            return self._extract_tool_call_from_dict(data["function"])
+
         tool_name = data.get("tool") or data.get("name") or data.get("tool_name")
-        if not tool_name:
+        # [FIX] Require BOTH name and arguments to avoid false positives (e.g. random JSON with "name" key)
+        args_container = data.get("arguments") or data.get("args") or data.get("input")
+        
+        if not tool_name or args_container is None:
             return None
 
-        args = data.get("arguments", data.get("args", data.get("input")))
+        args = args_container
         if isinstance(args, str):
             args_str = args.strip()
             if args_str.startswith("{") or args_str.startswith("["):
@@ -377,14 +399,20 @@ class ToolExecutor(AsyncBehaviour):
         idx = content.find("{")
         while idx != -1:
             try:
-                obj, _ = decoder.raw_decode(content[idx:])
+                obj, idx_end = decoder.raw_decode(content[idx:])
+                # Note: raw_decode returns (obj, end_index) where end_index is relative to string start
+                # but here we passed content[idx:] so it is relative to idx.
             except json.JSONDecodeError:
                 idx = content.find("{", idx + 1)
                 continue
+            
             extracted = self._extract_tool_call_from_dict(obj)
             if extracted:
                 return extracted
-            idx = content.find("{", idx + 1)
+            
+            # [FIX] If valid JSON but not a tool call, skip past it to avoid re-scanning internals
+            idx = idx + idx_end
+            idx = content.find("{", idx)
         return None
 
     def _parse_latest_action(self, messages: List[Message]) -> Optional[Tuple[str, Any]]:
@@ -474,18 +502,12 @@ class ToolExecutor(AsyncBehaviour):
                     result = await self._run_tool(tool, parsed_input)
 
                 # Normalize Result
-                if isinstance(result, ToolResult):
-                    observation = self._normalize_tool_result(tool_name, result, error=result.error)
-                    retryable = result.retryable and not result.ok
-                    ok = result.ok
-                    error_msg = result.error
-                    trace_result = result.output 
-                else:
-                    observation = self._normalize_tool_result(tool_name, result, error=None)
-                    retryable = False
-                    ok = True
-                    error_msg = None
-                    trace_result = result
+                tool_result = self._coerce_tool_result(result)
+                observation = self._normalize_tool_result(tool_name, tool_result, error=tool_result.error)
+                retryable = tool_result.retryable and not tool_result.ok
+                ok = tool_result.ok
+                error_msg = tool_result.error
+                trace_result = tool_result.output
                     
                 trace_emit("tool_result", {
                     "node": self.name,
