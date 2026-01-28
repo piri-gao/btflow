@@ -225,6 +225,7 @@ class ToolExecutor(AsyncBehaviour):
     ):
         super().__init__(name)
         self.tools: Dict[str, Tool] = {}
+        self._all_tools: Dict[str, Tool] = {}
         self.tool_nodes: Dict[str, Any] = {}
         self.max_retries = max_retries
         self.retry_backoff = retry_backoff
@@ -255,7 +256,9 @@ class ToolExecutor(AsyncBehaviour):
             self._update_tools_state()
 
     def register_tool(self, tool: Tool):
-        self.tools[tool.name.lower()] = tool
+        name_lower = tool.name.lower()
+        self.tools[name_lower] = tool
+        self._all_tools[name_lower] = tool
         logger.debug("🔧 [{}] 注册工具: {}", self.name, tool.name)
 
     def register_tool_node(self, node):
@@ -273,7 +276,7 @@ class ToolExecutor(AsyncBehaviour):
         logger.debug("🔧 [{}] 注册工具节点: {} -> {}", self.name, tool.name, node.name)
 
     def _update_tools_state(self):
-        filtered = self.policy.select_tools(self.state_manager.get(), list(self.tools.values()))
+        filtered = self.policy.select_tools(self.state_manager.get(), list(self._all_tools.values()))
         self.tools = {t.name.lower(): t for t in filtered}
         desc = self.get_tools_description()
         schema = self.get_tools_schema()

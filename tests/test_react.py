@@ -17,7 +17,7 @@ from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
 from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer
 from btflow.tools import Tool, ToolRegistry
-from btflow.tools.policy import ToolSelectionPolicy
+from btflow.tools.policy import ToolSelectionPolicy, AllowAllToolPolicy
 from btflow.messages import human, ai
 
 
@@ -382,6 +382,11 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         messages = self.state_manager.get().messages
         # Should be blocked by not being visible to LLM
         self.assertIn("tool_not_found", messages[-1].content)
+
+        # Ensure tools are not permanently removed
+        executor.policy = AllowAllToolPolicy()
+        executor._update_tools_state()
+        self.assertIn("calculator", executor.tools)
 
 
 class TestReActIntegration(unittest.IsolatedAsyncioTestCase):
