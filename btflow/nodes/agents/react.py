@@ -136,6 +136,7 @@ Always think step by step."""
             # But here we embedded it in prompt_content for safety via ContextBuilder
             # For providers taking system_instruction sep, maybe redundant but safe.
             
+            tools_schema = getattr(state, "tools_schema", None)
             response = await self.provider.generate_text(
                 prompt_content,
                 model=self.model,
@@ -143,7 +144,7 @@ Always think step by step."""
                 # system_instruction=None, 
                 temperature=0.7,
                 timeout=60.0,
-                tools=state.tools_schema if self.structured_tool_calls else None,
+                tools=tools_schema if self.structured_tool_calls else None,
                 strict_tools=self.strict_tool_calls,
             )
 
