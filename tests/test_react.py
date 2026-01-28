@@ -50,6 +50,21 @@ class NumberTool(Tool):
     def run(self, input: float) -> str:
         return str(input)
 
+class EnumTool(Tool):
+    """Tool for testing enum/required validation"""
+    name = "enum_tool"
+    description = "Enum validation tool"
+    input_schema = {
+        "type": "object",
+        "properties": {
+            "mode": {"type": "string", "enum": ["a", "b"]},
+        },
+        "required": ["mode"],
+    }
+
+    def run(self, input: dict) -> str:
+        return f"mode:{input.get('mode')}"
+
 
 class MockLLMNode(AsyncBehaviour):
     """Mock LLM node that returns predefined responses"""
@@ -165,6 +180,18 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(messages[-1].role, "tool")
         self.assertEqual(messages[-1].content, "5")
 
+    async def test_ignores_unmarked_json(self):
+        """未标记 ToolCall 的 JSON 不应被当作工具调用"""
+        self.state_manager.update({
+            "messages": [ai('Thought: example JSON {"tool":"fake","arguments":{"input":"no"}}\nFinal Answer: done')]
+        })
+        self.executor.setup()
+        self.executor.initialise()
+        result = await self.executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        # No tool observation should be appended
+        self.assertEqual(len(self.state_manager.get().messages), 1)
+
     async def test_json_tool_call_number_schema(self):
         """JSON ToolCall for number schema should unwrap input"""
         executor = ToolExecutor("executor", tools=[NumberTool()])
@@ -178,6 +205,29 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
         self.assertEqual(messages[-1].content, "3")
+
+    async def test_schema_validation_required_enum(self):
+        """Schema validation should reject missing required or enum mismatch"""
+        executor = ToolExecutor("executor", tools=[EnumTool()])
+        executor.state_manager = self.state_manager
+
+        self.state_manager.update({
+            "messages": [ai('Action: enum_tool\nInput: {}')]
+        })
+        executor.setup()
+        executor.initialise()
+        result = await executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertIn("field required", messages[-1].content)
+
+        self.state_manager.update({
+            "messages": [ai('Action: enum_tool\nInput: {"mode": "c"}')]
+        })
+        result = await executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertIn("value must be one of", messages[-1].content)
 
     async def test_unknown_tool(self):
         """未知工具返回错误"""
