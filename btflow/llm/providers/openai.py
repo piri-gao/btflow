@@ -36,11 +36,23 @@ class OpenAIProvider(LLMProvider):
         top_k: int = 40,
         timeout: float = 60.0,
         max_tokens: Optional[int] = None,
+        tools: Optional[list[dict]] = None,
+        tool_choice: Optional[object] = None,
+        strict_tools: bool = False,
     ) -> LLMResponse:
         messages = []
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
+
+        tool_payload = None
+        if tools:
+            tool_payload = [
+                {"type": "function", "function": t} if "type" not in t else t
+                for t in tools
+            ]
+            if tool_choice is None:
+                tool_choice = "required" if strict_tools else "auto"
 
         response = await self.client.chat.completions.create(
             model=model,
@@ -49,7 +61,19 @@ class OpenAIProvider(LLMProvider):
             top_p=top_p,
             max_tokens=max_tokens,
             timeout=timeout,
+            tools=tool_payload,
+            tool_choice=tool_choice,
         )
 
-        content = response.choices[0].message.content or ""
-        return LLMResponse(text=content, raw=response)
+        message = response.choices[0].message
+        content = message.content or ""
+        tool_calls = []
+        if getattr(message, "tool_calls", None):
+            for tc in message.tool_calls:
+                fn = getattr(tc, "function", None)
+                if fn is not None:
+                    tool_calls.append({"name": fn.name, "arguments": fn.arguments})
+        if getattr(message, "function_call", None):
+            fn = message.function_call
+            tool_calls.append({"name": fn.name, "arguments": fn.arguments})
+        return LLMResponse(text=content, raw=response, tool_calls=tool_calls or None)

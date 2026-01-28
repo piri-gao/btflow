@@ -35,6 +35,9 @@ class AnthropicProvider(LLMProvider):
         top_k: int = 40,
         timeout: float = 60.0,
         max_tokens: int = 512,
+        tools: Optional[list[dict]] = None,
+        tool_choice: Optional[object] = None,
+        strict_tools: bool = False,
     ) -> LLMResponse:
         response = await self.client.messages.create(
             model=model,

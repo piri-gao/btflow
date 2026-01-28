@@ -35,6 +35,9 @@ class GeminiProvider:
         top_p: float = 0.95,
         top_k: int = 40,
         timeout: float = 60.0,
+        tools: Optional[list[dict]] = None,
+        tool_choice: Optional[object] = None,
+        strict_tools: bool = False,
     ):
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,

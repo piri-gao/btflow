@@ -12,6 +12,7 @@ from btflow.core.trace import emit as trace_emit
 from btflow.tools import Tool
 from btflow.tools.registry import ToolRegistry
 from btflow.tools.base import ToolError, ToolResult
+from btflow.tools.schema import validate_json_schema
 from btflow.llm import LLMProvider, GeminiProvider
 
 
@@ -35,6 +36,8 @@ class ReActLLMNode(AsyncBehaviour):
         tools_description: str = "",
         memory: Optional[BaseMemory] = None,
         memory_top_k: int = 5,
+        structured_tool_calls: bool = True,
+        strict_tool_calls: bool = False,
     ):
         super().__init__(name)
         self.model = model
@@ -42,6 +45,8 @@ class ReActLLMNode(AsyncBehaviour):
         self._uses_default_prompt = system_prompt is None
         self.system_prompt = system_prompt or self._get_default_prompt()
         self.provider = provider or GeminiProvider()
+        self.structured_tool_calls = structured_tool_calls
+        self.strict_tool_calls = strict_tool_calls
         
         # Internal context builder (tools are embedded in system prompt)
         self.context_builder = ContextBuilder(
@@ -138,9 +143,28 @@ Always think step by step."""
                 # system_instruction=None, 
                 temperature=0.7,
                 timeout=60.0,
+                tools=state.tools_schema if self.structured_tool_calls else None,
+                strict_tools=self.strict_tool_calls,
             )
 
             content = response.text.strip()
+            if response.tool_calls:
+                tool_call = response.tool_calls[0]
+                tool_name = tool_call.get("name") or tool_call.get("tool")
+                args = tool_call.get("arguments")
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except json.JSONDecodeError:
+                        pass
+                payload = {"tool": tool_name, "arguments": args}
+                thought = content
+                if thought:
+                    if not thought.lower().startswith("thought:"):
+                        thought = f"Thought: {thought}"
+                else:
+                    thought = "Thought: calling tool"
+                content = f"{thought}\nToolCall: {json.dumps(payload, ensure_ascii=True)}"
             trace_emit("llm_response", {
                 "node": self.name,
                 "model": self.model,
@@ -316,7 +340,11 @@ class ToolExecutor(AsyncBehaviour):
 
     def _parse_tool_input(self, tool: Tool, raw_input: Any) -> tuple[Any, Optional[str]]:
         schema = getattr(tool, "input_schema", None) or {"type": "string"}
-        schema_type = schema.get("type", "string")
+        schema_type = schema.get("type")
+        if schema_type is None and "properties" in schema:
+            schema_type = "object"
+        if schema_type is None:
+            schema_type = "string"
 
         if schema_type == "string":
             if isinstance(raw_input, str):
@@ -348,6 +376,10 @@ class ToolExecutor(AsyncBehaviour):
         expected = type_map.get(schema_type)
         if expected and not isinstance(parsed, expected):
             return None, f"Invalid input for tool '{tool.name}': expected {schema_type}"
+
+        errors = validate_json_schema(parsed, schema)
+        if errors:
+            return None, f"Invalid input for tool '{tool.name}': " + "; ".join(errors)
 
         return parsed, None
 
@@ -415,6 +447,14 @@ class ToolExecutor(AsyncBehaviour):
             idx = content.find("{", idx)
         return None
 
+    def _extract_tool_call_from_marked(self, content: str) -> Optional[Tuple[str, Any]]:
+        marker = "ToolCall:"
+        idx = content.find(marker)
+        if idx == -1:
+            return None
+        # Only parse JSON after the marker to avoid false positives in Thought.
+        return self._extract_tool_call_json(content[idx + len(marker):])
+
     def _parse_latest_action(self, messages: List[Message]) -> Optional[Tuple[str, Any]]:
         """从最近的 assistant 消息中解析 ToolCall / Action"""
         content = None
@@ -430,7 +470,7 @@ class ToolExecutor(AsyncBehaviour):
             logger.debug("📭 [{}] 未检测到可解析的 assistant 消息", self.name)
             return None
 
-        extracted = self._extract_tool_call_json(content)
+        extracted = self._extract_tool_call_from_marked(content)
         if extracted:
             return extracted
 

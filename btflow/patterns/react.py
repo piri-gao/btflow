@@ -73,7 +73,9 @@ class ReActAgent:
         memory: Optional[BaseMemory] = None,
         memory_top_k: int = 5,
         max_rounds: int = 10,
-        state_schema: Type[BaseModel] = ReActState
+        state_schema: Type[BaseModel] = ReActState,
+        structured_tool_calls: bool = True,
+        strict_tool_calls: bool = False,
     ) -> BTAgent:
         """使用指定 Provider 创建 ReAct Agent。"""
         tools = tools or []
@@ -89,6 +91,8 @@ class ReActAgent:
             tools_description=tools_desc,
             memory=memory,
             memory_top_k=memory_top_k,
+            structured_tool_calls=structured_tool_calls,
+            strict_tool_calls=strict_tool_calls,
         )
 
         loop_body = Sequence(name="ReActLoop", memory=True, children=[
