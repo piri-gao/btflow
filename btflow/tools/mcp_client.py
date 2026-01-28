@@ -66,6 +66,15 @@ class MCPClient:
         response = await session.list_tools()
         return response.tools
 
+    async def list_resources(self):
+        session = await self.connect()
+        response = await session.list_resources()
+        return response.resources
+
+    async def read_resource(self, uri: str):
+        session = await self.connect()
+        return await session.read_resource(uri)
+
     async def call_tool(self, name: str, arguments: Optional[Dict[str, Any]] = None):
         session = await self.connect()
         return await session.call_tool(name, arguments=arguments or {})
@@ -78,6 +87,17 @@ class MCPClient:
             if allow and tool.name.lower() not in allow:
                 continue
             result.append(MCPTool(self, tool))
+        return result
+
+    async def as_resource_tools(self, allowlist: Optional[List[str]] = None) -> List["MCPResourceTool"]:
+        resources = await self.list_resources()
+        allow = set(r.lower() for r in allowlist) if allowlist else None
+        result = []
+        for resource in resources:
+            uri = getattr(resource, "uri", "")
+            if allow and uri.lower() not in allow:
+                continue
+            result.append(MCPResourceTool(self, resource))
         return result
 
 
@@ -117,4 +137,31 @@ class MCPTool(Tool):
                 if text is not None:
                     return text
 
+        return str(result)
+
+
+class MCPResourceTool(Tool):
+    """Read-only Tool wrapper for MCP resources."""
+    def __init__(self, client: MCPClient, resource_def: Any):
+        self._client = client
+        self._resource_def = resource_def
+        self.name = getattr(resource_def, "name", None) or getattr(resource_def, "uri", "mcp_resource")
+        self.description = getattr(resource_def, "description", "") or ""
+        self.input_schema = {"type": "string", "description": "Resource URI (optional override)"}
+        self.output_schema = {"type": "string"}
+
+    async def run(self, input: Any) -> Any:
+        uri = getattr(self._resource_def, "uri", None)
+        if isinstance(input, str) and input:
+            uri = input
+        if not uri:
+            return "Error: resource URI not provided"
+        result = await self._client.read_resource(uri)
+
+        contents = getattr(result, "contents", None)
+        if isinstance(contents, list):
+            for item in contents:
+                text = getattr(item, "text", None)
+                if text is not None:
+                    return text
         return str(result)

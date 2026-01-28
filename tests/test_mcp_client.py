@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-from btflow.tools.mcp_client import MCPTool
+from btflow.tools.mcp_client import MCPTool, MCPResourceTool
 
 
 class DummyToolDef:
@@ -51,6 +51,38 @@ class TestMCPTool(unittest.IsolatedAsyncioTestCase):
         tool = MCPTool(client, SinglePropDef())
         await tool.run("hi")
         self.assertEqual(client.called, ("single", {"query": "hi"}))
+
+
+class DummyResourceDef:
+    name = "res"
+    uri = "resource://demo"
+    description = "demo resource"
+
+
+class DummyClientWithResource:
+    def __init__(self):
+        self.read_called = None
+
+    async def read_resource(self, uri: str):
+        self.read_called = uri
+        text_block = type("Text", (), {"text": "resource ok"})()
+        return type("Res", (), {"contents": [text_block]})()
+
+
+class TestMCPResourceTool(unittest.IsolatedAsyncioTestCase):
+    async def test_resource_read(self):
+        client = DummyClientWithResource()
+        tool = MCPResourceTool(client, DummyResourceDef())
+        result = await tool.run("")
+        self.assertEqual(result, "resource ok")
+        self.assertEqual(client.read_called, "resource://demo")
+
+    async def test_resource_override_uri(self):
+        client = DummyClientWithResource()
+        tool = MCPResourceTool(client, DummyResourceDef())
+        result = await tool.run("resource://override")
+        self.assertEqual(result, "resource ok")
+        self.assertEqual(client.read_called, "resource://override")
 
 
 if __name__ == "__main__":
