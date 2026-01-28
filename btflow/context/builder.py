@@ -1,7 +1,18 @@
-from typing import List, Optional
+from typing import List, Optional, Protocol, Sequence, Any
 
 from btflow.messages import Message, system
 from btflow.memory import BaseMemory
+
+
+class ContextBuilderProtocol(Protocol):
+    """Protocol for custom context builders."""
+
+    def build(
+        self,
+        state: Any,
+        tools_schema: Optional[dict] = None,
+    ) -> Sequence[Message]:
+        ...
 
 
 class ContextBuilder:
@@ -21,8 +32,20 @@ class ContextBuilder:
         self.memory_top_k = memory_top_k
         self.max_messages = max_messages
 
-    def build(self, user_messages: List[Message]) -> List[Message]:
+    def build(
+        self,
+        state: Any,
+        tools_schema: Optional[dict] = None,
+    ) -> List[Message]:
         messages: List[Message] = []
+
+        user_messages: List[Message]
+        if isinstance(state, list):
+            user_messages = state
+        elif hasattr(state, "messages"):
+            user_messages = list(getattr(state, "messages") or [])
+        else:
+            user_messages = []
 
         if self.system_prompt:
             messages.append(system(self.system_prompt))

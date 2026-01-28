@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 
 from btflow.context import ContextBuilder
 from btflow.memory import InMemoryHistory
@@ -32,6 +33,13 @@ class TestContextBuilder(unittest.TestCase):
         builder = ContextBuilder(max_messages=2)
         messages = builder.build([human("1"), human("2"), human("3")])
         self.assertEqual([m.content for m in messages], ["2", "3"])
+
+    def test_build_accepts_state_object(self):
+        builder = ContextBuilder(system_prompt="sys")
+        state = SimpleNamespace(messages=[human("hello")])
+        messages = builder.build(state)
+        self.assertEqual(messages[0].role, "system")
+        self.assertIn("hello", messages[-1].content)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ from btflow.llm import LLMProvider, GeminiProvider
 
 from btflow.messages import Message, human, ai, messages_to_prompt
 from btflow.memory import BaseMemory
-from btflow.context.builder import ContextBuilder
+from btflow.context.builder import ContextBuilder, ContextBuilderProtocol
 
 class SelfRefineLLMNode(AsyncBehaviour):
     """
@@ -27,16 +27,20 @@ class SelfRefineLLMNode(AsyncBehaviour):
         system_prompt: Optional[str] = None,
         memory: Optional[BaseMemory] = None,
         memory_top_k: int = 5,
+        context_builder: Optional[ContextBuilderProtocol] = None,
     ):
         super().__init__(name)
         self.model = model
         self.system_prompt = system_prompt or self._get_default_prompt()
         self.provider = provider or GeminiProvider()
-        self.context_builder = ContextBuilder(
-            system_prompt=self.system_prompt,
-            memory=memory,
-            memory_top_k=memory_top_k,
-        )
+        if context_builder is None:
+            self.context_builder = ContextBuilder(
+                system_prompt=self.system_prompt,
+                memory=memory,
+                memory_top_k=memory_top_k,
+            )
+        else:
+            self.context_builder = context_builder
 
     def _get_default_prompt(self) -> str:
         return """You are a helpful assistant that generates high-quality answers and evaluates your own work.

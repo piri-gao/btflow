@@ -1,3 +1,3 @@
-from btflow.context.builder import ContextBuilder
+from btflow.context.builder import ContextBuilder, ContextBuilderProtocol
 
-__all__ = ["ContextBuilder"]
+__all__ = ["ContextBuilder", "ContextBuilderProtocol"]

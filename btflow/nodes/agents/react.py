@@ -22,7 +22,7 @@ from btflow.llm import LLMProvider, GeminiProvider
 
 from btflow.messages import Message, human, ai, tool, messages_to_prompt
 from btflow.memory import BaseMemory
-from btflow.context.builder import ContextBuilder
+from btflow.context.builder import ContextBuilder, ContextBuilderProtocol
 
 class ReActLLMNode(AsyncBehaviour):
     """
@@ -42,6 +42,7 @@ class ReActLLMNode(AsyncBehaviour):
         memory_top_k: int = 5,
         structured_tool_calls: bool = True,
         strict_tool_calls: bool = False,
+        context_builder: Optional[ContextBuilderProtocol] = None,
     ):
         super().__init__(name)
         self.model = model
@@ -53,11 +54,14 @@ class ReActLLMNode(AsyncBehaviour):
         self.strict_tool_calls = strict_tool_calls
         
         # Internal context builder (tools are embedded in system prompt)
-        self.context_builder = ContextBuilder(
-            system_prompt=self.system_prompt,
-            memory=memory,
-            memory_top_k=memory_top_k,
-        )
+        if context_builder is None:
+            self.context_builder = ContextBuilder(
+                system_prompt=self.system_prompt,
+                memory=memory,
+                memory_top_k=memory_top_k,
+            )
+        else:
+            self.context_builder = context_builder
 
     def _get_default_prompt(self, dynamic_tools_desc: str = "") -> str:
         description = dynamic_tools_desc or self.tools_description
@@ -103,7 +107,11 @@ Always think step by step."""
                  self.tools_description = tools_desc
                  # Also update system prompt if it was default
                  if self._uses_default_prompt:
-                      self.context_builder.system_prompt = self._get_default_prompt(tools_desc)
+                      new_prompt = self._get_default_prompt(tools_desc)
+                      if hasattr(self.context_builder, "system_prompt"):
+                          self.context_builder.system_prompt = new_prompt
+                      elif hasattr(self.context_builder, "set_system_prompt"):
+                          self.context_builder.set_system_prompt(new_prompt)
 
             logger.debug("📋 [{}] State dump: messages_count={}, task={}", self.name, len(messages), task)
 
@@ -113,13 +121,17 @@ Always think step by step."""
                 initial_msg = human(f"User Question: {task}")
                 messages = [initial_msg]
                 self.state_manager.update({"messages": messages})
+                state = self.state_manager.get()
 
             if not messages:
                 logger.warning("⚠️ [{}] No messages and no task, cannot call LLM", self.name)
                 return Status.FAILURE
 
             # Build full context (System + Tools + History)
-            full_messages = self.context_builder.build(messages)
+            full_messages = self.context_builder.build(
+                state,
+                tools_schema=getattr(state, "tools_schema", None),
+            )
             
             # Serialize to prompt string
             # Note: Since ReAct prompt template is complex and partly in system prompt,
