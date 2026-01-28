@@ -10,6 +10,7 @@ from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
 from btflow.tools import Tool
+from btflow.tools.policy import ToolSelectionPolicy, AllowAllToolPolicy
 from btflow.tools.registry import ToolRegistry
 from btflow.tools.base import ToolError, ToolResult
 from btflow.tools.schema import validate_json_schema
@@ -220,6 +221,7 @@ class ToolExecutor(AsyncBehaviour):
         retry_backoff: float = 0.2,
         observation_format: str = "text",
         strict_output_validation: bool = False,
+        policy: Optional[ToolSelectionPolicy] = None,
     ):
         super().__init__(name)
         self.tools: Dict[str, Tool] = {}
@@ -228,6 +230,7 @@ class ToolExecutor(AsyncBehaviour):
         self.retry_backoff = retry_backoff
         self.observation_format = observation_format
         self.strict_output_validation = strict_output_validation
+        self.policy = policy or AllowAllToolPolicy()
         if tools:
             for tool in tools:
                 self.register_tool(tool)
@@ -249,10 +252,7 @@ class ToolExecutor(AsyncBehaviour):
                 self.register_tool(child.tool)
 
         if hasattr(self, "state_manager") and self.state_manager:
-            desc = self.get_tools_description()
-            schema = self.get_tools_schema()
-            logger.info("🔧 [{}] Updating state.tools_desc with {} tools", self.name, len(self.tools))
-            self.state_manager.update({"tools_desc": desc, "tools_schema": schema})
+            self._update_tools_state()
 
     def register_tool(self, tool: Tool):
         self.tools[tool.name.lower()] = tool
@@ -271,6 +271,14 @@ class ToolExecutor(AsyncBehaviour):
         self.tool_nodes[name_lower] = node
         self.register_tool(tool)
         logger.debug("🔧 [{}] 注册工具节点: {} -> {}", self.name, tool.name, node.name)
+
+    def _update_tools_state(self):
+        filtered = self.policy.select_tools(self.state_manager.get(), list(self.tools.values()))
+        self.tools = {t.name.lower(): t for t in filtered}
+        desc = self.get_tools_description()
+        schema = self.get_tools_schema()
+        logger.info("🔧 [{}] Updating state.tools_desc with {} tools", self.name, len(self.tools))
+        self.state_manager.update({"tools_desc": desc, "tools_schema": schema})
 
     def get_tools_description(self) -> str:
         if not self.tools:
@@ -513,6 +521,11 @@ class ToolExecutor(AsyncBehaviour):
                 "error": "tool_not_found",
             })
             return self._normalize_tool_result(tool_name, None, error=error_msg)
+
+        # Policy guardrail
+        guard_error = self.policy.validate_call(self.state_manager.get(), tool_name, tool_input)
+        if guard_error:
+            return self._normalize_tool_result(tool_name, None, error=guard_error)
 
         # Parse Input
         parsed_input, input_error = self._parse_tool_input(tool, tool_input)

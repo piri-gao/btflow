@@ -17,6 +17,7 @@ from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
 from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer
 from btflow.tools import Tool, ToolRegistry
+from btflow.tools.policy import ToolSelectionPolicy
 from btflow.messages import human, ai
 
 
@@ -348,6 +349,39 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
         self.assertEqual(messages[-1].content, "echo:hi")
+
+    async def test_policy_filters_and_blocks(self):
+        """ToolSelectionPolicy should filter and block calls."""
+        class OnlyEchoPolicy(ToolSelectionPolicy):
+            def select_tools(self, state, available_tools):
+                return [t for t in available_tools if t.name == "echo_async"]
+
+            def validate_call(self, state, tool_name, tool_input):
+                if tool_name != "echo_async":
+                    return "blocked"
+                return None
+
+        executor = ToolExecutor(
+            "executor",
+            tools=[AsyncEchoTool(), MockCalculatorTool()],
+            policy=OnlyEchoPolicy(),
+        )
+        executor.state_manager = self.state_manager
+        executor.setup()
+        executor.initialise()
+
+        # filtered tools list
+        self.assertIn("echo_async", executor.tools)
+        self.assertNotIn("calculator", executor.tools)
+
+        self.state_manager.update({
+            "messages": [ai("Action: calculator\nInput: 1+1")]
+        })
+        result = await executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        # Should be blocked by not being visible to LLM
+        self.assertIn("tool_not_found", messages[-1].content)
 
 
 class TestReActIntegration(unittest.IsolatedAsyncioTestCase):
