@@ -8,8 +8,11 @@ from py_trees.behaviour import Behaviour
 
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
+from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
+from btflow.core.trace import span
 from btflow.tools import Tool
+
 from btflow.tools.policy import ToolSelectionPolicy, AllowAllToolPolicy
 from btflow.tools.registry import ToolRegistry
 from btflow.tools.base import ToolError, ToolResult
@@ -126,52 +129,56 @@ Always think step by step."""
             prompt_content = messages_to_prompt(full_messages)
 
             logger.debug("🤖 [{}] 调用 LLM ({})...", self.name, self.model)
-            trace_emit("llm_call", {
-                "node": self.name,
-                "model": self.model,
-                "messages": len(full_messages),
-            })
-            # logger.debug("Prompt:\n{}", prompt_content)
 
             # Only verify system instruction logic for providers that separate it
             # But here we embedded it in prompt_content for safety via ContextBuilder
             # For providers taking system_instruction sep, maybe redundant but safe.
-            
             tools_schema = getattr(state, "tools_schema", None)
-            response = await self.provider.generate_text(
-                prompt_content,
-                model=self.model,
-                # context_builder already added system prompt to messages
-                # system_instruction=None, 
-                temperature=0.7,
-                timeout=60.0,
-                tools=tools_schema if self.structured_tool_calls else None,
-                strict_tools=self.strict_tool_calls,
-            )
 
-            content = response.text.strip()
-            if response.tool_calls:
-                tool_call = response.tool_calls[0]
-                tool_name = tool_call.get("name") or tool_call.get("tool")
-                args = tool_call.get("arguments")
-                if isinstance(args, str):
-                    try:
-                        args = json.loads(args)
-                    except json.JSONDecodeError:
-                        pass
-                payload = {"tool": tool_name, "arguments": args}
-                thought = content
-                if thought:
-                    if not thought.lower().startswith("thought:"):
-                        thought = f"Thought: {thought}"
-                else:
-                    thought = "Thought: calling tool"
-                content = f"{thought}\nToolCall: {json.dumps(payload, ensure_ascii=True)}"
-            trace_emit("llm_response", {
-                "node": self.name,
-                "model": self.model,
-                "content_len": len(content),
-            })
+            with span("llm_call", model=self.model):
+                trace_emit("llm_call", {
+                    "node": self.name,
+                    "model": self.model,
+                    "messages": len(full_messages),
+                })
+                # logger.debug("Prompt:\n{}", prompt_content)
+
+                response = await self.provider.generate_text(
+                    prompt_content,
+                    model=self.model,
+                    # context_builder already added system prompt to messages
+                    # system_instruction=None,
+                    temperature=0.7,
+                    timeout=60.0,
+                    tools=tools_schema if self.structured_tool_calls else None,
+                    strict_tools=self.strict_tool_calls,
+                )
+
+                content = response.text.strip()
+                if response.tool_calls:
+                    tool_call = response.tool_calls[0]
+
+                    tool_name = tool_call.get("name") or tool_call.get("tool")
+                    args = tool_call.get("arguments")
+                    if isinstance(args, str):
+                        try:
+                            args = json.loads(args)
+                        except json.JSONDecodeError:
+                            pass
+                    payload = {"tool": tool_name, "arguments": args}
+                    thought = content
+                    if thought:
+                        if not thought.lower().startswith("thought:"):
+                            thought = f"Thought: {thought}"
+                    else:
+                        thought = "Thought: calling tool"
+                    content = f"{thought}\nToolCall: {json.dumps(payload, ensure_ascii=True)}"
+
+                trace_emit("llm_response", {
+                    "node": self.name,
+                    "model": self.model,
+                    "content_len": len(content),
+                })
 
             if not content:
                 logger.warning("⚠️ [{}] LLM 返回空响应", self.name)
@@ -509,129 +516,131 @@ class ToolExecutor(AsyncBehaviour):
     async def _execute_action(self, tool_name: str, tool_input: Any) -> Message:
         """执行具体的 Action 逻辑（包含重试、Trace、Result Normalize）"""
         logger.info("⚙️ [{}] 执行 Action: {} Input: {}", self.name, tool_name, tool_input)
-        trace_emit("tool_call", {"node": self.name, "tool": tool_name, "mode": "react"})
+        
+        with span("tool_execution", tool=tool_name, mode="react"):
+            trace_emit("tool_call", {"node": self.name, "tool": tool_name, "mode": "react"})
 
-        tool = self.tools.get(tool_name)
-        tool_node = self.tool_nodes.get(tool_name)
+            tool = self.tools.get(tool_name)
+            tool_node = self.tool_nodes.get(tool_name)
 
-        if not tool:
-            logger.warning("⚠️ [{}] 未知工具: {}", self.name, tool_name)
-            error_msg = f"tool_not_found: Tool '{tool_name}' not found. Available tools: {list(self.tools.keys())}"
-            trace_emit("tool_result", {
-                "node": self.name,
-                "tool": tool_name,
-                "ok": False,
-                "error": "tool_not_found",
-            })
-            return self._normalize_tool_result(tool_name, None, error=error_msg)
+            if not tool:
+                logger.warning("⚠️ [{}] 未知工具: {}", self.name, tool_name)
+                error_msg = f"tool_not_found: Tool '{tool_name}' not found. Available tools: {list(self.tools.keys())}"
+                trace_emit("tool_result", {
+                    "node": self.name,
+                    "tool": tool_name,
+                    "ok": False,
+                    "error": "tool_not_found",
+                })
+                return self._normalize_tool_result(tool_name, None, error=error_msg)
 
-        # Policy guardrail
-        guard_error = self.policy.validate_call(self.state_manager.get(), tool_name, tool_input)
-        if guard_error:
-            return self._normalize_tool_result(tool_name, None, error=guard_error)
+            # Policy guardrail
+            guard_error = self.policy.validate_call(self.state_manager.get(), tool_name, tool_input)
+            if guard_error:
+                return self._normalize_tool_result(tool_name, None, error=guard_error)
 
-        # Parse Input
-        parsed_input, input_error = self._parse_tool_input(tool, tool_input)
-        if input_error:
-            trace_emit("tool_result", {
-                "node": self.name,
-                "tool": tool_name,
-                "ok": False,
-                "error": input_error,
-            })
-            return self._normalize_tool_result(tool_name, None, error=input_error)
+            # Parse Input
+            parsed_input, input_error = self._parse_tool_input(tool, tool_input)
+            if input_error:
+                trace_emit("tool_result", {
+                    "node": self.name,
+                    "tool": tool_name,
+                    "ok": False,
+                    "error": input_error,
+                })
+                return self._normalize_tool_result(tool_name, None, error=input_error)
 
-        # Execution Loop with Retry
-        attempts = 0
-        while True:
-            attempts += 1
-            try:
-                # Execution
-                if tool_node is not None:
-                    result = tool_node.invoke_from_agent(parsed_input)
-                    if asyncio.iscoroutine(result):
-                        result = await result
-                    
-                    # ToolNode Writeback
-                    if tool_node.output_key and self.state_manager:
-                        should_write = True
-                        output_val = result
-                        if isinstance(result, ToolResult):
-                            if not result.ok:
-                                should_write = False
-                            else:
-                                output_val = result.output
-                        
-                        if should_write:
-                            self.state_manager.update({tool_node.output_key: output_val})
-                            logger.debug("💾 [{}] ToolNode '{}' output written to key '{}'", 
-                                         self.name, tool_name, tool_node.output_key)
-                else:
-                    result = await self._run_tool(tool, parsed_input)
+            # Execution Loop with Retry
+            attempts = 0
+            while True:
+                attempts += 1
+                try:
+                    # Execution
+                    if tool_node is not None:
+                        result = tool_node.invoke_from_agent(parsed_input)
+                        if asyncio.iscoroutine(result):
+                            result = await result
 
-                # Normalize Result
-                tool_result = self._coerce_tool_result(result)
-                if tool_result.ok:
-                    output_error = self._validate_tool_output(tool, tool_result.output)
-                    if output_error:
+                        # ToolNode Writeback
+                        if tool_node.output_key and self.state_manager:
+                            should_write = True
+                            output_val = result
+                            if isinstance(result, ToolResult):
+                                if not result.ok:
+                                    should_write = False
+                                else:
+                                    output_val = result.output
+
+                            if should_write:
+                                self.state_manager.update({tool_node.output_key: output_val})
+                                logger.debug("💾 [{}] ToolNode '{}' output written to key '{}'",
+                                             self.name, tool_name, tool_node.output_key)
+                    else:
+                        result = await self._run_tool(tool, parsed_input)
+
+                    # Normalize Result
+                    tool_result = self._coerce_tool_result(result)
+                    if tool_result.ok:
+                        output_error = self._validate_tool_output(tool, tool_result.output)
+                        if output_error:
+                            logger.warning(
+                                "⚠️ [{}] Tool '{}' output mismatch schema: {}",
+                                self.name,
+                                tool_name,
+                                output_error,
+                            )
+                            if self.strict_output_validation:
+                                tool_result = ToolResult(ok=False, error=output_error)
+                    observation = self._normalize_tool_result(tool_name, tool_result, error=tool_result.error)
+                    retryable = tool_result.retryable and not tool_result.ok
+                    ok = tool_result.ok
+                    error_msg = tool_result.error
+                    trace_result = tool_result.output
+
+                    trace_emit("tool_result", {
+                        "node": self.name,
+                        "tool": tool_name,
+                        "ok": ok,
+                        "error": error_msg,
+                        "result": self._safe_trace_payload(trace_result)
+                    })
+
+                    if not retryable:
+                        return observation
+                    if attempts <= self.max_retries:
                         logger.warning(
-                            "⚠️ [{}] Tool '{}' output mismatch schema: {}",
-                            self.name,
-                            tool_name,
-                            output_error,
+                            "⚠️ [{}] Tool '{}' failed (attempt {}/{}), retrying... Error: {}",
+                            self.name, tool_name, attempts, self.max_retries, error_msg,
                         )
-                        if self.strict_output_validation:
-                            tool_result = ToolResult(ok=False, error=output_error)
-                observation = self._normalize_tool_result(tool_name, tool_result, error=tool_result.error)
-                retryable = tool_result.retryable and not tool_result.ok
-                ok = tool_result.ok
-                error_msg = tool_result.error
-                trace_result = tool_result.output
-                    
-                trace_emit("tool_result", {
-                    "node": self.name,
-                    "tool": tool_name,
-                    "ok": ok,
-                    "error": error_msg,
-                    "result": self._safe_trace_payload(trace_result)
-                })
-                
-                if not retryable:
-                    return observation
-                if attempts <= self.max_retries:
-                    logger.warning(
-                        "⚠️ [{}] Tool '{}' failed (attempt {}/{}), retrying... Error: {}",
-                        self.name, tool_name, attempts, self.max_retries, error_msg,
-                    )
 
-            except ToolError as e:
-                logger.warning("⚠️ [{}] 工具异常: {}", self.name, e)
-                observation = self._normalize_tool_result(tool_name, None, error=f"{e.code}: {e}")
-                retryable = e.retryable
-                trace_emit("tool_result", {
-                    "node": self.name,
-                    "tool": tool_name,
-                    "ok": False,
-                    "error": f"{e.code}: {e}",
-                })
-                if not retryable:
+                except ToolError as e:
+                    logger.warning("⚠️ [{}] 工具异常: {}", self.name, e)
+                    observation = self._normalize_tool_result(tool_name, None, error=f"{e.code}: {e}")
+                    retryable = e.retryable
+                    trace_emit("tool_result", {
+                        "node": self.name,
+                        "tool": tool_name,
+                        "ok": False,
+                        "error": f"{e.code}: {e}",
+                    })
+                    if not retryable:
+                        return observation
+
+                except Exception as e:
+                    logger.warning("⚠️ [{}] 工具执行失败: {}", self.name, e)
+                    observation = self._normalize_tool_result(tool_name, None, error=f"tool_error: {e}")
+                    trace_emit("tool_result", {
+                        "node": self.name,
+                        "tool": tool_name,
+                        "ok": False,
+                        "error": str(e),
+                    })
                     return observation
 
-            except Exception as e:
-                logger.warning("⚠️ [{}] 工具执行失败: {}", self.name, e)
-                observation = self._normalize_tool_result(tool_name, None, error=f"tool_error: {e}")
-                trace_emit("tool_result", {
-                    "node": self.name,
-                    "tool": tool_name,
-                    "ok": False,
-                    "error": str(e),
-                })
-                return observation
+                if attempts > self.max_retries:
+                    return observation
 
-            if attempts > self.max_retries:
-                return observation
-            
-            await asyncio.sleep(self.retry_backoff * attempts)
+                await asyncio.sleep(self.retry_backoff * attempts)
 
     async def update_async(self) -> Status:
         state = self.state_manager.get()

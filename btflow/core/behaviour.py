@@ -4,6 +4,8 @@ import py_trees
 from py_trees.common import Status
 from btflow.core.logging import logger
 
+
+
 if TYPE_CHECKING:
     from btflow.core.state import StateManager
 
@@ -26,6 +28,9 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
         self._wake_callback: Optional[Callable[[], None]] = None
         # StateManager 引用（由 Runner 自动注入）
         self.state_manager: Optional['StateManager'] = None
+
+
+
 
     def bind_wake_up(self, callback: Callable[[], None]):
         """绑定唤醒回调 (通常由 Runner 注入)"""
@@ -50,10 +55,13 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
             无论上次是 SUCCESS 还是 FAILURE，都会重新创建任务。
         """
 
+
         if self.async_task and not self.async_task.done():
             self.async_task.cancel()
         
         try:
+
+
             loop = asyncio.get_running_loop()
             self.async_task = loop.create_task(self.update_async())
             
@@ -97,6 +105,8 @@ class AsyncBehaviour(py_trees.behaviour.Behaviour):
         if self.async_task and not self.async_task.done():
             self.async_task.cancel()
         self.async_task = None
+
+
 
     async def update_async(self) -> Status:
         raise NotImplementedError("AsyncBehaviour subclass must implement update_async()")

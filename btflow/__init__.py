@@ -12,6 +12,8 @@ from btflow.core.trace import (
     emit as trace_emit,
     subscribe as trace_subscribe,
     unsubscribe as trace_unsubscribe,
+    span as trace_span,
+    current_context as trace_current_context,
     set_context as trace_set_context,
     reset_context as trace_reset_context,
 )
@@ -44,6 +46,8 @@ __all__ = [
     "trace_emit",
     "trace_subscribe",
     "trace_unsubscribe",
+    "trace_span",
+    "trace_current_context",
     "trace_set_context",
     "trace_reset_context",
     # Decorators
