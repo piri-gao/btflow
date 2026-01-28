@@ -98,6 +98,11 @@ class MCPTool(Tool):
             args = input
         else:
             args = {"input": input}
+            if isinstance(self.input_schema, dict):
+                props = self.input_schema.get("properties")
+                if isinstance(props, dict) and len(props) == 1:
+                    key = next(iter(props.keys()))
+                    args = {key: input}
 
         result = await self._client.call_tool(self.name, arguments=args)
 

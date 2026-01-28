@@ -40,6 +40,18 @@ class TestMCPTool(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, {"result": 1})
         self.assertEqual(client.called, ("dummy", {"a": 1}))
 
+    async def test_single_property_maps_input(self):
+        class SinglePropDef:
+            name = "single"
+            description = "single prop"
+            inputSchema = {"type": "object", "properties": {"query": {"type": "string"}}}
+            outputSchema = {"type": "string"}
+
+        client = DummyClient()
+        tool = MCPTool(client, SinglePropDef())
+        await tool.run("hi")
+        self.assertEqual(client.called, ("single", {"query": "hi"}))
+
 
 if __name__ == "__main__":
     asyncio.run(unittest.main())
