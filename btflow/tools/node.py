@@ -26,6 +26,7 @@ class ToolNode(AsyncBehaviour):
         input_map: Optional[Dict[str, Any]] = None,
         output_key: Optional[str] = None,
         execute: Optional[bool] = None,
+        strict_output_validation: bool = False,
     ):
         super().__init__(name)
         self.tool = tool
@@ -34,6 +35,7 @@ class ToolNode(AsyncBehaviour):
         # Default: only execute when input_map is provided
         self.execute = bool(self.input_map) if execute is None else execute
         self._warned_no_input_map = False
+        self.strict_output_validation = strict_output_validation
 
     async def update_async(self) -> Status:
         if not self.execute:
@@ -65,7 +67,14 @@ class ToolNode(AsyncBehaviour):
             if tool_result.ok:
                 output_error = self._validate_tool_output(tool_result.output)
                 if output_error:
-                    tool_result = ToolResult(ok=False, error=output_error)
+                    logger.warning(
+                        "⚠️ [{}] Tool '{}' output mismatch schema: {}",
+                        self.name,
+                        getattr(self.tool, "name", type(self.tool).__name__),
+                        output_error,
+                    )
+                    if self.strict_output_validation:
+                        tool_result = ToolResult(ok=False, error=output_error)
 
             if not tool_result.ok:
                 logger.warning("⚠️ [{}] ToolResult not ok: {}", self.name, tool_result.error)

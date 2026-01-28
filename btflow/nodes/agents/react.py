@@ -219,6 +219,7 @@ class ToolExecutor(AsyncBehaviour):
         max_retries: int = 0,
         retry_backoff: float = 0.2,
         observation_format: str = "text",
+        strict_output_validation: bool = False,
     ):
         super().__init__(name)
         self.tools: Dict[str, Tool] = {}
@@ -226,6 +227,7 @@ class ToolExecutor(AsyncBehaviour):
         self.max_retries = max_retries
         self.retry_backoff = retry_backoff
         self.observation_format = observation_format
+        self.strict_output_validation = strict_output_validation
         if tools:
             for tool in tools:
                 self.register_tool(tool)
@@ -556,7 +558,14 @@ class ToolExecutor(AsyncBehaviour):
                 if tool_result.ok:
                     output_error = self._validate_tool_output(tool, tool_result.output)
                     if output_error:
-                        tool_result = ToolResult(ok=False, error=output_error)
+                        logger.warning(
+                            "⚠️ [{}] Tool '{}' output mismatch schema: {}",
+                            self.name,
+                            tool_name,
+                            output_error,
+                        )
+                        if self.strict_output_validation:
+                            tool_result = ToolResult(ok=False, error=output_error)
                 observation = self._normalize_tool_result(tool_name, tool_result, error=tool_result.error)
                 retryable = tool_result.retryable and not tool_result.ok
                 ok = tool_result.ok

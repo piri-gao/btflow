@@ -254,6 +254,22 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         result = await executor.update_async()
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
+        self.assertEqual(messages[-1].content, "oops")
+
+        strict_executor = ToolExecutor(
+            "executor_strict",
+            tools=[BadOutputTool()],
+            strict_output_validation=True,
+        )
+        strict_executor.state_manager = self.state_manager
+        self.state_manager.update({
+            "messages": [ai("Action: bad_output_tool\nInput: hi")]
+        })
+        strict_executor.setup()
+        strict_executor.initialise()
+        result = await strict_executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
         self.assertIn("Invalid output for tool", messages[-1].content)
 
     async def test_unknown_tool(self):
