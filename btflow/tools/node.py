@@ -8,6 +8,7 @@ from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
 from btflow.tools.base import Tool, ToolError, ToolResult
+from btflow.tools.schema import validate_json_schema
 
 
 class ToolNode(AsyncBehaviour):
@@ -60,6 +61,11 @@ class ToolNode(AsyncBehaviour):
             })
             result = await self._run_tool(tool_args)
             tool_result = self._coerce_tool_result(result)
+
+            if tool_result.ok:
+                output_error = self._validate_tool_output(tool_result.output)
+                if output_error:
+                    tool_result = ToolResult(ok=False, error=output_error)
 
             if not tool_result.ok:
                 logger.warning("⚠️ [{}] ToolResult not ok: {}", self.name, tool_result.error)
@@ -143,6 +149,15 @@ class ToolNode(AsyncBehaviour):
         if isinstance(result, ToolResult):
             return result
         return ToolResult(ok=True, output=result)
+
+    def _validate_tool_output(self, output: Any) -> Optional[str]:
+        schema = getattr(self.tool, "output_schema", None) or {}
+        if not schema:
+            return None
+        errors = validate_json_schema(output, schema)
+        if errors:
+            return "Invalid output for tool '{}': {}".format(self.tool.name, "; ".join(errors))
+        return None
 
     async def _run_tool(self, args: Any, injected: Optional[Dict[str, Any]] = None) -> Any:
         from btflow.tools.execution import execute_tool

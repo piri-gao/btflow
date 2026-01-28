@@ -65,6 +65,19 @@ class EnumTool(Tool):
     def run(self, input: dict) -> str:
         return f"mode:{input.get('mode')}"
 
+class BadOutputTool(Tool):
+    """Tool for testing output schema validation"""
+    name = "bad_output_tool"
+    description = "Returns invalid output"
+    output_schema = {
+        "type": "object",
+        "properties": {"value": {"type": "number"}},
+        "required": ["value"],
+    }
+
+    def run(self, input: str) -> str:
+        return "oops"
+
 
 class MockLLMNode(AsyncBehaviour):
     """Mock LLM node that returns predefined responses"""
@@ -228,6 +241,20 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
         self.assertIn("value must be one of", messages[-1].content)
+
+    async def test_output_schema_validation(self):
+        """Output schema validation should reject invalid outputs"""
+        executor = ToolExecutor("executor", tools=[BadOutputTool()])
+        executor.state_manager = self.state_manager
+        self.state_manager.update({
+            "messages": [ai("Action: bad_output_tool\nInput: hi")]
+        })
+        executor.setup()
+        executor.initialise()
+        result = await executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertIn("Invalid output for tool", messages[-1].content)
 
     async def test_unknown_tool(self):
         """未知工具返回错误"""

@@ -339,6 +339,15 @@ class ToolExecutor(AsyncBehaviour):
             return result
         return ToolResult(ok=True, output=result)
 
+    def _validate_tool_output(self, tool: Tool, output: Any) -> Optional[str]:
+        schema = getattr(tool, "output_schema", None) or {}
+        if not schema:
+            return None
+        errors = validate_json_schema(output, schema)
+        if errors:
+            return "Invalid output for tool '{}': {}".format(tool.name, "; ".join(errors))
+        return None
+
     def _parse_tool_input(self, tool: Tool, raw_input: Any) -> tuple[Any, Optional[str]]:
         schema = getattr(tool, "input_schema", None) or {"type": "string"}
         schema_type = schema.get("type")
@@ -544,6 +553,10 @@ class ToolExecutor(AsyncBehaviour):
 
                 # Normalize Result
                 tool_result = self._coerce_tool_result(result)
+                if tool_result.ok:
+                    output_error = self._validate_tool_output(tool, tool_result.output)
+                    if output_error:
+                        tool_result = ToolResult(ok=False, error=output_error)
                 observation = self._normalize_tool_result(tool_name, tool_result, error=tool_result.error)
                 retryable = tool_result.retryable and not tool_result.ok
                 ok = tool_result.ok

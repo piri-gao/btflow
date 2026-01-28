@@ -9,6 +9,8 @@ def validate_json_schema(value: Any, schema: Dict[str, Any], path: str = "$") ->
         return errors
 
     schema_type = schema.get("type")
+    if schema_type is None and "properties" in schema:
+        schema_type = "object"
 
     if "enum" in schema:
         if value not in schema["enum"]:
