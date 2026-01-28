@@ -81,3 +81,6 @@ def validate_json_schema(value: Any, schema: Dict[str, Any], path: str = "$") ->
         return errors
 
     return errors
+
+
+__all__ = ["validate_json_schema"]

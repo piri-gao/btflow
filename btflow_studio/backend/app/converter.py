@@ -8,7 +8,8 @@ from btflow import Sequence, Selector, Parallel
 from btflow import ParallelPolicy
 import inspect
 from btflow.core.logging import logger
-from btflow.tools import Tool, ToolNode
+from btflow.tools import Tool
+from btflow.tools.ext.node import ToolNode
 from btflow.nodes.agents.react import ToolExecutor
 
 class WorkflowConverter:

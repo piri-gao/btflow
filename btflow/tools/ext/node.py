@@ -8,7 +8,7 @@ from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
 from btflow.tools.base import Tool, ToolError, ToolResult
-from btflow.tools.schema import validate_json_schema
+from btflow.tools.ext.schema import validate_json_schema
 
 
 class ToolNode(AsyncBehaviour):
@@ -171,3 +171,6 @@ class ToolNode(AsyncBehaviour):
     async def _run_tool(self, args: Any, injected: Optional[Dict[str, Any]] = None) -> Any:
         from btflow.tools.execution import execute_tool
         return await execute_tool(self.tool, args, injected=injected)
+
+
+__all__ = ["ToolNode"]

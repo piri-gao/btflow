@@ -17,7 +17,7 @@ from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
 from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer
 from btflow.tools import Tool, ToolRegistry
-from btflow.tools.policy import ToolSelectionPolicy, AllowAllToolPolicy
+from btflow.tools.ext.policy import ToolSelectionPolicy, AllowAllToolPolicy
 from btflow.messages import human, ai
 
 

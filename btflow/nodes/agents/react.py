@@ -13,10 +13,10 @@ from btflow.core.trace import emit as trace_emit
 from btflow.core.trace import span
 from btflow.tools import Tool
 
-from btflow.tools.policy import ToolSelectionPolicy, AllowAllToolPolicy
+from btflow.tools.ext.policy import ToolSelectionPolicy, AllowAllToolPolicy
 from btflow.tools.registry import ToolRegistry
 from btflow.tools.base import ToolError, ToolResult
-from btflow.tools.schema import validate_json_schema
+from btflow.tools.ext.schema import validate_json_schema
 from btflow.llm import LLMProvider, GeminiProvider
 
 

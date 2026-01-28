@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-from btflow.tools.mcp_client import MCPTool, MCPResourceTool
+from btflow.protocols.mcp import MCPTool, MCPResourceTool
 
 
 class DummyToolDef:

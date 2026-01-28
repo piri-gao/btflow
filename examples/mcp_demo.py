@@ -1,10 +1,22 @@
 import asyncio
 import os
 import shutil
-from btflow.tools.mcp_client import MCPServerConfig, MCPClient
+from btflow.protocols.mcp import MCPServerConfig, MCPClient
 from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
 from btflow.core.state import StateManager
+from btflow.messages import Message
 from py_trees.common import Status
+from pydantic import BaseModel, Field
+from typing import List, Optional, Any, Dict
+
+class ReActState(BaseModel):
+    messages: List[Message] = Field(default_factory=list)
+    task: str = ""
+    tools_desc: str = ""
+    tools_schema: List[Dict[str, Any]] = Field(default_factory=list)
+    final_answer: Optional[str] = None
+    round: int = 0
+
 
 async def main():
     # 1. Check dependencies
@@ -33,9 +45,10 @@ async def main():
                 print(f"   - {t.name}: {t.description[:50]}...")
 
             # 4. Create ReAct Agent
-            state_manager = StateManager()
+            state_manager = StateManager(ReActState)
             
             # Create a simple test file
+
             with open("test_mcp.txt", "w") as f:
                 f.write("Hello from BTflow + MCP Integration!")
 
