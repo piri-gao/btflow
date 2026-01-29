@@ -114,10 +114,10 @@ class LoopUntilSuccess(Decorator):
             if self.state_manager is not None:
                 try:
                     loop = asyncio.get_running_loop()
-                    loop.call_soon(self.state_manager.update, {})
+                    loop.call_soon(self.state_manager.signal)
                 except RuntimeError:
                     # Fallback：如果没有运行中的 event loop，则同步调用
-                    self.state_manager.update({})
+                    self.state_manager.signal()
             
             return Status.RUNNING
         

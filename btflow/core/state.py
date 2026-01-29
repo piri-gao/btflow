@@ -62,6 +62,10 @@ class StateManager:
             except ValueError:
                 pass  # 回调不存在，忽略
 
+    def signal(self):
+        """仅触发监听者，不做任何状态校验/修改。"""
+        self._notify_listeners()
+
     def _notify_listeners(self):
         """通知所有监听者"""
         with self._listeners_lock:

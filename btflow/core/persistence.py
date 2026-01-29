@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 from typing import Any, Dict, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from btflow.core.logging import logger
 
 class Checkpoint(BaseModel):
@@ -11,7 +11,7 @@ class Checkpoint(BaseModel):
     step: int
     timestamp: str
     state_dump: Dict[str, Any]
-    tree_state: Dict[str, str] = {} 
+    tree_state: Dict[str, str] = Field(default_factory=dict)
 
 class SimpleCheckpointer:
     def __init__(self, storage_dir: str = ".checkpoints"):

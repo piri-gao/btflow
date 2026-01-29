@@ -57,7 +57,10 @@ class FileReadTool(Tool):
             
             # Check base path restriction
             if self.base_path:
-                if not str(file_path).startswith(str(self.base_path.resolve())):
+                base_path = self.base_path.resolve()
+                try:
+                    file_path.relative_to(base_path)
+                except ValueError:
                     return file_path, f"Access denied: path outside allowed directory"
             
             # Check extension
@@ -163,7 +166,10 @@ class FileWriteTool(Tool):
             
             # Check base path restriction
             if self.base_path:
-                if not str(file_path).startswith(str(self.base_path.resolve())):
+                base_path = self.base_path.resolve()
+                try:
+                    file_path.relative_to(base_path)
+                except ValueError:
                     return file_path, f"Access denied: path outside allowed directory"
             
             # Check extension
