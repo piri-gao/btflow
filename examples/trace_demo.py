@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from btflow import BTAgent, StateManager, Sequence, Status, trace_subscribe
 from btflow.tools import CalculatorTool
-from btflow.tools.ext.node import ToolNode
+from btflow.tools.node import ToolNode
 
 
 class TraceState(BaseModel):

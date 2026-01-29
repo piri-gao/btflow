@@ -16,8 +16,8 @@ from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
 from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer
-from btflow.tools import Tool, ToolRegistry
-from btflow.tools.ext.policy import ToolSelectionPolicy, AllowAllToolPolicy
+from btflow.tools import Tool
+from btflow import tool as tool_decorator
 from btflow.messages import human, ai
 
 
@@ -51,33 +51,6 @@ class NumberTool(Tool):
     def run(self, input: float) -> str:
         return str(input)
 
-class EnumTool(Tool):
-    """Tool for testing enum/required validation"""
-    name = "enum_tool"
-    description = "Enum validation tool"
-    input_schema = {
-        "type": "object",
-        "properties": {
-            "mode": {"type": "string", "enum": ["a", "b"]},
-        },
-        "required": ["mode"],
-    }
-
-    def run(self, input: dict) -> str:
-        return f"mode:{input.get('mode')}"
-
-class BadOutputTool(Tool):
-    """Tool for testing output schema validation"""
-    name = "bad_output_tool"
-    description = "Returns invalid output"
-    output_schema = {
-        "type": "object",
-        "properties": {"value": {"type": "number"}},
-        "required": ["value"],
-    }
-
-    def run(self, input: str) -> str:
-        return "oops"
 
 
 class MockLLMNode(AsyncBehaviour):
@@ -220,59 +193,6 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         messages = self.state_manager.get().messages
         self.assertEqual(messages[-1].content, "3")
 
-    async def test_schema_validation_required_enum(self):
-        """Schema validation should reject missing required or enum mismatch"""
-        executor = ToolExecutor("executor", tools=[EnumTool()])
-        executor.state_manager = self.state_manager
-
-        self.state_manager.update({
-            "messages": [ai('Action: enum_tool\nInput: {}')]
-        })
-        executor.setup()
-        executor.initialise()
-        result = await executor.update_async()
-        self.assertEqual(result, Status.SUCCESS)
-        messages = self.state_manager.get().messages
-        self.assertIn("field required", messages[-1].content)
-
-        self.state_manager.update({
-            "messages": [ai('Action: enum_tool\nInput: {"mode": "c"}')]
-        })
-        result = await executor.update_async()
-        self.assertEqual(result, Status.SUCCESS)
-        messages = self.state_manager.get().messages
-        self.assertIn("value must be one of", messages[-1].content)
-
-    async def test_output_schema_validation(self):
-        """Output schema validation should reject invalid outputs"""
-        executor = ToolExecutor("executor", tools=[BadOutputTool()])
-        executor.state_manager = self.state_manager
-        self.state_manager.update({
-            "messages": [ai("Action: bad_output_tool\nInput: hi")]
-        })
-        executor.setup()
-        executor.initialise()
-        result = await executor.update_async()
-        self.assertEqual(result, Status.SUCCESS)
-        messages = self.state_manager.get().messages
-        self.assertEqual(messages[-1].content, "oops")
-
-        strict_executor = ToolExecutor(
-            "executor_strict",
-            tools=[BadOutputTool()],
-            strict_output_validation=True,
-        )
-        strict_executor.state_manager = self.state_manager
-        self.state_manager.update({
-            "messages": [ai("Action: bad_output_tool\nInput: hi")]
-        })
-        strict_executor.setup()
-        strict_executor.initialise()
-        result = await strict_executor.update_async()
-        self.assertEqual(result, Status.SUCCESS)
-        messages = self.state_manager.get().messages
-        self.assertIn("Invalid output for tool", messages[-1].content)
-
     async def test_unknown_tool(self):
         """未知工具返回错误"""
         self.state_manager.update({
@@ -286,15 +206,12 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertIn("not found", messages[-1].content)
 
     async def test_registry_registers_function_tool(self):
-        """ToolRegistry 的函数工具应能执行并产生 Observation"""
-        registry = ToolRegistry()
-        registry.register_function(
-            name="echo",
-            description="Echo input",
-            fn=lambda x: f"echo:{x}"
-        )
+        """FunctionTool 的函数工具应能执行并产生 Observation"""
+        @tool_decorator(name="echo", description="Echo input")
+        def echo(x: str) -> str:
+            return f"echo:{x}"
 
-        executor = ToolExecutor("executor", registry=registry)
+        executor = ToolExecutor("executor", tools=[echo])
         executor.state_manager = self.state_manager
         self.state_manager.update({
             "messages": [ai("Action: echo\nInput: hello")]
@@ -310,19 +227,10 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
 
     async def test_registry_function_tool_kwargs(self):
         """FunctionTool 应支持多参数函数的 kwargs 调用"""
-        registry = ToolRegistry()
-
+        @tool_decorator(name="add", description="Add two numbers", input_schema={"type": "object"})
         def add(a: int, b: int) -> str:
             return str(a + b)
-
-        registry.register_function(
-            name="add",
-            description="Add two numbers",
-            fn=add,
-            input_schema={"type": "object"},
-        )
-
-        executor = ToolExecutor("executor", registry=registry)
+        executor = ToolExecutor("executor", tools=[add])
         executor.state_manager = self.state_manager
         self.state_manager.update({
             "messages": [ai('Action: add\nInput: {"a": 1, "b": 2}')]
@@ -349,44 +257,6 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, Status.SUCCESS)
         messages = self.state_manager.get().messages
         self.assertEqual(messages[-1].content, "echo:hi")
-
-    async def test_policy_filters_and_blocks(self):
-        """ToolSelectionPolicy should filter and block calls."""
-        class OnlyEchoPolicy(ToolSelectionPolicy):
-            def select_tools(self, state, available_tools):
-                return [t for t in available_tools if t.name == "echo_async"]
-
-            def validate_call(self, state, tool_name, tool_input):
-                if tool_name != "echo_async":
-                    return "blocked"
-                return None
-
-        executor = ToolExecutor(
-            "executor",
-            tools=[AsyncEchoTool(), MockCalculatorTool()],
-            policy=OnlyEchoPolicy(),
-        )
-        executor.state_manager = self.state_manager
-        executor.setup()
-        executor.initialise()
-
-        # filtered tools list
-        self.assertIn("echo_async", executor.tools)
-        self.assertNotIn("calculator", executor.tools)
-
-        self.state_manager.update({
-            "messages": [ai("Action: calculator\nInput: 1+1")]
-        })
-        result = await executor.update_async()
-        self.assertEqual(result, Status.SUCCESS)
-        messages = self.state_manager.get().messages
-        # Should be blocked by not being visible to LLM
-        self.assertIn("tool_not_found", messages[-1].content)
-
-        # Ensure tools are not permanently removed
-        executor.policy = AllowAllToolPolicy()
-        executor._update_tools_state()
-        self.assertIn("calculator", executor.tools)
 
 
 class TestReActIntegration(unittest.IsolatedAsyncioTestCase):

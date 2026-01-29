@@ -1,9 +1,26 @@
-import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from btflow.core.logging import logger
 from btflow.tools.base import Tool
+
+try:
+    from fastmcp import Client, FastMCP
+    from fastmcp.client.transports import (
+        PythonStdioTransport,
+        SSETransport,
+        StreamableHttpTransport,
+        StdioTransport,
+    )
+    FASTMCP_AVAILABLE = True
+except ImportError:
+    FASTMCP_AVAILABLE = False
+    Client = None
+    FastMCP = None
+    PythonStdioTransport = None
+    SSETransport = None
+    StreamableHttpTransport = None
+    StdioTransport = None
 
 
 @dataclass
@@ -14,11 +31,27 @@ class MCPServerConfig:
 
 
 class MCPClient:
-    """Minimal MCP stdio client."""
-    def __init__(self, config: MCPServerConfig):
-        self.config = config
-        self._session = None
-        self._stdio_cm = None
+    """MCP client with multi-transport support (fastmcp v2)."""
+    def __init__(
+        self,
+        server_source: Union[MCPServerConfig, str, List[str], "FastMCP", Dict[str, Any]],
+        server_args: Optional[List[str]] = None,
+        transport_type: Optional[str] = None,
+        env: Optional[Dict[str, str]] = None,
+        **transport_kwargs,
+    ):
+        if not FASTMCP_AVAILABLE:
+            raise RuntimeError(
+                "fastmcp package not installed. Run: pip install fastmcp>=2.0.0"
+            )
+
+        self.server_args = server_args or []
+        self.transport_type = transport_type
+        self.env = env or {}
+        self.transport_kwargs = transport_kwargs
+        self.server_source = self._prepare_server_source(server_source)
+        self.client: Optional[Client] = None
+        self._context_manager = None
 
     async def __aenter__(self):
         await self.connect()
@@ -28,56 +61,82 @@ class MCPClient:
         await self.close()
 
     async def connect(self):
-        if self._session is not None:
-            return self._session
+        if self.client is not None:
+            return self.client
 
-        try:
-            from mcp import ClientSession, StdioServerParameters
-            from mcp.client.stdio import stdio_client
-        except ImportError as e:
-            raise RuntimeError("mcp package not installed. Run: pip install \"mcp[cli]\"") from e
-
-        params = StdioServerParameters(
-            command=self.config.command,
-            args=self.config.args,
-            env=self.config.env,
-        )
-        self._stdio_cm = stdio_client(params)
-        read, write = await self._stdio_cm.__aenter__()
-        self._session = ClientSession(read, write)
-        await self._session.__aenter__()
-        await self._session.initialize()
-        logger.info("🔌 [MCP] Connected to server: {} {}", self.config.command, self.config.args)
-        return self._session
+        self.client = Client(self.server_source)
+        self._context_manager = self.client
+        await self._context_manager.__aenter__()
+        logger.info("🔌 [MCP] Connected to server.")
+        return self.client
 
     async def close(self):
-        if self._session is None:
+        if self._context_manager is None:
             return
         try:
-            await self._session.__aexit__(None, None, None)
+            await self._context_manager.__aexit__(None, None, None)
         finally:
-            self._session = None
-            if self._stdio_cm is not None:
-                await self._stdio_cm.__aexit__(None, None, None)
-                self._stdio_cm = None
+            self.client = None
+            self._context_manager = None
 
     async def list_tools(self):
-        session = await self.connect()
-        response = await session.list_tools()
-        return response.tools
+        client = await self.connect()
+        response = await client.list_tools()
+        if hasattr(response, "tools"):
+            return response.tools
+        if isinstance(response, list):
+            return response
+        return []
 
     async def list_resources(self):
-        session = await self.connect()
-        response = await session.list_resources()
-        return response.resources
+        client = await self.connect()
+        response = await client.list_resources()
+        if hasattr(response, "resources"):
+            return response.resources
+        if isinstance(response, list):
+            return response
+        return []
 
     async def read_resource(self, uri: str):
-        session = await self.connect()
-        return await session.read_resource(uri)
+        client = await self.connect()
+        return await client.read_resource(uri)
 
     async def call_tool(self, name: str, arguments: Optional[Dict[str, Any]] = None):
-        session = await self.connect()
-        return await session.call_tool(name, arguments=arguments or {})
+        client = await self.connect()
+        return await client.call_tool(name, arguments or {})
+
+    async def list_prompts(self):
+        client = await self.connect()
+        response = await client.list_prompts()
+        if hasattr(response, "prompts"):
+            return response.prompts
+        if isinstance(response, list):
+            return response
+        return []
+
+    async def get_prompt(self, name: str, arguments: Optional[Dict[str, str]] = None):
+        client = await self.connect()
+        return await client.get_prompt(name, arguments or {})
+
+    async def ping(self) -> bool:
+        client = await self.connect()
+        try:
+            await client.ping()
+            return True
+        except Exception:
+            return False
+
+    def get_transport_info(self) -> Dict[str, Any]:
+        if not self.client:
+            return {"status": "not_connected"}
+        transport = getattr(self.client, "transport", None)
+        if transport:
+            return {
+                "status": "connected",
+                "transport_type": type(transport).__name__,
+                "transport_info": str(transport),
+            }
+        return {"status": "unknown"}
 
     async def as_tools(self, allowlist: Optional[List[str]] = None) -> List["MCPTool"]:
         tools = await self.list_tools()
@@ -99,6 +158,95 @@ class MCPClient:
                 continue
             result.append(MCPResourceTool(self, resource))
         return result
+
+    def _prepare_server_source(
+        self,
+        server_source: Union[MCPServerConfig, str, List[str], "FastMCP", Dict[str, Any]],
+    ):
+        if isinstance(server_source, MCPServerConfig):
+            env = self.env or server_source.env
+            return StdioTransport(
+                command=server_source.command,
+                args=server_source.args + self.server_args,
+                env=env,
+            )
+
+        if FastMCP is not None and isinstance(server_source, FastMCP):
+            return server_source
+
+        if isinstance(server_source, dict):
+            return self._create_transport_from_config(server_source)
+
+        if isinstance(server_source, str) and (
+            server_source.startswith("http://") or server_source.startswith("https://")
+        ):
+            transport_type = (self.transport_type or "http").lower()
+            if transport_type == "sse":
+                return SSETransport(url=server_source, **self.transport_kwargs)
+            return StreamableHttpTransport(url=server_source, **self.transport_kwargs)
+
+        if isinstance(server_source, str) and server_source.endswith(".py"):
+            return PythonStdioTransport(
+                script_path=server_source,
+                args=self.server_args,
+                env=self.env if self.env else None,
+                **self.transport_kwargs,
+            )
+
+        if isinstance(server_source, list) and server_source:
+            if server_source[0] == "python" and len(server_source) > 1 and server_source[1].endswith(".py"):
+                return PythonStdioTransport(
+                    script_path=server_source[1],
+                    args=server_source[2:] + self.server_args,
+                    env=self.env if self.env else None,
+                    **self.transport_kwargs,
+                )
+            return StdioTransport(
+                command=server_source[0],
+                args=server_source[1:] + self.server_args,
+                env=self.env if self.env else None,
+                **self.transport_kwargs,
+            )
+
+        logger.debug("🔍 [MCP] Falling back to direct source: {}", server_source)
+        return server_source
+
+    def _create_transport_from_config(self, config: Dict[str, Any]):
+        transport_type = config.get("transport", "stdio").lower()
+        if transport_type == "stdio":
+            args = config.get("args", [])
+            env = config.get("env")
+            cwd = config.get("cwd")
+            if args and isinstance(args, list) and args[0].endswith(".py"):
+                return PythonStdioTransport(
+                    script_path=args[0],
+                    args=args[1:] + self.server_args,
+                    env=env,
+                    cwd=cwd,
+                    **self.transport_kwargs,
+                )
+            return StdioTransport(
+                command=config.get("command", "python"),
+                args=args + self.server_args,
+                env=env,
+                cwd=cwd,
+                **self.transport_kwargs,
+            )
+        if transport_type == "sse":
+            return SSETransport(
+                url=config["url"],
+                headers=config.get("headers"),
+                auth=config.get("auth"),
+                **self.transport_kwargs,
+            )
+        if transport_type == "http":
+            return StreamableHttpTransport(
+                url=config["url"],
+                headers=config.get("headers"),
+                auth=config.get("auth"),
+                **self.transport_kwargs,
+            )
+        raise ValueError(f"Unsupported transport type: {transport_type}")
 
 
 class MCPTool(Tool):
@@ -136,6 +284,12 @@ class MCPTool(Tool):
                 text = getattr(block, "text", None)
                 if text is not None:
                     return text
+                data = getattr(block, "data", None)
+                if data is not None:
+                    return data
+                blob = getattr(block, "blob", None)
+                if blob is not None:
+                    return blob
 
         return str(result)
 
@@ -164,6 +318,12 @@ class MCPResourceTool(Tool):
                 text = getattr(item, "text", None)
                 if text is not None:
                     return text
+                data = getattr(item, "data", None)
+                if data is not None:
+                    return data
+                blob = getattr(item, "blob", None)
+                if blob is not None:
+                    return blob
         return str(result)
 
 

@@ -40,6 +40,7 @@ class StateManager:
         
         # 监听器列表
         self._listeners: List[Callable[[], None]] = []
+        self._listeners_lock = threading.Lock()
         
         self._lock = threading.Lock()
         
@@ -50,18 +51,22 @@ class StateManager:
 
     def subscribe(self, callback: Callable[[], None]):
         """注册状态变更回调"""
-        self._listeners.append(callback)
+        with self._listeners_lock:
+            self._listeners.append(callback)
 
     def unsubscribe(self, callback: Callable[[], None]):
         """取消订阅状态变更回调（防止内存泄漏）"""
-        try:
-            self._listeners.remove(callback)
-        except ValueError:
-            pass  # 回调不存在，忽略
+        with self._listeners_lock:
+            try:
+                self._listeners.remove(callback)
+            except ValueError:
+                pass  # 回调不存在，忽略
 
     def _notify_listeners(self):
         """通知所有监听者"""
-        for callback in self._listeners:
+        with self._listeners_lock:
+            listeners = list(self._listeners)
+        for callback in listeners:
             try:
                 callback()
             except Exception as e:
@@ -106,7 +111,13 @@ class StateManager:
         """获取当前状态（返回副本避免外部修改）"""
         with self._lock:
             if self._data is None:
-                return self.schema()
+                try:
+                    return self.schema()
+                except ValidationError as e:
+                    raise ValueError(
+                        "❌ [StateManager] State not initialized. "
+                        "Call initialize() with required fields or update() with required values first."
+                    ) from e
             # 返回深拷贝，避免外部直接修改内部状态
             return self.schema(**self._data.model_dump())
 
@@ -115,10 +126,7 @@ class StateManager:
         更新状态 (线程安全 + Reducer + 强校验 + 事件通知)
         """
         with self._lock:
-            if self._data is None:
-                self._data = self.schema()
-            
-            current_data = self._data.model_dump()
+            current_data = self._data.model_dump() if self._data is not None else {}
             pending_writes = {}
             
             for name, update_val in updates.items():
@@ -144,7 +152,11 @@ class StateManager:
             try:
                 self._data = self.schema(**merged_data)
             except ValidationError as e:
-                raise ValueError(f"❌ [StateManager] Update Validation Failed: {e}")
+                raise ValueError(
+                    f"❌ [StateManager] Update Validation Failed: {e}. "
+                    "If this is the first update, ensure all required fields are provided "
+                    "or call initialize() first."
+                )
 
         # 数据落库后，通知 Runner
         self._notify_listeners()

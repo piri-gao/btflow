@@ -177,7 +177,7 @@ from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
 from btflow.nodes.common.mock import MockReActLLMNode
 from btflow.nodes.agents.reflexion import SelfRefineLLMNode, IsGoodEnough
 from btflow.tools import CalculatorTool, SearchTool, WikipediaTool
-from btflow.tools.ext.node import ToolNode
+from btflow.tools.node import ToolNode
 
 # Tools
 node_registry.register_metadata(NodeMetadata(

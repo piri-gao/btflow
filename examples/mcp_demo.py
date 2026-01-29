@@ -27,6 +27,8 @@ async def main():
 
     # 2. Configure MCP Server (Filesystem Server)
     # This server provides tools like 'read_file', 'write_file', 'list_directory'
+    # MCPClient uses fastmcp v2 under the hood and supports stdio/http/sse.
+    # This demo uses stdio via npx.
     current_dir = os.getcwd()
     config = MCPServerConfig(
         command="npx",
@@ -38,17 +40,21 @@ async def main():
     
     try:
         async with MCPClient(config) as client:
-            # 3. Load MCP Tools
+            # 3. Load MCP Tools (and optional prompts)
             tools = await client.as_tools()
             print(f"🛠️  Loaded {len(tools)} tools from MCP:")
             for t in tools:
                 print(f"   - {t.name}: {t.description[:50]}...")
+            prompts = await client.list_prompts()
+            if prompts:
+                print(f"🧾 Loaded {len(prompts)} prompts from MCP:")
+                for p in prompts:
+                    print(f"   - {p.name}: {getattr(p, 'description', '')[:50]}...")
 
             # 4. Create ReAct Agent
             state_manager = StateManager(ReActState)
             
             # Create a simple test file
-
             with open("test_mcp.txt", "w") as f:
                 f.write("Hello from BTflow + MCP Integration!")
 

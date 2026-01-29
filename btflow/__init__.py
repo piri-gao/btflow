@@ -2,7 +2,7 @@
 BTflow: Event-driven, State-managed Behavior Tree Framework for LLM Agents.
 """
 # Core components
-from btflow.core.decorators import action
+from btflow.core.decorators import action, tool
 from btflow.core.agent import BTAgent
 from btflow.core.state import ActionField, StateManager
 from btflow.core.behaviour import AsyncBehaviour
@@ -52,6 +52,7 @@ __all__ = [
     "trace_reset_context",
     # Decorators
     "action",
+    "tool",
     # py_trees composites
     "Sequence",
     "Selector",

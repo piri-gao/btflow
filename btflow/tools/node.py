@@ -7,8 +7,7 @@ from py_trees.common import Status
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
-from btflow.tools.base import Tool, ToolError, ToolResult
-from btflow.tools.ext.schema import validate_json_schema
+from btflow.tools.base import Tool
 
 
 class ToolNode(AsyncBehaviour):
@@ -62,31 +61,24 @@ class ToolNode(AsyncBehaviour):
                 "args": tool_args,
             })
             result = await self._run_tool(tool_args)
-            tool_result = self._coerce_tool_result(result)
+            output_error = self._validate_tool_output(result)
+            if output_error:
+                logger.warning(
+                    "⚠️ [{}] Tool '{}' output mismatch schema: {}",
+                    self.name,
+                    getattr(self.tool, "name", type(self.tool).__name__),
+                    output_error,
+                )
+                if self.strict_output_validation:
+                    trace_emit("tool_result", {
+                        "node": self.name,
+                        "tool": getattr(self.tool, "name", type(self.tool).__name__),
+                        "ok": False,
+                        "error": output_error,
+                    })
+                    return Status.FAILURE
 
-            if tool_result.ok:
-                output_error = self._validate_tool_output(tool_result.output)
-                if output_error:
-                    logger.warning(
-                        "⚠️ [{}] Tool '{}' output mismatch schema: {}",
-                        self.name,
-                        getattr(self.tool, "name", type(self.tool).__name__),
-                        output_error,
-                    )
-                    if self.strict_output_validation:
-                        tool_result = ToolResult(ok=False, error=output_error)
-
-            if not tool_result.ok:
-                logger.warning("⚠️ [{}] ToolResult not ok: {}", self.name, tool_result.error)
-                trace_emit("tool_result", {
-                    "node": self.name,
-                    "tool": getattr(self.tool, "name", type(self.tool).__name__),
-                    "ok": False,
-                    "error": tool_result.error,
-                })
-                return Status.FAILURE
-
-            payload = tool_result.output
+            payload = result
 
             if self.output_key:
                 self.state_manager.update({self.output_key: payload})
@@ -97,15 +89,6 @@ class ToolNode(AsyncBehaviour):
                 "ok": True,
             })
             return Status.SUCCESS
-        except ToolError as e:
-            logger.warning("⚠️ [{}] 工具异常: {} ({})", self.name, e, e.code)
-            trace_emit("tool_result", {
-                "node": self.name,
-                "tool": getattr(self.tool, "name", type(self.tool).__name__),
-                "ok": False,
-                "error": f"{e.code}: {e}",
-            })
-            return Status.FAILURE
         except Exception as e:
             logger.warning("⚠️ [{}] 工具执行失败: {}", self.name, e)
             trace_emit("tool_result", {
@@ -154,18 +137,8 @@ class ToolNode(AsyncBehaviour):
                 break
         return current
 
-    def _coerce_tool_result(self, result: Any) -> ToolResult:
-        if isinstance(result, ToolResult):
-            return result
-        return ToolResult(ok=True, output=result)
-
     def _validate_tool_output(self, output: Any) -> Optional[str]:
-        schema = getattr(self.tool, "output_schema", None) or {}
-        if not schema:
-            return None
-        errors = validate_json_schema(output, schema)
-        if errors:
-            return "Invalid output for tool '{}': {}".format(self.tool.name, "; ".join(errors))
+        # Schema validation removed - rely on strict_tools or Pydantic
         return None
 
     async def _run_tool(self, args: Any, injected: Optional[Dict[str, Any]] = None) -> Any:

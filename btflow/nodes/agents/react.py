@@ -12,11 +12,6 @@ from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
 from btflow.core.trace import span
 from btflow.tools import Tool
-
-from btflow.tools.ext.policy import ToolSelectionPolicy, AllowAllToolPolicy
-from btflow.tools.registry import ToolRegistry
-from btflow.tools.base import ToolError, ToolResult
-from btflow.tools.ext.schema import validate_json_schema
 from btflow.llm import LLMProvider, GeminiProvider
 
 
@@ -235,12 +230,10 @@ class ToolExecutor(AsyncBehaviour):
         self,
         name: str = "ToolExecutor",
         tools: Optional[List[Tool]] = None,
-        registry: Optional[ToolRegistry] = None,
         max_retries: int = 0,
         retry_backoff: float = 0.2,
         observation_format: str = "text",
         strict_output_validation: bool = False,
-        policy: Optional[ToolSelectionPolicy] = None,
     ):
         super().__init__(name)
         self.tools: Dict[str, Tool] = {}
@@ -250,12 +243,8 @@ class ToolExecutor(AsyncBehaviour):
         self.retry_backoff = retry_backoff
         self.observation_format = observation_format
         self.strict_output_validation = strict_output_validation
-        self.policy = policy or AllowAllToolPolicy()
         if tools:
             for tool in tools:
-                self.register_tool(tool)
-        if registry:
-            for tool in registry.list():
                 self.register_tool(tool)
 
     def setup(self, **kwargs):
@@ -295,8 +284,7 @@ class ToolExecutor(AsyncBehaviour):
         logger.debug("🔧 [{}] 注册工具节点: {} -> {}", self.name, tool.name, node.name)
 
     def _update_tools_state(self):
-        filtered = self.policy.select_tools(self.state_manager.get(), list(self._all_tools.values()))
-        self.tools = {t.name.lower(): t for t in filtered}
+        self.tools = {t.name.lower(): t for t in self._all_tools.values()}
         desc = self.get_tools_description()
         schema = self.get_tools_schema()
         logger.info("🔧 [{}] Updating state.tools_desc with {} tools", self.name, len(self.tools))
@@ -311,8 +299,8 @@ class ToolExecutor(AsyncBehaviour):
             spec = tool.spec() if hasattr(tool, "spec") else None
             if spec:
                 descriptions.append(
-                    f"- {spec.name}: {spec.description} "
-                    f"(input: {spec.input_schema}, output: {spec.output_schema})"
+                    f"- {spec['name']}: {spec['description']} "
+                    f"(input: {spec['input_schema']}, output: {spec['output_schema']})"
                 )
             else:
                 descriptions.append(f"- {name}: {tool.description}")
@@ -321,8 +309,17 @@ class ToolExecutor(AsyncBehaviour):
     def get_tools_schema(self) -> List[Dict[str, Any]]:
         schema = []
         for tool in self.tools.values():
-            if hasattr(tool, "spec"):
-                schema.append(tool.spec().to_openai())
+            if hasattr(tool, "to_openai"):
+                schema.append(tool.to_openai())
+            elif hasattr(tool, "spec"):
+                spec = tool.spec()
+                if isinstance(spec, dict) and "parameters" in spec:
+                    schema.append({
+                        "name": spec.get("name", tool.name),
+                        "description": spec.get("description", tool.description),
+                        "parameters": spec.get("parameters", {"type": "object"}),
+                        "returns": spec.get("returns", {"type": "object"}),
+                    })
             else:
                 schema.append({
                     "name": tool.name,
@@ -342,23 +339,12 @@ class ToolExecutor(AsyncBehaviour):
         }
 
         if error is None:
-            if hasattr(result, "to_dict"):
-                try:
-                    payload.update(result.to_dict())
-                except Exception:
-                    payload["output"] = str(result)
-            else:
-                payload["output"] = result
+            payload["output"] = result
 
         if self.observation_format == "json":
             content = json.dumps(payload, ensure_ascii=True)
         elif error:
             content = str(error)
-        elif isinstance(result, ToolResult):
-            if result.ok and isinstance(result.output, str):
-                content = result.output
-            else:
-                content = json.dumps(payload, ensure_ascii=True)
         elif isinstance(result, str):
             content = result
         else:
@@ -366,18 +352,8 @@ class ToolExecutor(AsyncBehaviour):
             
         return tool(content=content, name=tool_name)
 
-    def _coerce_tool_result(self, result: Any) -> ToolResult:
-        if isinstance(result, ToolResult):
-            return result
-        return ToolResult(ok=True, output=result)
-
     def _validate_tool_output(self, tool: Tool, output: Any) -> Optional[str]:
-        schema = getattr(tool, "output_schema", None) or {}
-        if not schema:
-            return None
-        errors = validate_json_schema(output, schema)
-        if errors:
-            return "Invalid output for tool '{}': {}".format(tool.name, "; ".join(errors))
+        # Schema validation removed - rely on strict_tools or Pydantic
         return None
 
     def _parse_tool_input(self, tool: Tool, raw_input: Any) -> tuple[Any, Optional[str]]:
@@ -418,10 +394,6 @@ class ToolExecutor(AsyncBehaviour):
         expected = type_map.get(schema_type)
         if expected and not isinstance(parsed, expected):
             return None, f"Invalid input for tool '{tool.name}': expected {schema_type}"
-
-        errors = validate_json_schema(parsed, schema)
-        if errors:
-            return None, f"Invalid input for tool '{tool.name}': " + "; ".join(errors)
 
         return parsed, None
 
@@ -546,11 +518,6 @@ class ToolExecutor(AsyncBehaviour):
                 })
                 return self._normalize_tool_result(tool_name, None, error=error_msg)
 
-            # Policy guardrail
-            guard_error = self.policy.validate_call(self.state_manager.get(), tool_name, tool_input)
-            if guard_error:
-                return self._normalize_tool_result(tool_name, None, error=guard_error)
-
             # Parse Input
             parsed_input, input_error = self._parse_tool_input(tool, tool_input)
             if input_error:
@@ -575,68 +542,40 @@ class ToolExecutor(AsyncBehaviour):
 
                         # ToolNode Writeback
                         if tool_node.output_key and self.state_manager:
-                            should_write = True
-                            output_val = result
-                            if isinstance(result, ToolResult):
-                                if not result.ok:
-                                    should_write = False
-                                else:
-                                    output_val = result.output
-
-                            if should_write:
-                                self.state_manager.update({tool_node.output_key: output_val})
-                                logger.debug("💾 [{}] ToolNode '{}' output written to key '{}'",
-                                             self.name, tool_name, tool_node.output_key)
+                            self.state_manager.update({tool_node.output_key: result})
+                            logger.debug("💾 [{}] ToolNode '{}' output written to key '{}'",
+                                         self.name, tool_name, tool_node.output_key)
                     else:
                         result = await self._run_tool(tool, parsed_input)
 
-                    # Normalize Result
-                    tool_result = self._coerce_tool_result(result)
-                    if tool_result.ok:
-                        output_error = self._validate_tool_output(tool, tool_result.output)
-                        if output_error:
-                            logger.warning(
-                                "⚠️ [{}] Tool '{}' output mismatch schema: {}",
-                                self.name,
-                                tool_name,
-                                output_error,
-                            )
-                            if self.strict_output_validation:
-                                tool_result = ToolResult(ok=False, error=output_error)
-                    observation = self._normalize_tool_result(tool_name, tool_result, error=tool_result.error)
-                    retryable = tool_result.retryable and not tool_result.ok
-                    ok = tool_result.ok
-                    error_msg = tool_result.error
-                    trace_result = tool_result.output
-
-                    trace_emit("tool_result", {
-                        "node": self.name,
-                        "tool": tool_name,
-                        "ok": ok,
-                        "error": error_msg,
-                        "result": self._safe_trace_payload(trace_result)
-                    })
-
-                    if not retryable:
-                        return observation
-                    if attempts <= self.max_retries:
+                    output_error = self._validate_tool_output(tool, result)
+                    if output_error:
                         logger.warning(
-                            "⚠️ [{}] Tool '{}' failed (attempt {}/{}), retrying... Error: {}",
-                            self.name, tool_name, attempts, self.max_retries, error_msg,
+                            "⚠️ [{}] Tool '{}' output mismatch schema: {}",
+                            self.name,
+                            tool_name,
+                            output_error,
                         )
+                        if self.strict_output_validation:
+                            observation = self._normalize_tool_result(tool_name, result, error=output_error)
+                            trace_emit("tool_result", {
+                                "node": self.name,
+                                "tool": tool_name,
+                                "ok": False,
+                                "error": output_error,
+                                "result": self._safe_trace_payload(result),
+                            })
+                            return observation
 
-                except ToolError as e:
-                    logger.warning("⚠️ [{}] 工具异常: {}", self.name, e)
-                    observation = self._normalize_tool_result(tool_name, None, error=f"{e.code}: {e}")
-                    retryable = e.retryable
+                    observation = self._normalize_tool_result(tool_name, result, error=None)
                     trace_emit("tool_result", {
                         "node": self.name,
                         "tool": tool_name,
-                        "ok": False,
-                        "error": f"{e.code}: {e}",
+                        "ok": True,
+                        "error": None,
+                        "result": self._safe_trace_payload(result),
                     })
-                    if not retryable:
-                        return observation
+                    return observation
 
                 except Exception as e:
                     logger.warning("⚠️ [{}] 工具执行失败: {}", self.name, e)
@@ -647,12 +586,14 @@ class ToolExecutor(AsyncBehaviour):
                         "ok": False,
                         "error": str(e),
                     })
+                    if attempts <= self.max_retries:
+                        logger.warning(
+                            "⚠️ [{}] Tool '{}' failed (attempt {}/{}), retrying... Error: {}",
+                            self.name, tool_name, attempts, self.max_retries, e,
+                        )
+                        await asyncio.sleep(self.retry_backoff * attempts)
+                        continue
                     return observation
-
-                if attempts > self.max_retries:
-                    return observation
-
-                await asyncio.sleep(self.retry_backoff * attempts)
 
     async def update_async(self) -> Status:
         state = self.state_manager.get()
