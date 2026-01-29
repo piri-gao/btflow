@@ -72,7 +72,7 @@ class ReActLLMNode(AsyncBehaviour):
 You must follow one of these formats:
 
 Thought: [your reasoning about what to do next]
-ToolCall: {"tool": "<tool_name>", "arguments": {...}}
+ToolCall: {{"tool": "<tool_name>", "arguments": {{...}}}}
 
 OR (legacy):
 Thought: [your reasoning about what to do next]

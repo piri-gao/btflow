@@ -31,11 +31,13 @@ from btflow.messages import Message
 
 class ReActState(BaseModel):
     """ReAct Agent 的状态定义"""
+    task: Optional[str] = None
     messages: Annotated[List[Message], operator.add] = Field(default_factory=list)
     final_answer: Optional[str] = None
     round: int = 0
     tools_desc: str = ""
     tools_schema: List[Dict[str, Any]] = Field(default_factory=list)
+    streaming_output: str = ""
 
 
 # ============ ReAct Agent Factory ============
@@ -76,6 +78,8 @@ class ReActAgent:
         state_schema: Type[BaseModel] = ReActState,
         structured_tool_calls: bool = True,
         strict_tool_calls: bool = False,
+        stream: bool = False,
+        streaming_output_key: str = "streaming_output",
     ) -> BTAgent:
         """使用指定 Provider 创建 ReAct Agent。"""
         tools = tools or []
@@ -93,6 +97,8 @@ class ReActAgent:
             memory_top_k=memory_top_k,
             structured_tool_calls=structured_tool_calls,
             strict_tool_calls=strict_tool_calls,
+            stream=stream,
+            streaming_output_key=streaming_output_key,
         )
 
         loop_body = Sequence(name="ReActLoop", memory=True, children=[
