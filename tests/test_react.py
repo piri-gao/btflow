@@ -4,7 +4,7 @@ Tests for btflow.patterns.react - ReAct Agent Pattern
 import asyncio
 import unittest
 import operator
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from py_trees.common import Status
 from py_trees.composites import Sequence
@@ -15,10 +15,11 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
-from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer
+from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer, ReActLLMNode
 from btflow.tools import Tool
 from btflow import tool as tool_decorator
-from btflow.messages import human, ai
+from btflow.messages import human, ai, Message, message_to_text
+from btflow.llm import LLMProvider, MessageChunk
 
 
 class MockCalculatorTool(Tool):
@@ -73,6 +74,23 @@ class MockLLMNode(AsyncBehaviour):
         return Status.FAILURE
 
 
+class StreamingTestState(BaseModel):
+    messages: Annotated[List[Message], operator.add] = Field(default_factory=list)
+    streaming_output: str = ""
+    round: int = 0
+    tools_desc: str = ""
+    tools_schema: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class StreamingDummyProvider(LLMProvider):
+    async def generate_text(self, *args, **kwargs) -> Message:
+        return Message(role="assistant", content="Hello World")
+
+    async def generate_stream(self, *args, **kwargs):
+        yield MessageChunk(text="Hello ")
+        yield MessageChunk(text="World")
+
+
 class TestIsFinalAnswer(unittest.TestCase):
     """IsFinalAnswer 节点测试"""
     
@@ -106,6 +124,16 @@ class TestIsFinalAnswer(unittest.TestCase):
         result = self.check.update()
         self.assertEqual(result, Status.SUCCESS)
         self.assertEqual(self.state_manager.get().final_answer, "42")
+
+    def test_multimodal_content_final_answer(self):
+        """多模态 content 也能解析 Final Answer"""
+        self.state_manager.update({
+            "messages": [ai([{"text": "Thought: ok.\nFinal Answer: 7"}])]
+        })
+        self.check.setup()
+        result = self.check.update()
+        self.assertEqual(result, Status.SUCCESS)
+        self.assertEqual(self.state_manager.get().final_answer, "7")
     
     def test_max_rounds_exceeded(self):
         """超过最大轮数返回 SUCCESS（强制停止）"""
@@ -154,10 +182,36 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(messages[-1].role, "tool")
         self.assertEqual(messages[-1].content, "5")
 
+    async def test_executes_action_multimodal_content(self):
+        """多模态 content 也能解析 Action"""
+        self.state_manager.update({
+            "messages": [ai([{"text": "Thought: need to calculate.\nAction: calculator\nInput: 2 + 3"}])]
+        })
+        self.executor.setup()
+        self.executor.initialise()
+        result = await self.executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertEqual(messages[-1].role, "tool")
+        self.assertEqual(messages[-1].content, "5")
+
     async def test_executes_json_tool_call(self):
         """JSON ToolCall 应能被解析执行"""
         self.state_manager.update({
             "messages": [ai('Thought: need to calculate.\nToolCall: {"tool":"calculator","arguments":{"input":"2+3"}}')]
+        })
+        self.executor.setup()
+        self.executor.initialise()
+        result = await self.executor.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+        messages = self.state_manager.get().messages
+        self.assertEqual(messages[-1].role, "tool")
+        self.assertEqual(messages[-1].content, "5")
+
+    async def test_executes_json_tool_call_multimodal(self):
+        """多模态 content 也能解析 JSON ToolCall"""
+        self.state_manager.update({
+            "messages": [ai([{"text": 'Thought: need to calculate.\nToolCall: {"tool":"calculator","arguments":{"input":"2+3"}}'}])]
         })
         self.executor.setup()
         self.executor.initialise()
@@ -296,6 +350,29 @@ class TestReActIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state.final_answer, "15")
         self.assertEqual(state.round, 2)
         self.assertEqual(len(state.messages), 4)  # Question + Action + Observation + Final
+
+
+class TestReActStreaming(unittest.IsolatedAsyncioTestCase):
+    async def test_streaming_updates_state(self):
+        state_manager = StateManager(schema=StreamingTestState)
+        state_manager.initialize({"messages": [human("Question: say hello")]})
+
+        node = ReActLLMNode(
+            name="ReActStream",
+            model="dummy",
+            provider=StreamingDummyProvider(),
+            stream=True,
+            streaming_output_key="streaming_output",
+            system_prompt="Test prompt",
+        )
+        node.state_manager = state_manager
+
+        result = await node.update_async()
+        self.assertEqual(result, Status.SUCCESS)
+
+        state = state_manager.get()
+        self.assertEqual(state.streaming_output, "Hello World")
+        self.assertEqual(message_to_text(state.messages[-1]), "Hello World")
 
 
 if __name__ == "__main__":

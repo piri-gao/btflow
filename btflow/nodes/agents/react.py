@@ -12,10 +12,11 @@ from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
 from btflow.core.trace import span
 from btflow.tools import Tool
-from btflow.llm import LLMProvider, GeminiProvider
+from btflow.llm import LLMProvider, GeminiProvider, MessageChunk
 
 
 from btflow.messages import Message, human, ai, tool, messages_to_prompt
+from btflow.messages.formatting import message_to_text
 from btflow.memory import BaseMemory
 from btflow.context.builder import ContextBuilder, ContextBuilderProtocol
 
@@ -37,6 +38,8 @@ class ReActLLMNode(AsyncBehaviour):
         memory_top_k: int = 5,
         structured_tool_calls: bool = True,
         strict_tool_calls: bool = False,
+        stream: bool = False,
+        streaming_output_key: str = "streaming_output",
         context_builder: Optional[ContextBuilderProtocol] = None,
     ):
         super().__init__(name)
@@ -47,6 +50,8 @@ class ReActLLMNode(AsyncBehaviour):
         self.provider = provider or GeminiProvider()
         self.structured_tool_calls = structured_tool_calls
         self.strict_tool_calls = strict_tool_calls
+        self.stream = stream
+        self.streaming_output_key = streaming_output_key
         
         # Internal context builder (tools are embedded in system prompt)
         if context_builder is None:
@@ -150,21 +155,71 @@ Always think step by step."""
                 })
                 # logger.debug("Prompt:\n{}", prompt_content)
 
-                response = await self.provider.generate_text(
-                    prompt_content,
-                    model=self.model,
-                    # context_builder already added system prompt to messages
-                    # system_instruction=None,
-                    temperature=0.7,
-                    timeout=60.0,
-                    tools=tools_schema if self.structured_tool_calls else None,
-                    strict_tools=self.strict_tool_calls,
-                )
+                response_msg = None
+                content = ""
+                tool_calls = None
 
-                content = response.text.strip()
-                if response.tool_calls:
-                    tool_call = response.tool_calls[0]
-
+                if self.stream:
+                    if self.streaming_output_key:
+                        self.state_manager.update({self.streaming_output_key: ""})
+                    parts = []
+                    try:
+                        async for chunk in self.provider.generate_stream(
+                            prompt_content,
+                            model=self.model,
+                            temperature=0.7,
+                            timeout=60.0,
+                            tools=tools_schema if self.structured_tool_calls else None,
+                            strict_tools=self.strict_tool_calls,
+                        ):
+                            if isinstance(chunk, MessageChunk):
+                                if chunk.text:
+                                    parts.append(chunk.text)
+                                    trace_emit("llm_token", {
+                                        "node": self.name,
+                                        "token": chunk.text,
+                                        "full_content": "".join(parts)
+                                    })
+                                    if self.streaming_output_key:
+                                        self.state_manager.update(
+                                            {self.streaming_output_key: "".join(parts)}
+                                        )
+                                if chunk.tool_calls:
+                                    tool_calls = chunk.tool_calls
+                    except NotImplementedError:
+                        response_msg = await self.provider.generate_text(
+                            prompt_content,
+                            model=self.model,
+                            temperature=0.7,
+                            timeout=60.0,
+                            tools=tools_schema if self.structured_tool_calls else None,
+                            strict_tools=self.strict_tool_calls,
+                        )
+                    if response_msg is None:
+                        content = "".join(parts)
+                        response_msg = Message(
+                            role="assistant",
+                            content=content,
+                            tool_calls=tool_calls,
+                        )
+                    else:
+                        content = message_to_text(response_msg)
+                else:
+                    response_msg = await self.provider.generate_text(
+                        prompt_content,
+                        model=self.model,
+                        temperature=0.7,
+                        timeout=60.0,
+                        tools=tools_schema if self.structured_tool_calls else None,
+                        strict_tools=self.strict_tool_calls,
+                    )
+                    content = message_to_text(response_msg)
+                
+                # If provider returned structured tool calls, we format them into the content
+                # to maintain the ReAct text-based compatibility for now, 
+                # OR we could eventually store structured calls in the message history.
+                if response_msg.tool_calls:
+                    tool_call = response_msg.tool_calls[0]
                     tool_name = tool_call.get("name") or tool_call.get("tool")
                     args = tool_call.get("arguments")
                     if isinstance(args, str):
@@ -173,6 +228,7 @@ Always think step by step."""
                         except json.JSONDecodeError:
                             pass
                     payload = {"tool": tool_name, "arguments": args}
+                    
                     thought = content
                     if thought:
                         if not thought.lower().startswith("thought:"):
@@ -180,6 +236,9 @@ Always think step by step."""
                     else:
                         thought = "Thought: calling tool"
                     content = f"{thought}\nToolCall: {json.dumps(payload, ensure_ascii=True)}"
+                    
+                    # Update message content to the formatted ReAct version
+                    response_msg.content = content
 
                 trace_emit("llm_response", {
                     "node": self.name,
@@ -192,9 +251,8 @@ Always think step by step."""
                 return Status.FAILURE
 
             # Append structured AIMessage
-            new_msg = ai(content)
             self.state_manager.update({
-                "messages": [new_msg],
+                "messages": [response_msg],
                 "round": state.round + 1
             })
 
@@ -474,10 +532,10 @@ class ToolExecutor(AsyncBehaviour):
         content = None
         for msg in reversed(messages):
             if isinstance(msg, Message) and msg.role == "assistant":
-                content = msg.content
+                content = message_to_text(msg)
                 break
             if not isinstance(msg, Message):
-                content = str(msg)
+                content = message_to_text(msg)
                 break
 
         if content is None:
@@ -673,7 +731,7 @@ class IsFinalAnswer(Behaviour):
 
         # Check the last message content
         last_msg = messages[-1]
-        content = last_msg.content if isinstance(last_msg, Message) else str(last_msg)
+        content = message_to_text(last_msg)
         
         match = self.FINAL_ANSWER_PATTERN.search(content)
         if match:

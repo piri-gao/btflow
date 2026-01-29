@@ -1,6 +1,7 @@
 from typing import List
 
 from btflow.messages import Message
+from btflow.messages.formatting import content_to_text
 from btflow.memory.base import BaseMemory
 
 
@@ -20,7 +21,8 @@ class InMemoryHistory(BaseMemory):
         if not query:
             return self._messages[-k:]
 
-        matched = [m for m in self._messages if query.lower() in m.content.lower()]
+        q = query.lower()
+        matched = [m for m in self._messages if q in content_to_text(m.content).lower()]
         if matched:
             return matched[-k:]
 

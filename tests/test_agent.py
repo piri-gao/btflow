@@ -11,7 +11,7 @@ from btflow import BTAgent, StateManager, ActionField, AsyncBehaviour, ReactiveR
 
 
 # 测试用 State Schema
-class TestState(BaseModel):
+class AgentTestState(BaseModel):
     observation: dict = Field(default_factory=dict)
     messages: Annotated[List[str], operator.add] = Field(default_factory=list)
     # ActionField 标记的动作字段
@@ -51,7 +51,7 @@ class TestBTAgentStep(unittest.IsolatedAsyncioTestCase):
     """测试 step() 模式"""
     
     def setUp(self):
-        self.state = StateManager(TestState)
+        self.state = StateManager(AgentTestState)
         self.state.initialize()
         
         # 简单的单节点树（同步节点用于 step 测试）
@@ -95,7 +95,7 @@ class TestBTAgentReset(unittest.IsolatedAsyncioTestCase):
     """测试 reset() 功能"""
     
     def setUp(self):
-        self.state = StateManager(TestState)
+        self.state = StateManager(AgentTestState)
         self.state.initialize()
         
         self.root = SyncActionNode("Action")
@@ -139,7 +139,7 @@ class TestActionField(unittest.IsolatedAsyncioTestCase):
     
     def test_action_field_detected(self):
         """ActionField 字段应被正确检测"""
-        state = StateManager(TestState)
+        state = StateManager(AgentTestState)
         
         # 应检测到 speed 和 fire
         self.assertIn("speed", state._action_fields)
@@ -149,7 +149,7 @@ class TestActionField(unittest.IsolatedAsyncioTestCase):
     
     def test_reset_actions(self):
         """reset_actions() 应重置所有 ActionField 字段"""
-        state = StateManager(TestState)
+        state = StateManager(AgentTestState)
         state.initialize()
         
         # 设置动作
@@ -164,7 +164,7 @@ class TestActionField(unittest.IsolatedAsyncioTestCase):
     
     def test_get_actions(self):
         """get_actions() 应只返回 ActionField 字段"""
-        state = StateManager(TestState)
+        state = StateManager(AgentTestState)
         state.initialize({"speed": 1.0, "fire": True, "observation": {"x": 1}})
         
         actions = state.get_actions()

@@ -6,6 +6,7 @@ from btflow.core.behaviour import AsyncBehaviour
 from dotenv import load_dotenv
 from btflow.core.logging import logger
 from btflow.llm import GeminiProvider
+from btflow.messages.formatting import message_to_text
 
 load_dotenv()
 
@@ -19,10 +20,14 @@ class GeminiNode(AsyncBehaviour):
     def __init__(self, 
                  name: str, 
                  model: str = "gemini-2.5-flash", 
-                 system_prompt: str = "You are a helpful AI assistant."):
+                 system_prompt: str = "You are a helpful AI assistant.",
+                 stream: bool = False,
+                 streaming_output_key: str = "streaming_output"):
         super().__init__(name)
         self.model = model
         self.system_prompt = system_prompt
+        self.stream = stream
+        self.streaming_output_key = streaming_output_key
         
         api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         base_url = os.getenv("BASE_URL")
@@ -55,15 +60,48 @@ class GeminiNode(AsyncBehaviour):
 
             # 2. 调用 API (原生异步)
             # 关键点：使用 .aio 访问异步方法
-            response = await self.provider.generate_text(
-                prompt_content,
-                model=self.model,
-                system_instruction=self.system_prompt,
-                temperature=0.7,
-                timeout=30.0,
-            )
-            
-            content = response.text
+            response = None
+            content = ""
+            if self.stream:
+                if self.streaming_output_key:
+                    self.state_manager.update({self.streaming_output_key: ""})
+                parts = []
+                try:
+                    async for chunk in self.provider.generate_stream(
+                        prompt_content,
+                        model=self.model,
+                        system_instruction=self.system_prompt,
+                        temperature=0.7,
+                        timeout=30.0,
+                    ):
+                        text = getattr(chunk, "text", "") or ""
+                        if text:
+                            parts.append(text)
+                            if self.streaming_output_key:
+                                self.state_manager.update(
+                                    {self.streaming_output_key: "".join(parts)}
+                                )
+                except NotImplementedError:
+                    response = await self.provider.generate_text(
+                        prompt_content,
+                        model=self.model,
+                        system_instruction=self.system_prompt,
+                        temperature=0.7,
+                        timeout=30.0,
+                    )
+                if response is None:
+                    content = "".join(parts)
+                else:
+                    content = message_to_text(response)
+            else:
+                response = await self.provider.generate_text(
+                    prompt_content,
+                    model=self.model,
+                    system_instruction=self.system_prompt,
+                    temperature=0.7,
+                    timeout=30.0,
+                )
+                content = message_to_text(response)
             # print(f"   📥 [Gemini] 回复: {content[:50]}...")
 
             # 3. 写入状态 (触发 Runner 唤醒)

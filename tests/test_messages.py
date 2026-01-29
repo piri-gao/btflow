@@ -1,6 +1,6 @@
 import unittest
 
-from btflow.messages import Message, system, human, ai, tool
+from btflow.messages import Message, system, human, ai, tool, content_to_text, message_to_text
 
 
 class TestMessages(unittest.TestCase):
@@ -18,6 +18,14 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(human("h").role, "user")
         self.assertEqual(ai("a").role, "assistant")
         self.assertEqual(tool("t").role, "tool")
+
+    def test_content_to_text(self):
+        content = ["hi", {"text": "there"}]
+        self.assertEqual(content_to_text(content), "hi\nthere")
+
+    def test_message_to_text(self):
+        msg = Message(role="user", content=[{"text": "hello"}])
+        self.assertEqual(message_to_text(msg), "hello")
 
 
 if __name__ == "__main__":

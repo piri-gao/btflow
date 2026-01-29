@@ -1,7 +1,8 @@
 import os
 from typing import Optional
 
-from btflow.llm import LLMProvider, GeminiProvider, OpenAIProvider, AnthropicProvider
+from btflow.llm.base import LLMProvider
+from btflow.llm.providers import GeminiProvider, OpenAIProvider, AnthropicProvider
 
 
 class AutoProviderFactory:

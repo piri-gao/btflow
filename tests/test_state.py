@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from btflow.core.state import StateManager
 
 # 1. 定义测试用的 Schema
-class TestState(BaseModel):
+class StateTestSchema(BaseModel):
     # 普通字段 (覆盖模式)
     count: int = 0
     # Reducer 字段 (追加模式)
@@ -15,7 +15,7 @@ class TestStateManager(unittest.TestCase):
     
     def setUp(self):
         """每个测试前运行"""
-        self.state = StateManager(schema=TestState)
+        self.state = StateManager(schema=StateTestSchema)
         self.state.initialize({"count": 10, "history": ["Init"]})
 
     def test_basic_get(self):

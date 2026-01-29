@@ -5,7 +5,7 @@ import time
 import operator
 from typing import Annotated, List
 from pydantic import BaseModel, Field
-from btflow import StateManager, ReactiveRunner, action, Sequence
+from btflow import StateManager, ReactiveRunner, node, Sequence
 
 # 1. 状态定义
 class State(BaseModel):
@@ -14,14 +14,14 @@ class State(BaseModel):
 
 # 2. 定义节点
 
-@action
+@node
 def sync_worker(state: State):
     """模拟一个同步的、耗时的普通 Python 函数"""
     print("   🔨 [SyncWorker] 正在搬砖 (同步阻塞模拟)...")
     time.sleep(1) # 以前这会卡死系统，现在被装饰器自动优化了
     return {"msgs": ["砖搬完了"]}
 
-@action
+@node
 async def async_thinker(state: State):
     """模拟一个异步的 LLM 调用"""
     print(f"   🧠 [Thinker] 思考中... 当前消息数: {len(state.msgs)}")

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class Tool(ABC):
@@ -25,6 +25,25 @@ class Tool(ABC):
             Result string to be used as observation
         """
         pass
+
+    def as_node(
+        self,
+        name: Optional[str] = None,
+        input_map: Optional[Dict[str, Any]] = None,
+        output_key: Optional[str] = None,
+        **kwargs
+    ):
+        """
+        Wrap this tool into a ToolNode for use in a behavior tree.
+        """
+        from btflow.tools.node import ToolNode
+        return ToolNode(
+            name=name or self.name,
+            tool=self,
+            input_map=input_map,
+            output_key=output_key,
+            **kwargs
+        )
 
     def _normalize_parameters(self) -> Dict[str, Any]:
         """Normalize input schema into a function-calling compatible JSON Schema."""

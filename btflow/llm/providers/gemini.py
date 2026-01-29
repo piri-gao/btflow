@@ -1,15 +1,16 @@
 import asyncio
 import os
-from typing import Optional
+from typing import Optional, Any, AsyncIterator
 
 from google import genai
 from google.genai import types
 
 from btflow.core.logging import logger
-from btflow.llm.base import LLMResponse
+from btflow.llm.base import LLMProvider, MessageChunk
+from btflow.messages import Message
 
 
-class GeminiProvider:
+class GeminiProvider(LLMProvider):
     """Thin wrapper around google-genai for async content generation."""
 
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
@@ -28,7 +29,7 @@ class GeminiProvider:
 
     async def generate_text(
         self,
-        prompt: str,
+        prompt: Any,
         model: str,
         system_instruction: Optional[str] = None,
         temperature: float = 0.7,
@@ -38,7 +39,8 @@ class GeminiProvider:
         tools: Optional[list[dict]] = None,
         tool_choice: Optional[object] = None,
         strict_tools: bool = False,
-    ):
+        **kwargs
+    ) -> Message:
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,
             temperature=temperature,
@@ -53,4 +55,54 @@ class GeminiProvider:
             ),
             timeout=timeout,
         )
-        return LLMResponse(text=response.text, raw=response)
+        # Note: tool_calls handling for Gemini would go here if structured calls are used.
+        # For now, we return the text content wrapped in a Message.
+        return Message(
+            role="assistant",
+            content=response.text or "",
+            metadata={"raw": response}
+        )
+
+    async def generate_stream(
+        self,
+        prompt: Any,
+        model: str,
+        system_instruction: Optional[str] = None,
+        temperature: float = 0.7,
+        top_p: float = 0.95,
+        top_k: int = 40,
+        timeout: float = 60.0,
+        tools: Optional[list[dict]] = None,
+        tool_choice: Optional[object] = None,
+        strict_tools: bool = False,
+        **kwargs
+    ):
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+        )
+        stream = await self.client.aio.models.generate_content_stream(
+            model=model,
+            contents=prompt,
+            config=config,
+        )
+        async for chunk in stream:
+            text = getattr(chunk, "text", "") or ""
+            
+            tool_calls = None
+            # Extract tool calls from Gemini chunk if present
+            if hasattr(chunk, "candidates") and chunk.candidates:
+                first = chunk.candidates[0]
+                if hasattr(first, "content") and hasattr(first.content, "parts"):
+                    for part in first.content.parts:
+                        if hasattr(part, "call"):
+                            tc = part.call
+                            if tool_calls is None:
+                                tool_calls = []
+                            tool_calls.append({"name": tc.name, "arguments": tc.args})
+
+            if not text and not tool_calls:
+                continue
+            yield MessageChunk(text=text, tool_calls=tool_calls, raw=chunk)

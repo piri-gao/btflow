@@ -1,72 +1,87 @@
 import inspect
 import asyncio
-from typing import Callable, Any, Dict, Type, Optional
+from typing import Callable, Any, Dict, Optional
 from py_trees.common import Status
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.state import StateManager
 from btflow.core.logging import logger
 from btflow.tools.base import Tool
 
-def action(func: Callable):
+def _get_metadata(func: Callable, name: Optional[str] = None, description: Optional[str] = None):
+    """Utility to extract name and description from a function."""
+    final_name = name or func.__name__
+    final_desc = description or (func.__doc__ or "").strip() or ""
+    return final_name, final_desc
+
+class FunctionNode(AsyncBehaviour):
     """
-    [语法糖] 将普通函数转换为 btflow 节点。
-    
-    函数签名要求: 
-      def my_func(state: MyState) -> dict: ...
-    
-    支持:
-      - 同步函数 (自动放入线程池运行，不会卡死 Loop)
-      - 异步函数 (async def)
+    Node implementation that wraps a simple function.
     """
-    
-    # 动态创建一个子类
-    class FunctionNode(AsyncBehaviour):
-        def __init__(self, name: str, state_manager: StateManager):
-            super().__init__(name)
-            self.state_manager = state_manager
-            
-            # 自动绑定函数名作为节点名（如果未指定）
-            if name == func.__name__:
-                self.name = name
+    def __init__(self, name: str, state_manager: StateManager, func: Callable):
+        super().__init__(name)
+        self.state_manager = state_manager
+        self._func = func
 
-        async def update_async(self) -> Status:
-            try:
-                # 1. 自动读取状态
-                current_state = self.state_manager.get()
-                
-                # 2. 调用用户函数
-                # 判断用户写的是不是 async def
-                if inspect.iscoroutinefunction(func):
-                    updates = await func(current_state)
-                else:
-                    # 关键优化：如果是同步函数，自动丢到线程池跑
-                    # 这样用户随便写 time.sleep() 也不会卡死整个 Agent
-                    updates = await asyncio.to_thread(func, current_state)
-                
-                # 3. 自动更新状态
-                if isinstance(updates, dict):
-                    self.state_manager.update(updates)
-                    # 只有返回了数据才打印，避免刷屏
-                    logger.debug("   ⚡ [{}] Action finished. Updates: {}", self.name, list(updates.keys()))
-                elif updates is None:
-                    # 允许函数不返回任何东西（只做副作用）
-                    pass
-                else:
-                    raise ValueError(f"Action must return a dict or None, got {type(updates)}")
-
-                return Status.SUCCESS
-
-            except Exception as e:
-                logger.error("   🔥 [{}] Action failed: {}", self.name, e)
-                import traceback
-                traceback.print_exc()
-                self.feedback_message = str(e)
+    async def update_async(self) -> Status:
+        try:
+            if self.state_manager is None:
+                logger.error("❌ [{}] state_manager 未注入", self.name)
                 return Status.FAILURE
+            current_state = self.state_manager.get()
+            
+            if inspect.iscoroutinefunction(self._func):
+                updates = await self._func(current_state)
+            else:
+                updates = await asyncio.to_thread(self._func, current_state)
+            
+            if isinstance(updates, dict):
+                self.state_manager.update(updates)
+                logger.debug("   ⚡ [{}] Node finished. Updates: {}", self.name, list(updates.keys()))
+            elif updates is None:
+                pass
+            else:
+                raise ValueError(f"Node func must return a dict or None, got {type(updates)}")
 
-    # 修改类名，方便调试时看
-    FunctionNode.__name__ = f"Action_{func.__name__}"
-    return FunctionNode
+            return Status.SUCCESS
 
+        except Exception as e:
+            logger.error("   🔥 [{}] Node failed: {}", self.name, e)
+            self.feedback_message = str(e)
+            return Status.FAILURE
+
+def node(
+    _func: Optional[Callable] = None,
+    *,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+):
+    """
+    Decorator to wrap a function into a Node (Behavior Tree node).
+    Usage:
+        @node
+        def my_func(state): ...
+        
+        @node(name="custom_name")
+        def my_func(state): ...
+    """
+    def decorator(func: Callable):
+        node_name, node_desc = _get_metadata(func, name, description)
+        
+        # We return a class that can be instantiated with (name, state_manager)
+        # to match the existing usage pattern in tests.
+        class WrappedNode(FunctionNode):
+            def __init__(self, inst_name: Optional[str] = None, state_manager: Optional[StateManager] = None):
+                # If name is provided during instantiation, it overrides the decorator name
+                super().__init__(inst_name or node_name, state_manager, func)
+                self.description = node_desc
+
+        WrappedNode.__name__ = f"Node_{func.__name__}"
+        WrappedNode.__doc__ = node_desc
+        return WrappedNode
+
+    if _func is None:
+        return decorator
+    return decorator(_func)
 
 class FunctionTool(Tool):
     """Wrap a simple callable as a Tool."""
@@ -89,25 +104,35 @@ class FunctionTool(Tool):
     def run(self, *args, **kwargs) -> Any:
         return self._fn(*args, **kwargs)
 
-
 def tool(
+    _func: Optional[Callable] = None,
+    *,
     name: Optional[str] = None,
     description: Optional[str] = None,
     input_schema: Optional[dict] = None,
     output_schema: Optional[dict] = None,
 ):
-    """Decorator to wrap a function into a Tool instance."""
-    def decorator(fn: Callable[..., Any]) -> Tool:
-        tool_name = name or fn.__name__
-        tool_desc = description or (fn.__doc__ or "").strip() or ""
+    """
+    Decorator to wrap a function into a Tool instance.
+    Usage:
+        @tool
+        def my_tool(input): ...
+        
+        @tool(name="custom")
+        def my_tool(input): ...
+    """
+    def decorator(func: Callable):
+        tool_name, tool_desc = _get_metadata(func, name, description)
         return FunctionTool(
             name=tool_name,
             description=tool_desc,
-            fn=fn,
+            fn=func,
             input_schema=input_schema,
             output_schema=output_schema,
         )
-    return decorator
 
+    if _func is None:
+        return decorator
+    return decorator(_func)
 
-__all__ = ["action", "tool", "FunctionTool"]
+__all__ = ["node", "tool", "FunctionTool", "FunctionNode"]

@@ -2,7 +2,7 @@
 BTflow: Event-driven, State-managed Behavior Tree Framework for LLM Agents.
 """
 # Core components
-from btflow.core.decorators import action, tool
+from btflow.core.decorators import tool, node
 from btflow.core.agent import BTAgent
 from btflow.core.state import ActionField, StateManager
 from btflow.core.behaviour import AsyncBehaviour
@@ -32,7 +32,6 @@ from py_trees.blackboard import Client as BlackboardClient
 from py_trees import display
 
 # Re-export common nodes
-from btflow.nodes.llm import GeminiNode
 from btflow.nodes.common import MockLLMAction, Log, Wait
 
 __all__ = [
@@ -51,8 +50,8 @@ __all__ = [
     "trace_set_context",
     "trace_reset_context",
     # Decorators
-    "action",
     "tool",
+    "node",
     # py_trees composites
     "Sequence",
     "Selector",
@@ -78,3 +77,20 @@ __all__ = [
     "Log",
     "Wait",
 ]
+
+
+def __getattr__(name: str):
+    if name == "GeminiNode":
+        try:
+            from btflow.nodes.llm import GeminiNode  # type: ignore
+        except ImportError as e:
+            raise RuntimeError(
+                "GeminiNode requires optional dependency 'google-genai'. "
+                "Install it with: pip install google-genai"
+            ) from e
+        return GeminiNode
+    raise AttributeError(f"module 'btflow' has no attribute '{name}'")
+
+
+def __dir__():
+    return sorted(__all__)

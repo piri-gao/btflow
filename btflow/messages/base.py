@@ -8,6 +8,7 @@ class Message(BaseModel):
     content: Union[str, List[Any]]
     name: Optional[str] = None
     tool: Optional[str] = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -19,6 +20,8 @@ class Message(BaseModel):
             data["name"] = self.name
         if self.tool:
             data["tool"] = self.tool
+        if self.tool_calls:
+            data["tool_calls"] = self.tool_calls
         if self.metadata:
             data["metadata"] = dict(self.metadata)
         return data

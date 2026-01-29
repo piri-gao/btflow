@@ -7,7 +7,8 @@ from py_trees.behaviour import Behaviour
 
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
-from btflow.llm import LLMProvider, GeminiProvider
+from btflow.llm import LLMProvider, GeminiProvider, MessageChunk
+from btflow.messages.formatting import message_to_text
 
 
 from btflow.messages import Message, human, ai, messages_to_prompt
@@ -27,12 +28,16 @@ class SelfRefineLLMNode(AsyncBehaviour):
         system_prompt: Optional[str] = None,
         memory: Optional[BaseMemory] = None,
         memory_top_k: int = 5,
+        stream: bool = False,
+        streaming_output_key: str = "streaming_output",
         context_builder: Optional[ContextBuilderProtocol] = None,
     ):
         super().__init__(name)
         self.model = model
         self.system_prompt = system_prompt or self._get_default_prompt()
         self.provider = provider or GeminiProvider()
+        self.stream = stream
+        self.streaming_output_key = streaming_output_key
         if context_builder is None:
             self.context_builder = ContextBuilder(
                 system_prompt=self.system_prompt,
@@ -95,15 +100,52 @@ Please improve your answer based on the feedback, then re-evaluate and provide y
             full_messages = self.context_builder.build([user_msg])
             prompt_str = messages_to_prompt(full_messages)
 
-            response = await self.provider.generate_text(
-                prompt_str,
-                model=self.model,
-                # system_instruction handled by ContextBuilder -> prompt_str
-                temperature=0.7,
-                timeout=60.0,
-            )
-
-            content = response.text.strip()
+            response = None
+            content = ""
+            if self.stream:
+                if self.streaming_output_key:
+                    self.state_manager.update({self.streaming_output_key: ""})
+                parts = []
+                try:
+                        async for chunk in self.provider.generate_stream(
+                            prompt_str,
+                            model=self.model,
+                            temperature=0.7,
+                            timeout=60.0,
+                        ):
+                            if isinstance(chunk, MessageChunk):
+                                if chunk.text:
+                                    parts.append(chunk.text)
+                                    from btflow.core.trace import emit as trace_emit
+                                    trace_emit("llm_token", {
+                                        "node": self.name,
+                                        "token": chunk.text,
+                                        "full_content": "".join(parts)
+                                    })
+                                    if self.streaming_output_key:
+                                        self.state_manager.update(
+                                            {self.streaming_output_key: "".join(parts)}
+                                        )
+                except NotImplementedError:
+                    response = await self.provider.generate_text(
+                        prompt_str,
+                        model=self.model,
+                        temperature=0.7,
+                        timeout=60.0,
+                    )
+                if response is None:
+                    content = "".join(parts).strip()
+                else:
+                    content = message_to_text(response).strip()
+            else:
+                response = await self.provider.generate_text(
+                    prompt_str,
+                    model=self.model,
+                    # system_instruction handled by ContextBuilder -> prompt_str
+                    temperature=0.7,
+                    timeout=60.0,
+                )
+                content = message_to_text(response).strip()
 
             if not content:
                 logger.warning("⚠️ [{}] LLM 返回空响应", self.name)
