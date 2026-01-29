@@ -528,32 +528,53 @@ class ToolExecutor(AsyncBehaviour):
         return self._extract_tool_call_json(content[idx + len(marker):])
 
     def _parse_latest_action(self, messages: List[Message]) -> Optional[Tuple[str, Any]]:
-        """从最近的 assistant 消息中解析 ToolCall / Action"""
+        """从最近的 assistant 消息中解析单个 ToolCall / Action (backwards compatible)"""
+        actions = self._parse_all_actions(messages)
+        return actions[0] if actions else None
+
+    def _parse_all_actions(self, messages: List[Message]) -> List[Tuple[str, Any]]:
+        """从最近的 assistant 消息中解析所有 ToolCall / Action（支持并行调用）"""
+        actions = []
         content = None
+        last_msg = None
+        
         for msg in reversed(messages):
             if isinstance(msg, Message) and msg.role == "assistant":
                 content = message_to_text(msg)
+                last_msg = msg
                 break
             if not isinstance(msg, Message):
                 content = message_to_text(msg)
+                last_msg = msg
                 break
 
         if content is None:
             logger.debug("📭 [{}] 未检测到可解析的 assistant 消息", self.name)
-            return None
+            return []
 
+        # Priority 1: Check message.tool_calls attribute (structured calls from LLM)
+        if last_msg and hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+            for tc in last_msg.tool_calls:
+                extracted = self._extract_tool_call_from_dict(tc)
+                if extracted:
+                    actions.append(extracted)
+            if actions:
+                return actions
+
+        # Priority 2: ToolCall: marker in text
         extracted = self._extract_tool_call_from_marked(content)
         if extracted:
-            return extracted
+            return [extracted]
 
+        # Priority 3: Legacy Action/Input pattern
         match = self.ACTION_PATTERN.search(content)
-        if not match:
-            logger.debug("📭 [{}] 未检测到 Action，跳过", self.name)
-            return None
+        if match:
+            tool_name = match.group(1).strip().lower()
+            tool_input = match.group(2).strip()
+            return [(tool_name, tool_input)]
 
-        tool_name = match.group(1).strip().lower()
-        tool_input = match.group(2).strip()
-        return tool_name, tool_input
+        logger.debug("📭 [{}] 未检测到 Action，跳过", self.name)
+        return []
 
     async def _execute_action(self, tool_name: str, tool_input: Any) -> Message:
         """执行具体的 Action 逻辑（包含重试、Trace、Result Normalize）"""
@@ -659,18 +680,36 @@ class ToolExecutor(AsyncBehaviour):
         if not state.messages:
             return Status.SUCCESS
 
-        # 1. Parse Action
-        action = self._parse_latest_action(state.messages)
-        if not action:
+        # 1. Parse all Actions (supports multiple parallel tool calls)
+        actions = self._parse_all_actions(state.messages)
+        if not actions:
             return Status.SUCCESS
         
-        tool_name, tool_input = action
+        # 2. Execute Actions in parallel
+        if len(actions) == 1:
+            # Single action - simple path
+            tool_name, tool_input = actions[0]
+            observation = await self._execute_action(tool_name, tool_input)
+            observations = [observation]
+        else:
+            # Multiple actions - parallel execution
+            logger.info("🔀 [{}] Executing {} tools in parallel", self.name, len(actions))
+            coroutines = [self._execute_action(name, inp) for name, inp in actions]
+            observations = await asyncio.gather(*coroutines, return_exceptions=True)
+            
+            # Handle exceptions gracefully
+            processed = []
+            for i, obs in enumerate(observations):
+                if isinstance(obs, Exception):
+                    tool_name = actions[i][0]
+                    logger.error("❌ [{}] Tool '{}' raised exception: {}", self.name, tool_name, obs)
+                    processed.append(self._normalize_tool_result(tool_name, None, error=str(obs)))
+                else:
+                    processed.append(obs)
+            observations = processed
 
-        # 2. Execute Action
-        observation = await self._execute_action(tool_name, tool_input)
-
-        # 3. Update State
-        self.state_manager.update({"messages": [observation]})
+        # 3. Update State with all observations
+        self.state_manager.update({"messages": observations})
         return Status.SUCCESS
 
 
