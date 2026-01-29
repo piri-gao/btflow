@@ -481,10 +481,15 @@ class ToolExecutor(AsyncBehaviour):
             return self._extract_tool_call_from_dict(data["function"])
 
         tool_name = data.get("tool") or data.get("name") or data.get("tool_name")
-        # [FIX] Require BOTH name and arguments to avoid false positives (e.g. random JSON with "name" key)
-        args_container = data.get("arguments") or data.get("args") or data.get("input")
+        # [FIX] Check for presence of keys, not truthiness - empty dict {} is valid arguments
+        args_container = None
+        for key in ("arguments", "args", "input"):
+            if key in data:
+                args_container = data[key]
+                break
         
-        if not tool_name or args_container is None:
+        # Require tool_name; args_container can be None for tools that take no arguments
+        if not tool_name:
             return None
 
         args = args_container

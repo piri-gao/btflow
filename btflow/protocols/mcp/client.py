@@ -259,8 +259,11 @@ class MCPTool(Tool):
         self.input_schema = getattr(tool_def, "inputSchema", {"type": "object"})
         self.output_schema = getattr(tool_def, "outputSchema", {"type": "string"})
 
-    async def run(self, input: Any) -> Any:
-        if input is None:
+    async def run(self, input: Any = None, **kwargs) -> Any:
+        # If keyword arguments are provided, use them directly
+        if kwargs:
+            args = kwargs
+        elif input is None:
             args = {}
         elif isinstance(input, dict):
             args = input
