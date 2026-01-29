@@ -259,6 +259,70 @@ class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
         messages = self.state_manager.get().messages
         self.assertIn("not found", messages[-1].content)
 
+    async def test_parallel_tool_execution(self):
+        """Multiple tool_calls in a single message should execute in parallel"""
+        # Create two async tools that track execution order
+        results = []
+        
+        class SlowTool(Tool):
+            name = "slow_tool"
+            description = "Slow tool"
+            async def run(self, input: str) -> str:
+                results.append(f"slow_start_{input}")
+                await asyncio.sleep(0.05)
+                results.append(f"slow_end_{input}")
+                return f"slow:{input}"
+        
+        class FastTool(Tool):
+            name = "fast_tool"
+            description = "Fast tool"
+            async def run(self, input: str) -> str:
+                results.append(f"fast_start_{input}")
+                await asyncio.sleep(0.01)
+                results.append(f"fast_end_{input}")
+                return f"fast:{input}"
+        
+        executor = ToolExecutor("executor", tools=[SlowTool(), FastTool()])
+        executor.state_manager = self.state_manager
+        
+        # Create a message with tool_calls attribute (structured calls)
+        msg = Message(
+            role="assistant",
+            content="Calling two tools",
+            tool_calls=[
+                {"tool": "slow_tool", "arguments": {"input": "A"}},
+                {"tool": "fast_tool", "arguments": {"input": "B"}}
+            ]
+        )
+        self.state_manager.update({"messages": [msg]})
+        
+        executor.setup()
+        executor.initialise()
+        result = await executor.update_async()
+        
+        self.assertEqual(result, Status.SUCCESS)
+        
+        # Both tools should have started before either finished (parallel execution)
+        # With sequential execution: slow_start, slow_end, fast_start, fast_end
+        # With parallel execution: both starts happen before all ends
+        self.assertIn("slow_start_A", results)
+        self.assertIn("fast_start_B", results)
+        self.assertIn("slow_end_A", results)
+        self.assertIn("fast_end_B", results)
+        
+        # Check that fast finished before slow (proves parallelism)
+        fast_end_idx = results.index("fast_end_B")
+        slow_end_idx = results.index("slow_end_A")
+        self.assertLess(fast_end_idx, slow_end_idx, "Fast tool should finish before slow tool")
+        
+        # Check observations
+        messages = self.state_manager.get().messages
+        # Original message + 2 observations
+        self.assertEqual(len(messages), 3)
+        contents = [m.content for m in messages[1:]]
+        self.assertIn("slow:A", contents)
+        self.assertIn("fast:B", contents)
+
     async def test_registry_registers_function_tool(self):
         """FunctionTool 的函数工具应能执行并产生 Observation"""
         @tool_decorator(name="echo", description="Echo input")
