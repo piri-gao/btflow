@@ -12,13 +12,13 @@ from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
 from btflow.core.trace import span
 from btflow.tools import Tool
-from btflow.llm import LLMProvider, GeminiProvider, MessageChunk
+from btflow.llm import LLMProvider, MessageChunk
 
 
 from btflow.messages import Message, human, ai, tool, messages_to_prompt
 from btflow.messages.formatting import message_to_text
-from btflow.memory import BaseMemory
-from btflow.context.builder import ContextBuilder, ContextBuilderProtocol
+from btflow.memory import Memory
+from btflow.context import ContextBuilder, ContextBuilderProtocol
 
 class ReActLLMNode(AsyncBehaviour):
     """
@@ -34,7 +34,7 @@ class ReActLLMNode(AsyncBehaviour):
         provider: Optional[LLMProvider] = None,
         system_prompt: Optional[str] = None,
         tools_description: str = "",
-        memory: Optional[BaseMemory] = None,
+        memory: Optional[Memory] = None,
         memory_top_k: int = 5,
         structured_tool_calls: bool = True,
         strict_tool_calls: bool = False,
@@ -47,7 +47,7 @@ class ReActLLMNode(AsyncBehaviour):
         self.tools_description = tools_description
         self._uses_default_prompt = system_prompt is None
         self.system_prompt = system_prompt or self._get_default_prompt()
-        self.provider = provider or GeminiProvider()
+        self.provider = provider or LLMProvider.default()
         self.structured_tool_calls = structured_tool_calls
         self.strict_tool_calls = strict_tool_calls
         self.stream = stream

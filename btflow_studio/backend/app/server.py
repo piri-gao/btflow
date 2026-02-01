@@ -167,7 +167,7 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
         }))
     
     # 注入全局 Log 节点广播
-    from btflow.nodes.common.debug import Log
+    from btflow.nodes import Log
     Log._broadcast_callback = broadcast_log
 
     # 注入 loguru sink 以捕获内部日志

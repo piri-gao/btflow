@@ -1,5 +1,5 @@
 """
-ReAct Agent Demo - 使用 Gemini 实现 ReAct 模式
+ReAct Agent Demo - 使用 OpenAI 兼容 API 实现 ReAct 模式
 
 演示如何使用 btflow 的 ReAct 模式实现一个能够使用工具的 AI Agent。
 
@@ -11,15 +11,20 @@ Tree Structure (使用 btflow.LoopUntilSuccess):
         └── IsFinalAnswer      → 条件检查 (SUCCESS=结束, FAILURE=继续)
 
 运行方式：
-    export GOOGLE_API_KEY="your-api-key"
+    export OPENAI_API_KEY="your-api-key"
+    export BASE_URL="https://your-openai-compatible-endpoint"
     python examples/react_demo.py
 """
 import asyncio
 import os
+import sys
+from dotenv import load_dotenv
 
-from btflow.tools import Tool, CalculatorTool, SearchTool
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+load_dotenv()
+
+from btflow.tools import Tool, CalculatorTool
 from btflow.patterns.react import ReActAgent
-from btflow.llm import GeminiProvider
 from btflow.messages import human
 
 
@@ -47,14 +52,14 @@ class WeatherTool(Tool):
 
 # ============ Demo Functions ============
 
-async def demo_calculator():
+async def demo_calculator(provider):
     """演示计算工具"""
     print("\n" + "="*60)
     print("🧮 Demo: Calculator Tool")
     print("="*60 + "\n")
     
     agent = ReActAgent.create(
-        provider=GeminiProvider(),
+        provider=provider,
         tools=[CalculatorTool()],
         model="gemini-2.5-flash",
         max_rounds=10
@@ -83,14 +88,14 @@ async def demo_calculator():
         print("-" * 40)
 
 
-async def demo_multi_tools():
+async def demo_multi_tools(provider):
     """演示多工具组合"""
     print("\n" + "="*60)
     print("🛠️ Demo: Multiple Tools")
     print("="*60 + "\n")
     
     agent = ReActAgent.create(
-        provider=GeminiProvider(),
+        provider=provider,
         tools=[CalculatorTool(), WeatherTool()],
         model="gemini-2.5-flash",
         max_rounds=10
@@ -114,33 +119,27 @@ async def demo_multi_tools():
 
 async def main():
     """运行演示"""
-    if not os.getenv("GOOGLE_API_KEY"):
-        print("❌ Error: GOOGLE_API_KEY environment variable not set!")
-        print("Please run: export GOOGLE_API_KEY='your-api-key'")
+    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY")
+    base_url = os.getenv("BASE_URL")
+    if not api_key:
+        print("❌ Error: OPENAI_API_KEY (or API_KEY) environment variable not set!")
+        print("Please run: export OPENAI_API_KEY='your-api-key'")
+        return
+
+    try:
+        from btflow.llm.providers.openai import OpenAIProvider
+    except RuntimeError as e:
+        print(str(e))
+        return
+    try:
+        provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+    except RuntimeError as e:
+        print(str(e))
         return
     
     print("🤖 BTflow ReAct Agent Demo (LoopUntilSuccess Pattern)")
     print("=" * 60)
-    print("Select demo to run:")
-    print("  1. Calculator Tool")
-    print("  2. Multiple Tools (Calculator + Weather)")
-    print("  3. Run all demos")
-    print("=" * 60)
-    
-    choice = input("Enter choice (1-3, default=1): ").strip() or "1"
-    
-    demos = {
-        "1": demo_calculator,
-        "2": demo_multi_tools,
-    }
-    
-    if choice == "3":
-        for demo in demos.values():
-            await demo()
-    elif choice in demos:
-        await demos[choice]()
-    else:
-        print(f"Invalid choice: {choice}")
+    await demo_calculator(provider)
 
 
 if __name__ == "__main__":

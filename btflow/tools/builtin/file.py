@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from btflow.tools import Tool
+from btflow.tools.base import Tool
 
 
 class FileReadTool(Tool):

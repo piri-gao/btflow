@@ -5,16 +5,22 @@ from typing import Any, Callable, Dict, Optional
 
 try:
     from fastmcp import FastMCP
-except ImportError as e:
-    raise RuntimeError(
-        "fastmcp package not installed. Run: pip install fastmcp>=2.0.0"
-    ) from e
+except ImportError:
+    FastMCP = None
+
+
+def _require_fastmcp():
+    if FastMCP is None:
+        raise RuntimeError(
+            "fastmcp package not installed. Run: pip install fastmcp>=2.0.0"
+        )
 
 
 class MCPServer:
     """Thin wrapper around FastMCP for convenience."""
 
     def __init__(self, name: str, description: Optional[str] = None):
+        _require_fastmcp()
         self.mcp = FastMCP(name=name)
         self.name = name
         self.description = description or f"{name} MCP Server"

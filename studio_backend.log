@@ -1,996 +1,341 @@
-2026-01-29 17:42:40.000 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.000 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.001 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.001 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.003 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.003 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.004 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.004 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.006 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.006 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.006 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.006 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.008 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.008 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.009 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.009 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.010 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.011 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.011 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.011 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.013 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.013 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.013 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.013 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.015 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.016 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.016 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.016 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.017 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.018 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.018 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.018 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.020 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateWithList
-2026-01-29 17:42:40.020 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'targets'
-2026-01-29 17:42:40.021 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:42:40.022 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.022 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:42:40.022 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:42:40.023 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=3)
-2026-01-29 17:42:40.024 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=3)
-2026-01-29 17:42:40.024 | WARNING  | btflow.core.composites:update:103 - ⚠️ [loop] 达到最大迭代次数 (3), 强制停止
-2026-01-29 17:42:40.024 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 17:42:40.025 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=10)
-2026-01-29 17:42:40.025 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 2 轮)
-2026-01-29 17:42:40.025 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 0 轮)
-2026-01-29 17:42:40.027 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:42:40.028 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:40.028 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 17:42:40.046 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:40.047 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=10)
-2026-01-29 17:42:40.064 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:42:40.064 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 2 轮)
-2026-01-29 17:42:40.082 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: SUCCESS
-2026-01-29 17:42:40.082 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:40.082 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:40.083 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:40.090 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 17:42:40.091 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 17:42:40.093 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 17:42:40.096 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 17:42:40.111 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:42:40.160 | INFO     | btflow.protocols.mcp.client:connect:70 - 🔌 [MCP] Connected to server.
-2026-01-29 17:42:40.177 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 17:42:40.178 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.178 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: stable_test_v1) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:40.178 | INFO     | btflow.core.runtime:run:186 - 🆕 [Runner] 无存档，开始新会话...
-2026-01-29 17:42:40.196 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:40.480 | WARNING  | btflow.core.runtime:run:279 - 🛑 [Runner] 任务被外部取消。
-2026-01-29 17:42:40.482 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:40.482 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:40.483 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 17:42:40.484 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.486 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: stable_test_v1) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:40.487 | DEBUG    | btflow.core.persistence:load_latest:90 -    📂 [Checkpointer] 已恢复存档 (Step 1)
-2026-01-29 17:42:40.487 | INFO     | btflow.core.runtime:run:184 - 🔄 [Runner] 状态已恢复，继续执行...
-2026-01-29 17:42:40.505 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:40.523 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:42:40.524 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:40.525 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:40.526 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:40.530 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.531 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.532 | WARNING  | btflow.nodes.agents.react:update:705 - ⚠️ [check] 达到最大轮数 (10), 强制停止
-2026-01-29 17:42:40.533 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.534 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.535 | INFO     | btflow.nodes.agents.react:update:712 - ✅ [check] 检测到 Final Answer: 7...
-2026-01-29 17:42:40.536 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.537 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.537 | DEBUG    | btflow.nodes.agents.react:update:720 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 0/10)
-2026-01-29 17:42:40.538 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.539 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.539 | DEBUG    | btflow.nodes.agents.react:update:720 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 0/10)
-2026-01-29 17:42:40.539 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.540 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.540 | INFO     | btflow.nodes.agents.react:update:712 - ✅ [check] 检测到 Final Answer: 42...
-2026-01-29 17:42:40.541 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.541 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.542 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.542 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: echo_async
-2026-01-29 17:42:40.543 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.543 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: echo_async Input: hi
-2026-01-29 17:42:40.543 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: echo_async Input: hi
-2026-01-29 17:42:40.556 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.556 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.556 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.557 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.557 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 17:42:40.558 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 17:42:40.559 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.560 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.560 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.560 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.561 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 17:42:40.561 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 17:42:40.563 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.563 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.564 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.564 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.564 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 17:42:40.565 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 17:42:40.567 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.567 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.567 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.568 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.568 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 17:42:40.569 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 17:42:40.570 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.571 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.571 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.571 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.572 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 17:42:40.572 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 17:42:40.573 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.574 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.574 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.574 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: number_tool
-2026-01-29 17:42:40.575 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.575 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: number_tool Input: {'input': 3}
-2026-01-29 17:42:40.575 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: number_tool Input: {'input': 3}
-2026-01-29 17:42:40.577 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.577 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.578 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.578 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.579 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 17:42:40.579 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 17:42:40.580 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.580 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.581 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.581 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: add
-2026-01-29 17:42:40.581 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.582 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: add Input: {"a": 1, "b": 2}
-2026-01-29 17:42:40.582 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: add Input: {"a": 1, "b": 2}
-2026-01-29 17:42:40.584 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.584 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.584 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.585 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: echo
-2026-01-29 17:42:40.585 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.585 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: echo Input: hello
-2026-01-29 17:42:40.586 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: echo Input: hello
-2026-01-29 17:42:40.587 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.588 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.588 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:42:40.588 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.589 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: unknown_tool Input: test
-2026-01-29 17:42:40.589 | WARNING  | btflow.nodes.agents.react:_execute_action:569 - ⚠️ [executor] 未知工具: unknown_tool
-2026-01-29 17:42:40.589 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: unknown_tool Input: test
-2026-01-29 17:42:40.590 | WARNING  | btflow.nodes.agents.react:_execute_action:569 - ⚠️ [executor] 未知工具: unknown_tool
-2026-01-29 17:42:40.591 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [tools] 注册工具: calculator
-2026-01-29 17:42:40.591 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:42:40.592 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.592 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [tools] Updating state.tools_desc with 1 tools
-2026-01-29 17:42:40.592 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:40.610 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:40.610 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [tools] 执行 Action: calculator Input: 10 + 5
-2026-01-29 17:42:40.628 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:42:40.628 | DEBUG    | btflow.nodes.agents.react:update:720 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 1/10)
-2026-01-29 17:42:40.629 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 17:42:40.645 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 17:42:40.663 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 17:42:40.664 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [tools] 未检测到 Action，跳过
-2026-01-29 17:42:40.681 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 17:42:40.682 | INFO     | btflow.nodes.agents.react:update:712 - ✅ [check] 检测到 Final Answer: 15...
-2026-01-29 17:42:40.682 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 1 轮)
-2026-01-29 17:42:40.700 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 17:42:40.700 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:40.700 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:40.700 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:40.702 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StreamingTestState
-2026-01-29 17:42:40.703 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.703 | DEBUG    | btflow.nodes.agents.react:update_async:116 - 📋 [ReActStream] State dump: messages_count=1, task=None
-2026-01-29 17:42:40.703 | DEBUG    | btflow.nodes.agents.react:update_async:143 - 🤖 [ReActStream] 调用 LLM (dummy)...
-2026-01-29 17:42:40.703 | INFO     | btflow.nodes.agents.react:update_async:259 - 💭 [ReActStream] Round 1 响应:
+2026-02-01 19:40:52.828 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.828 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.828 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.828 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.830 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.830 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.830 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.830 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.832 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.832 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.832 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.832 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.834 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.834 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.834 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.834 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.835 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.835 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.835 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.835 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.837 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.837 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.837 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.837 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.838 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.838 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.839 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.839 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.840 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.840 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.840 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.840 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.844 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: StateWithList
+2026-02-01 19:40:52.844 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'targets'
+2026-02-01 19:40:52.845 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentTestState
+2026-02-01 19:40:52.845 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:52.845 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'speed'
+2026-02-01 19:40:52.845 | DEBUG    | btflow.core.state:_parse_schema:96 -    🎯 [Action] 标记字段: 'fire'
+2026-02-01 19:40:52.846 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=3)
+2026-02-01 19:40:52.846 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=3)
+2026-02-01 19:40:52.846 | WARNING  | btflow.core.composites:update:103 - ⚠️ [loop] 达到最大迭代次数 (3), 强制停止
+2026-02-01 19:40:52.847 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=10)
+2026-02-01 19:40:52.847 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=10)
+2026-02-01 19:40:52.847 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 2 轮)
+2026-02-01 19:40:52.847 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 0 轮)
+2026-02-01 19:40:52.848 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: SimpleState
+2026-02-01 19:40:52.848 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:52.848 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=10)
+2026-02-01 19:40:52.867 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:52.867 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=10)
+2026-02-01 19:40:52.885 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
+2026-02-01 19:40:52.885 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 2 轮)
+2026-02-01 19:40:52.902 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: SUCCESS
+2026-02-01 19:40:52.902 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:52.902 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:52.902 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:52.911 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: DummyState
+2026-02-01 19:40:52.912 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: DummyState
+2026-02-01 19:40:52.914 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: DummyState
+2026-02-01 19:40:52.921 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: DummyState
+2026-02-01 19:40:52.937 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: SimpleState
+2026-02-01 19:40:52.996 | INFO     | btflow.protocols.mcp.client:connect:70 - 🔌 [MCP] Connected to server.
+2026-02-01 19:40:53.024 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentState
+2026-02-01 19:40:53.024 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.024 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: stable_test_v1) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:53.024 | INFO     | btflow.core.runtime:run:186 - 🆕 [Runner] 无存档，开始新会话...
+2026-02-01 19:40:53.041 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:53.325 | WARNING  | btflow.core.runtime:run:279 - 🛑 [Runner] 任务被外部取消。
+2026-02-01 19:40:53.325 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:53.325 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:53.326 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentState
+2026-02-01 19:40:53.326 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.326 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: stable_test_v1) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:53.326 | DEBUG    | btflow.core.persistence:load_latest:90 -    📂 [Checkpointer] 已恢复存档 (Step 1)
+2026-02-01 19:40:53.326 | INFO     | btflow.core.runtime:run:184 - 🔄 [Runner] 状态已恢复，继续执行...
+2026-02-01 19:40:53.344 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:53.362 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
+2026-02-01 19:40:53.362 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:53.362 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:53.362 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:53.363 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.363 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.363 | WARNING  | btflow.nodes.builtin.react:update:749 - ⚠️ [check] 达到最大轮数 (10), 强制停止
+2026-02-01 19:40:53.364 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.364 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.364 | INFO     | btflow.nodes.builtin.react:update:756 - ✅ [check] 检测到 Final Answer: 7...
+2026-02-01 19:40:53.364 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.364 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.364 | DEBUG    | btflow.nodes.builtin.react:update:764 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 0/10)
+2026-02-01 19:40:53.364 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.364 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.364 | DEBUG    | btflow.nodes.builtin.react:update:764 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 0/10)
+2026-02-01 19:40:53.365 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.365 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.365 | INFO     | btflow.nodes.builtin.react:update:756 - ✅ [check] 检测到 Final Answer: 42...
+2026-02-01 19:40:53.366 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.366 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.366 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.367 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: echo_async
+2026-02-01 19:40:53.367 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.367 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: echo_async Input: hi
+2026-02-01 19:40:53.367 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: echo_async Input: hi
+2026-02-01 19:40:53.380 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.380 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.380 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.380 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.380 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
+2026-02-01 19:40:53.381 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
+2026-02-01 19:40:53.382 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.382 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.382 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.383 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.383 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
+2026-02-01 19:40:53.383 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
+2026-02-01 19:40:53.384 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.384 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.384 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.385 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.385 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
+2026-02-01 19:40:53.385 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
+2026-02-01 19:40:53.387 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.387 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.387 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.387 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.387 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
+2026-02-01 19:40:53.388 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
+2026-02-01 19:40:53.389 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.389 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.389 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.390 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.390 | DEBUG    | btflow.nodes.builtin.react:_parse_all_actions:581 - 📭 [executor] 未检测到 Action，跳过
+2026-02-01 19:40:53.390 | DEBUG    | btflow.nodes.builtin.react:_parse_all_actions:581 - 📭 [executor] 未检测到 Action，跳过
+2026-02-01 19:40:53.391 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.391 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.391 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.391 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: number_tool
+2026-02-01 19:40:53.391 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.391 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: number_tool Input: {'input': 3}
+2026-02-01 19:40:53.392 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: number_tool Input: {'input': 3}
+2026-02-01 19:40:53.394 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.394 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.394 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.394 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.394 | DEBUG    | btflow.nodes.builtin.react:_parse_all_actions:581 - 📭 [executor] 未检测到 Action，跳过
+2026-02-01 19:40:53.394 | DEBUG    | btflow.nodes.builtin.react:_parse_all_actions:581 - 📭 [executor] 未检测到 Action，跳过
+2026-02-01 19:40:53.395 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.395 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.395 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.396 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: slow_tool
+2026-02-01 19:40:53.396 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: fast_tool
+2026-02-01 19:40:53.396 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 2 tools
+2026-02-01 19:40:53.396 | INFO     | btflow.nodes.builtin.react:update_async:701 - 🔀 [executor] Executing 2 tools in parallel
+2026-02-01 19:40:53.396 | INFO     | btflow.nodes.builtin.react:update_async:701 - 🔀 [executor] Executing 2 tools in parallel
+2026-02-01 19:40:53.396 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: slow_tool Input: {'input': 'A'}
+2026-02-01 19:40:53.396 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: fast_tool Input: {'input': 'B'}
+2026-02-01 19:40:53.397 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: slow_tool Input: {'input': 'A'}
+2026-02-01 19:40:53.397 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: fast_tool Input: {'input': 'B'}
+2026-02-01 19:40:53.449 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.449 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.449 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.449 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: add
+2026-02-01 19:40:53.450 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.450 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: add Input: {"a": 1, "b": 2}
+2026-02-01 19:40:53.450 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: add Input: {"a": 1, "b": 2}
+2026-02-01 19:40:53.452 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.452 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.452 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.452 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: echo
+2026-02-01 19:40:53.452 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.452 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: echo Input: hello
+2026-02-01 19:40:53.452 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: echo Input: hello
+2026-02-01 19:40:53.454 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.454 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.454 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
+2026-02-01 19:40:53.455 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.455 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: unknown_tool Input: test
+2026-02-01 19:40:53.455 | WARNING  | btflow.nodes.builtin.react:_execute_action:595 - ⚠️ [executor] 未知工具: unknown_tool
+2026-02-01 19:40:53.455 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [executor] 执行 Action: unknown_tool Input: test
+2026-02-01 19:40:53.455 | WARNING  | btflow.nodes.builtin.react:_execute_action:595 - ⚠️ [executor] 未知工具: unknown_tool
+2026-02-01 19:40:53.457 | DEBUG    | btflow.nodes.builtin.react:register_tool:328 - 🔧 [tools] 注册工具: calculator
+2026-02-01 19:40:53.457 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReActState
+2026-02-01 19:40:53.457 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.457 | INFO     | btflow.nodes.builtin.react:_update_tools_state:348 - 🔧 [tools] Updating state.tools_desc with 1 tools
+2026-02-01 19:40:53.457 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:53.475 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:53.475 | INFO     | btflow.nodes.builtin.react:_execute_action:586 - ⚙️ [tools] 执行 Action: calculator Input: 10 + 5
+2026-02-01 19:40:53.493 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
+2026-02-01 19:40:53.493 | DEBUG    | btflow.nodes.builtin.react:update:764 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 1/10)
+2026-02-01 19:40:53.493 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=10)
+2026-02-01 19:40:53.511 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
+2026-02-01 19:40:53.529 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
+2026-02-01 19:40:53.529 | DEBUG    | btflow.nodes.builtin.react:_parse_all_actions:581 - 📭 [tools] 未检测到 Action，跳过
+2026-02-01 19:40:53.547 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
+2026-02-01 19:40:53.547 | INFO     | btflow.nodes.builtin.react:update:756 - ✅ [check] 检测到 Final Answer: 15...
+2026-02-01 19:40:53.547 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 1 轮)
+2026-02-01 19:40:53.565 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
+2026-02-01 19:40:53.565 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:53.565 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:53.565 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:53.567 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: StreamingTestState
+2026-02-01 19:40:53.567 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.567 | DEBUG    | btflow.nodes.builtin.react:update_async:116 - 📋 [ReActStream] State dump: messages_count=1, task=None
+2026-02-01 19:40:53.567 | DEBUG    | btflow.nodes.builtin.react:update_async:143 - 🤖 [ReActStream] 调用 LLM (dummy)...
+2026-02-01 19:40:53.568 | INFO     | btflow.nodes.builtin.react:update_async:259 - 💭 [ReActStream] Round 1 响应:
 Hello World
-2026-01-29 17:42:40.705 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:42:40.705 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.705 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:42:40.705 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:42:40.706 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:42:40.706 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.5 >= 8.0
-2026-01-29 17:42:40.706 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:42:40.707 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.707 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:42:40.707 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:42:40.707 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:42:40.708 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 17:42:40.708 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:42:40.708 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.709 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:42:40.709 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:42:40.709 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:42:40.709 | WARNING  | btflow.nodes.agents.reflexion:update:231 - ⚠️ [check] 达到最大轮数 (5), 强制停止
-2026-01-29 17:42:40.710 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:42:40.710 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.710 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:42:40.710 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:42:40.711 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:42:40.711 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.0 >= 8.0
-2026-01-29 17:42:40.712 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:42:40.712 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.713 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:42:40.713 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:42:40.713 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:42:40.713 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:40.731 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:40.732 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 9.0 >= 8.0
-2026-01-29 17:42:40.732 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 0 轮)
-2026-01-29 17:42:40.749 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:42:40.750 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:40.750 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:40.750 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:40.752 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:42:40.752 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.752 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:42:40.753 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:42:40.753 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:42:40.753 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:40.771 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:40.771 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 17:42:40.772 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=5)
-2026-01-29 17:42:40.789 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:42:40.808 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 17:42:40.809 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 6.5 < 8.0
-2026-01-29 17:42:40.810 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 2 轮失败，继续下一轮 (max=5)
-2026-01-29 17:42:40.827 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 17:42:40.846 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 17:42:40.847 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.5 >= 8.0
-2026-01-29 17:42:40.848 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 2 轮)
-2026-01-29 17:42:40.865 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 17:42:40.866 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:40.867 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:40.867 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:40.870 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:42:40.871 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:42:40.871 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:42:40.871 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:42:40.871 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:42:40.872 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:40.890 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:40.891 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 4.0 < 8.0
-2026-01-29 17:42:40.891 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=3)
-2026-01-29 17:42:40.909 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:42:40.927 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 17:42:40.928 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 17:42:40.928 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 2 轮失败，继续下一轮 (max=3)
-2026-01-29 17:42:40.946 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 17:42:40.965 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 17:42:40.966 | WARNING  | btflow.nodes.agents.reflexion:update:231 - ⚠️ [check] 达到最大轮数 (3), 强制停止
-2026-01-29 17:42:40.967 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 2 轮)
-2026-01-29 17:42:40.984 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 17:42:40.985 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:40.985 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:40.986 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:40.992 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:42:40.995 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:41.014 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:41.065 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:42:41.066 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:41.067 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:41.068 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:41.070 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:41.089 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:41.140 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:42:41.140 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:41.141 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:41.142 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:41.148 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:42:41.150 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=100]...
-2026-01-29 17:42:41.162 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:41.762 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:42:42.365 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 17:42:42.966 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 17:42:43.567 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 17:42:43.568 | WARNING  | btflow.core.runtime:run:208 - ⚠️ [Runner] 达到最大 Tick 限制 (5)，停止。
-2026-01-29 17:42:43.569 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:43.570 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:43.576 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:42:43.578 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:42:43.597 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:42:43.648 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:42:43.649 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:42:43.650 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:42:43.650 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:42:43.653 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:42:43.654 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 17:42:43.654 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 17:42:43.655 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 17:42:43.655 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 17:42:43.655 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 17:42:43.656 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 17:42:43.656 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 17:42:43.656 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 17:42:43.664 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 17:42:43.665 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:185 - 📋 [Converter] workflow.state.fields has 0 items: []
-2026-01-29 17:42:43.665 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:192 - 📋 [Converter] Initializing state with: {}
-2026-01-29 17:42:43.665 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:194 - 📋 [Converter] State after init: {}
-2026-01-29 17:42:43.665 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node root (type: Sequence)
-2026-01-29 17:42:43.665 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node child1 (type: Parallel)
-2026-01-29 17:42:43.666 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node child2 (type: Selector)
-2026-01-29 17:42:43.666 | INFO     | btflow_studio.backend.app.converter:_assemble_children:96 - 🔍 [Sort] Parent root: Candidates: {'child1': (0.0, 0.0), 'child2': (0.0, 0.0)}
-2026-01-29 17:42:43.666 | INFO     | btflow_studio.backend.app.converter:_assemble_children:100 - ✅ [Sort] Result: ['child1', 'child2']
-2026-01-29 17:42:43.666 | INFO     | btflow_studio.backend.app.converter:_assemble_children:113 - 🔍 [Converter] Processing child child1 (type: Parallel) for parent root (type: Sequence)
-2026-01-29 17:42:43.667 | INFO     | btflow_studio.backend.app.converter:_assemble_children:115 - 🔍 [Converter] Parent has register_tool: False, Child has tool attr: False
-2026-01-29 17:42:43.667 | INFO     | btflow_studio.backend.app.converter:_assemble_children:113 - 🔍 [Converter] Processing child child2 (type: Selector) for parent root (type: Sequence)
-2026-01-29 17:42:43.667 | INFO     | btflow_studio.backend.app.converter:_assemble_children:115 - 🔍 [Converter] Parent has register_tool: False, Child has tool attr: False
-2026-01-29 17:42:43.668 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 17:42:43.668 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:185 - 📋 [Converter] workflow.state.fields has 2 items: [('score', 0), ('tags', [])]
-2026-01-29 17:42:43.668 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:192 - 📋 [Converter] Initializing state with: {'score': 0, 'tags': []}
-2026-01-29 17:42:43.669 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:194 - 📋 [Converter] State after init: {'score': 0, 'tags': []}
-2026-01-29 17:43:15.273 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.273 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.273 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.273 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.275 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.275 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.275 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.275 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.277 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.277 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.277 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.277 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.278 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.278 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.278 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.278 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.280 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.280 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.280 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.280 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.281 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.281 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.281 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.281 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.283 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.283 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.283 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.283 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.284 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.284 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.284 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.284 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.286 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateWithList
-2026-01-29 17:43:15.286 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'targets'
-2026-01-29 17:43:15.287 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 17:43:15.287 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.287 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 17:43:15.287 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 17:43:15.288 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=3)
-2026-01-29 17:43:15.288 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=3)
-2026-01-29 17:43:15.288 | WARNING  | btflow.core.composites:update:103 - ⚠️ [loop] 达到最大迭代次数 (3), 强制停止
-2026-01-29 17:43:15.288 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 17:43:15.288 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=10)
-2026-01-29 17:43:15.288 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 2 轮)
-2026-01-29 17:43:15.289 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 0 轮)
-2026-01-29 17:43:15.290 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:43:15.290 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:15.290 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 17:43:15.308 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:15.308 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=10)
-2026-01-29 17:43:15.326 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:43:15.326 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 2 轮)
-2026-01-29 17:43:15.344 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: SUCCESS
-2026-01-29 17:43:15.344 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:15.344 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:15.344 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:15.351 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 17:43:15.352 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 17:43:15.353 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 17:43:15.356 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 17:43:15.370 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:43:15.405 | INFO     | btflow.protocols.mcp.client:connect:70 - 🔌 [MCP] Connected to server.
-2026-01-29 17:43:15.423 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 17:43:15.423 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.423 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: stable_test_v1) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:15.423 | INFO     | btflow.core.runtime:run:186 - 🆕 [Runner] 无存档，开始新会话...
-2026-01-29 17:43:15.441 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:15.725 | WARNING  | btflow.core.runtime:run:279 - 🛑 [Runner] 任务被外部取消。
-2026-01-29 17:43:15.725 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:15.725 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:15.726 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 17:43:15.726 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.727 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: stable_test_v1) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:15.728 | DEBUG    | btflow.core.persistence:load_latest:90 -    📂 [Checkpointer] 已恢复存档 (Step 1)
-2026-01-29 17:43:15.728 | INFO     | btflow.core.runtime:run:184 - 🔄 [Runner] 状态已恢复，继续执行...
-2026-01-29 17:43:15.746 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:15.764 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:43:15.764 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:15.764 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:15.764 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:15.766 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.766 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.766 | WARNING  | btflow.nodes.agents.react:update:705 - ⚠️ [check] 达到最大轮数 (10), 强制停止
-2026-01-29 17:43:15.766 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.766 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.766 | INFO     | btflow.nodes.agents.react:update:712 - ✅ [check] 检测到 Final Answer: 7...
-2026-01-29 17:43:15.767 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.767 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.767 | DEBUG    | btflow.nodes.agents.react:update:720 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 0/10)
-2026-01-29 17:43:15.767 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.767 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.767 | DEBUG    | btflow.nodes.agents.react:update:720 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 0/10)
-2026-01-29 17:43:15.767 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.767 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.767 | INFO     | btflow.nodes.agents.react:update:712 - ✅ [check] 检测到 Final Answer: 42...
-2026-01-29 17:43:15.768 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.768 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.768 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.769 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: echo_async
-2026-01-29 17:43:15.769 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.769 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: echo_async Input: hi
-2026-01-29 17:43:15.769 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: echo_async Input: hi
-2026-01-29 17:43:15.782 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.782 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.782 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.782 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.782 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 17:43:15.782 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 17:43:15.784 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.784 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.784 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.784 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.785 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 17:43:15.785 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 17:43:15.786 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.786 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.786 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.787 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.787 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 17:43:15.787 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 17:43:15.789 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.789 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.789 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.789 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.789 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 17:43:15.790 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 17:43:15.791 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.791 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.791 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.792 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.792 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 17:43:15.792 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 17:43:15.793 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.793 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.793 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.793 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: number_tool
-2026-01-29 17:43:15.793 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.793 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: number_tool Input: {'input': 3}
-2026-01-29 17:43:15.793 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: number_tool Input: {'input': 3}
-2026-01-29 17:43:15.795 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.795 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.795 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.795 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.795 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 17:43:15.796 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 17:43:15.797 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.797 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.797 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: add
-2026-01-29 17:43:15.797 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.797 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: add Input: {"a": 1, "b": 2}
-2026-01-29 17:43:15.797 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: add Input: {"a": 1, "b": 2}
-2026-01-29 17:43:15.799 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.799 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.799 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.799 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: echo
-2026-01-29 17:43:15.799 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.799 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: echo Input: hello
-2026-01-29 17:43:15.800 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: echo Input: hello
-2026-01-29 17:43:15.801 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.801 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.801 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 17:43:15.801 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.802 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: unknown_tool Input: test
-2026-01-29 17:43:15.802 | WARNING  | btflow.nodes.agents.react:_execute_action:569 - ⚠️ [executor] 未知工具: unknown_tool
-2026-01-29 17:43:15.802 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [executor] 执行 Action: unknown_tool Input: test
-2026-01-29 17:43:15.802 | WARNING  | btflow.nodes.agents.react:_execute_action:569 - ⚠️ [executor] 未知工具: unknown_tool
-2026-01-29 17:43:15.803 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [tools] 注册工具: calculator
-2026-01-29 17:43:15.803 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 17:43:15.803 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.803 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [tools] Updating state.tools_desc with 1 tools
-2026-01-29 17:43:15.803 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:15.821 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:15.821 | INFO     | btflow.nodes.agents.react:_execute_action:560 - ⚙️ [tools] 执行 Action: calculator Input: 10 + 5
-2026-01-29 17:43:15.839 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:43:15.839 | DEBUG    | btflow.nodes.agents.react:update:720 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 1/10)
-2026-01-29 17:43:15.840 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 17:43:15.857 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 17:43:15.876 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 17:43:15.877 | DEBUG    | btflow.nodes.agents.react:_parse_latest_action:551 - 📭 [tools] 未检测到 Action，跳过
-2026-01-29 17:43:15.894 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 17:43:15.895 | INFO     | btflow.nodes.agents.react:update:712 - ✅ [check] 检测到 Final Answer: 15...
-2026-01-29 17:43:15.895 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 1 轮)
-2026-01-29 17:43:15.913 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 17:43:15.914 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:15.914 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:15.914 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:15.920 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StreamingTestState
-2026-01-29 17:43:15.920 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.920 | DEBUG    | btflow.nodes.agents.react:update_async:116 - 📋 [ReActStream] State dump: messages_count=1, task=None
-2026-01-29 17:43:15.920 | DEBUG    | btflow.nodes.agents.react:update_async:143 - 🤖 [ReActStream] 调用 LLM (dummy)...
-2026-01-29 17:43:15.921 | INFO     | btflow.nodes.agents.react:update_async:259 - 💭 [ReActStream] Round 1 响应:
-Hello World
-2026-01-29 17:43:15.924 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:43:15.924 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.924 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:43:15.924 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:43:15.924 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:43:15.924 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.5 >= 8.0
-2026-01-29 17:43:15.926 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:43:15.926 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.926 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:43:15.926 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:43:15.926 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:43:15.926 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 17:43:15.927 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:43:15.927 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.927 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:43:15.927 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:43:15.927 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:43:15.927 | WARNING  | btflow.nodes.agents.reflexion:update:231 - ⚠️ [check] 达到最大轮数 (5), 强制停止
-2026-01-29 17:43:15.928 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:43:15.928 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.928 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:43:15.928 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:43:15.928 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:43:15.928 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.0 >= 8.0
-2026-01-29 17:43:15.931 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:43:15.931 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.931 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:43:15.931 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:43:15.931 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:43:15.931 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:15.950 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:15.950 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 9.0 >= 8.0
-2026-01-29 17:43:15.950 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 0 轮)
-2026-01-29 17:43:15.969 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:43:15.969 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:15.969 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:15.969 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:15.975 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:43:15.975 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:15.975 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:43:15.975 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:43:15.975 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:43:15.975 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:15.994 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:15.994 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 17:43:15.994 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=5)
-2026-01-29 17:43:16.013 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:43:16.032 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 17:43:16.032 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 6.5 < 8.0
-2026-01-29 17:43:16.032 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 2 轮失败，继续下一轮 (max=5)
-2026-01-29 17:43:16.051 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 17:43:16.069 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 17:43:16.069 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.5 >= 8.0
-2026-01-29 17:43:16.069 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 2 轮)
-2026-01-29 17:43:16.087 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 17:43:16.087 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:16.087 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:16.087 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:16.093 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 17:43:16.093 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 17:43:16.093 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 17:43:16.093 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 17:43:16.093 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 17:43:16.093 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:16.112 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:16.112 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 4.0 < 8.0
-2026-01-29 17:43:16.113 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=3)
-2026-01-29 17:43:16.131 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:43:16.149 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 17:43:16.150 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 17:43:16.150 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 2 轮失败，继续下一轮 (max=3)
-2026-01-29 17:43:16.167 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 17:43:16.186 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 17:43:16.186 | WARNING  | btflow.nodes.agents.reflexion:update:231 - ⚠️ [check] 达到最大轮数 (3), 强制停止
-2026-01-29 17:43:16.186 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 2 轮)
-2026-01-29 17:43:16.205 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 17:43:16.205 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:16.205 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:16.205 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:16.211 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:43:16.213 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:16.231 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:16.284 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:43:16.284 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:16.284 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:16.284 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:16.286 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:16.305 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:16.356 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:43:16.357 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:16.357 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:16.357 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:16.365 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:43:16.367 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=100]...
-2026-01-29 17:43:16.379 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:16.980 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 17:43:17.582 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 17:43:18.185 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 17:43:18.788 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 17:43:18.788 | WARNING  | btflow.core.runtime:run:208 - ⚠️ [Runner] 达到最大 Tick 限制 (5)，停止。
-2026-01-29 17:43:18.788 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:18.788 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:18.796 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:43:18.798 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 17:43:18.816 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 17:43:18.872 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 17:43:18.872 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 17:43:18.873 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 17:43:18.873 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 17:43:18.878 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 17:43:18.880 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 17:43:18.880 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 17:43:18.881 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 17:43:18.882 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 17:43:18.882 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 17:43:18.882 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 17:43:18.883 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 17:43:18.883 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 17:43:18.896 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:185 - 📋 [Converter] workflow.state.fields has 0 items: []
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:192 - 📋 [Converter] Initializing state with: {}
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:194 - 📋 [Converter] State after init: {}
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node root (type: Sequence)
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node child1 (type: Parallel)
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node child2 (type: Selector)
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_assemble_children:96 - 🔍 [Sort] Parent root: Candidates: {'child1': (0.0, 0.0), 'child2': (0.0, 0.0)}
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_assemble_children:100 - ✅ [Sort] Result: ['child1', 'child2']
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_assemble_children:113 - 🔍 [Converter] Processing child child1 (type: Parallel) for parent root (type: Sequence)
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_assemble_children:115 - 🔍 [Converter] Parent has register_tool: False, Child has tool attr: False
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_assemble_children:113 - 🔍 [Converter] Processing child child2 (type: Selector) for parent root (type: Sequence)
-2026-01-29 17:43:18.896 | INFO     | btflow_studio.backend.app.converter:_assemble_children:115 - 🔍 [Converter] Parent has register_tool: False, Child has tool attr: False
-2026-01-29 17:43:18.897 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 17:43:18.897 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:185 - 📋 [Converter] workflow.state.fields has 2 items: [('score', 0), ('tags', [])]
-2026-01-29 17:43:18.897 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:192 - 📋 [Converter] Initializing state with: {'score': 0, 'tags': []}
-2026-01-29 17:43:18.897 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:194 - 📋 [Converter] State after init: {'score': 0, 'tags': []}
-2026-01-29 19:26:51.071 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.071 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.071 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.071 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.074 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.074 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.074 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.074 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.076 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.076 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.076 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.076 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.077 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.077 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.077 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.077 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.079 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.079 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.079 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.079 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.081 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.081 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.081 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.081 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.082 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.082 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.082 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.082 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.084 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.084 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.084 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.084 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.086 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateWithList
-2026-01-29 19:26:51.086 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'targets'
-2026-01-29 19:26:51.087 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentTestState
-2026-01-29 19:26:51.087 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.087 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'speed'
-2026-01-29 19:26:51.087 | DEBUG    | btflow.core.state:_parse_schema:92 -    🎯 [Action] 标记字段: 'fire'
-2026-01-29 19:26:51.088 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=3)
-2026-01-29 19:26:51.088 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=3)
-2026-01-29 19:26:51.088 | WARNING  | btflow.core.composites:update:103 - ⚠️ [loop] 达到最大迭代次数 (3), 强制停止
-2026-01-29 19:26:51.088 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 19:26:51.089 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=10)
-2026-01-29 19:26:51.089 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 2 轮)
-2026-01-29 19:26:51.089 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 0 轮)
-2026-01-29 19:26:51.090 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 19:26:51.091 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:51.091 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 19:26:51.109 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:51.109 | DEBUG    | btflow.core.composites:update:107 - 🔄 [loop] 第 2 轮失败，继续下一轮 (max=10)
-2026-01-29 19:26:51.127 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 19:26:51.127 | DEBUG    | btflow.core.composites:update:94 - ✅ [loop] 循环成功结束 (共 2 轮)
-2026-01-29 19:26:51.145 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: SUCCESS
-2026-01-29 19:26:51.145 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:51.145 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:51.145 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:51.152 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 19:26:51.154 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 19:26:51.155 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 19:26:51.160 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: DummyState
-2026-01-29 19:26:51.176 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 19:26:51.229 | INFO     | btflow.protocols.mcp.client:connect:70 - 🔌 [MCP] Connected to server.
-2026-01-29 19:26:51.247 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 19:26:51.247 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.247 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: stable_test_v1) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:51.247 | INFO     | btflow.core.runtime:run:186 - 🆕 [Runner] 无存档，开始新会话...
-2026-01-29 19:26:51.265 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:51.548 | WARNING  | btflow.core.runtime:run:279 - 🛑 [Runner] 任务被外部取消。
-2026-01-29 19:26:51.548 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:51.548 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:51.548 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 19:26:51.548 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.549 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: stable_test_v1) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:51.549 | DEBUG    | btflow.core.persistence:load_latest:90 -    📂 [Checkpointer] 已恢复存档 (Step 1)
-2026-01-29 19:26:51.549 | INFO     | btflow.core.runtime:run:184 - 🔄 [Runner] 状态已恢复，继续执行...
-2026-01-29 19:26:51.566 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:51.584 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 19:26:51.584 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:51.584 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:51.584 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:51.587 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.587 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.587 | WARNING  | btflow.nodes.agents.react:update:744 - ⚠️ [check] 达到最大轮数 (10), 强制停止
-2026-01-29 19:26:51.588 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.588 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.588 | INFO     | btflow.nodes.agents.react:update:751 - ✅ [check] 检测到 Final Answer: 7...
-2026-01-29 19:26:51.588 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.588 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.588 | DEBUG    | btflow.nodes.agents.react:update:759 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 0/10)
-2026-01-29 19:26:51.589 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.589 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.589 | DEBUG    | btflow.nodes.agents.react:update:759 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 0/10)
-2026-01-29 19:26:51.589 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.589 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.589 | INFO     | btflow.nodes.agents.react:update:751 - ✅ [check] 检测到 Final Answer: 42...
-2026-01-29 19:26:51.590 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.590 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.590 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.591 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: echo_async
-2026-01-29 19:26:51.591 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.591 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: echo_async Input: hi
-2026-01-29 19:26:51.592 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: echo_async Input: hi
-2026-01-29 19:26:51.604 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.604 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.604 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.604 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.604 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 19:26:51.605 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 19:26:51.606 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.606 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.607 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.607 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.607 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 19:26:51.607 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: calculator Input: 2 + 3
-2026-01-29 19:26:51.609 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.609 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.609 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.610 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.610 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 19:26:51.610 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 19:26:51.612 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.612 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.612 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.612 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.612 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 19:26:51.613 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: calculator Input: {'input': '2+3'}
-2026-01-29 19:26:51.614 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.614 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.614 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.615 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.615 | DEBUG    | btflow.nodes.agents.react:_parse_all_actions:576 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 19:26:51.615 | DEBUG    | btflow.nodes.agents.react:_parse_all_actions:576 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 19:26:51.616 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.616 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.616 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.616 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: number_tool
-2026-01-29 19:26:51.616 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.616 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: number_tool Input: {'input': 3}
-2026-01-29 19:26:51.617 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: number_tool Input: {'input': 3}
-2026-01-29 19:26:51.618 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.618 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.618 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.619 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.619 | DEBUG    | btflow.nodes.agents.react:_parse_all_actions:576 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 19:26:51.619 | DEBUG    | btflow.nodes.agents.react:_parse_all_actions:576 - 📭 [executor] 未检测到 Action，跳过
-2026-01-29 19:26:51.620 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.620 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.620 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.620 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: slow_tool
-2026-01-29 19:26:51.620 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: fast_tool
-2026-01-29 19:26:51.620 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 2 tools
-2026-01-29 19:26:51.620 | INFO     | btflow.nodes.agents.react:update_async:696 - 🔀 [executor] Executing 2 tools in parallel
-2026-01-29 19:26:51.621 | INFO     | btflow.nodes.agents.react:update_async:696 - 🔀 [executor] Executing 2 tools in parallel
-2026-01-29 19:26:51.621 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: slow_tool Input: {'input': 'A'}
-2026-01-29 19:26:51.621 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: fast_tool Input: {'input': 'B'}
-2026-01-29 19:26:51.621 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: slow_tool Input: {'input': 'A'}
-2026-01-29 19:26:51.622 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: fast_tool Input: {'input': 'B'}
-2026-01-29 19:26:51.674 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.674 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.674 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.675 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: add
-2026-01-29 19:26:51.675 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.675 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: add Input: {"a": 1, "b": 2}
-2026-01-29 19:26:51.675 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: add Input: {"a": 1, "b": 2}
-2026-01-29 19:26:51.677 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.677 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.677 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.677 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: echo
-2026-01-29 19:26:51.677 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.677 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: echo Input: hello
-2026-01-29 19:26:51.678 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: echo Input: hello
-2026-01-29 19:26:51.679 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.680 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.680 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [executor] 注册工具: calculator
-2026-01-29 19:26:51.680 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [executor] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.680 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: unknown_tool Input: test
-2026-01-29 19:26:51.680 | WARNING  | btflow.nodes.agents.react:_execute_action:590 - ⚠️ [executor] 未知工具: unknown_tool
-2026-01-29 19:26:51.680 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [executor] 执行 Action: unknown_tool Input: test
-2026-01-29 19:26:51.680 | WARNING  | btflow.nodes.agents.react:_execute_action:590 - ⚠️ [executor] 未知工具: unknown_tool
-2026-01-29 19:26:51.682 | DEBUG    | btflow.nodes.agents.react:register_tool:328 - 🔧 [tools] 注册工具: calculator
-2026-01-29 19:26:51.682 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReActState
-2026-01-29 19:26:51.682 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.682 | INFO     | btflow.nodes.agents.react:_update_tools_state:348 - 🔧 [tools] Updating state.tools_desc with 1 tools
-2026-01-29 19:26:51.682 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:51.701 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:51.701 | INFO     | btflow.nodes.agents.react:_execute_action:581 - ⚙️ [tools] 执行 Action: calculator Input: 10 + 5
-2026-01-29 19:26:51.719 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 19:26:51.719 | DEBUG    | btflow.nodes.agents.react:update:759 - 🔄 [check] 未检测到 Final Answer，继续下一轮 (Round 1/10)
-2026-01-29 19:26:51.719 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=10)
-2026-01-29 19:26:51.737 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 19:26:51.755 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 19:26:51.756 | DEBUG    | btflow.nodes.agents.react:_parse_all_actions:576 - 📭 [tools] 未检测到 Action，跳过
-2026-01-29 19:26:51.773 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 19:26:51.773 | INFO     | btflow.nodes.agents.react:update:751 - ✅ [check] 检测到 Final Answer: 15...
-2026-01-29 19:26:51.773 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 1 轮)
-2026-01-29 19:26:51.791 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 19:26:51.791 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:51.791 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:51.791 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:51.794 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StreamingTestState
-2026-01-29 19:26:51.794 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.794 | DEBUG    | btflow.nodes.agents.react:update_async:116 - 📋 [ReActStream] State dump: messages_count=1, task=None
-2026-01-29 19:26:51.794 | DEBUG    | btflow.nodes.agents.react:update_async:143 - 🤖 [ReActStream] 调用 LLM (dummy)...
-2026-01-29 19:26:51.794 | INFO     | btflow.nodes.agents.react:update_async:259 - 💭 [ReActStream] Round 1 响应:
-Hello World
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 19:26:51.796 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.5 >= 8.0
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 19:26:51.796 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 19:26:51.796 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 19:26:51.797 | WARNING  | btflow.nodes.agents.reflexion:update:231 - ⚠️ [check] 达到最大轮数 (5), 强制停止
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 19:26:51.797 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 19:26:51.797 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.0 >= 8.0
-2026-01-29 19:26:51.798 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 19:26:51.798 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.798 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 19:26:51.798 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 19:26:51.798 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 19:26:51.799 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:51.815 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:51.816 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 9.0 >= 8.0
-2026-01-29 19:26:51.816 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 0 轮)
-2026-01-29 19:26:51.833 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 19:26:51.833 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:51.833 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:51.833 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:51.834 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 19:26:51.835 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.835 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 19:26:51.835 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 19:26:51.835 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 19:26:51.835 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:51.853 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:51.853 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 19:26:51.853 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=5)
-2026-01-29 19:26:51.871 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 19:26:51.889 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 19:26:51.889 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 6.5 < 8.0
-2026-01-29 19:26:51.889 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 2 轮失败，继续下一轮 (max=5)
-2026-01-29 19:26:51.906 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 19:26:51.923 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 19:26:51.924 | INFO     | btflow.nodes.agents.reflexion:update:236 - ✅ [check] Score 达标: 8.5 >= 8.0
-2026-01-29 19:26:51.924 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 2 轮)
-2026-01-29 19:26:51.941 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 19:26:51.942 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:51.942 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:51.942 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:51.944 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: ReflexionState
-2026-01-29 19:26:51.944 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
-2026-01-29 19:26:51.944 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
-2026-01-29 19:26:51.944 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
-2026-01-29 19:26:51.944 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
-2026-01-29 19:26:51.944 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:51.962 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:51.962 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 4.0 < 8.0
-2026-01-29 19:26:51.962 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=3)
-2026-01-29 19:26:51.979 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 19:26:51.997 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 19:26:51.997 | DEBUG    | btflow.nodes.agents.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
-2026-01-29 19:26:51.997 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 2 轮失败，继续下一轮 (max=3)
-2026-01-29 19:26:52.015 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 19:26:52.033 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 19:26:52.033 | WARNING  | btflow.nodes.agents.reflexion:update:231 - ⚠️ [check] 达到最大轮数 (3), 强制停止
-2026-01-29 19:26:52.033 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 2 轮)
-2026-01-29 19:26:52.051 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
-2026-01-29 19:26:52.051 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:52.051 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:52.051 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:52.053 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 19:26:52.055 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:52.073 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:52.123 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 19:26:52.123 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:52.123 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:52.123 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:52.124 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:52.142 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:52.193 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 19:26:52.193 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:52.193 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:52.193 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:52.195 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 19:26:52.195 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=100]...
-2026-01-29 19:26:52.206 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:52.808 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
-2026-01-29 19:26:53.411 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
-2026-01-29 19:26:54.012 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
-2026-01-29 19:26:54.615 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
-2026-01-29 19:26:54.615 | WARNING  | btflow.core.runtime:run:208 - ⚠️ [Runner] 达到最大 Tick 限制 (5)，停止。
-2026-01-29 19:26:54.616 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:54.616 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:54.622 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 19:26:54.624 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
-2026-01-29 19:26:54.642 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
-2026-01-29 19:26:54.693 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
-2026-01-29 19:26:54.693 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
-2026-01-29 19:26:54.694 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
-2026-01-29 19:26:54.694 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
-2026-01-29 19:26:54.697 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: SimpleState
-2026-01-29 19:26:54.698 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 19:26:54.698 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 19:26:54.699 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 19:26:54.699 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 19:26:54.699 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 19:26:54.699 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 19:26:54.700 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: StateTestSchema
-2026-01-29 19:26:54.700 | DEBUG    | btflow.core.state:_parse_schema:97 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
-2026-01-29 19:26:54.709 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 19:26:54.709 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:185 - 📋 [Converter] workflow.state.fields has 0 items: []
-2026-01-29 19:26:54.709 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:192 - 📋 [Converter] Initializing state with: {}
-2026-01-29 19:26:54.709 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:194 - 📋 [Converter] State after init: {}
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node root (type: Sequence)
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node child1 (type: Parallel)
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node child2 (type: Selector)
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_assemble_children:96 - 🔍 [Sort] Parent root: Candidates: {'child1': (0.0, 0.0), 'child2': (0.0, 0.0)}
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_assemble_children:100 - ✅ [Sort] Result: ['child1', 'child2']
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_assemble_children:113 - 🔍 [Converter] Processing child child1 (type: Parallel) for parent root (type: Sequence)
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_assemble_children:115 - 🔍 [Converter] Parent has register_tool: False, Child has tool attr: False
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_assemble_children:113 - 🔍 [Converter] Processing child child2 (type: Selector) for parent root (type: Sequence)
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_assemble_children:115 - 🔍 [Converter] Parent has register_tool: False, Child has tool attr: False
-2026-01-29 19:26:54.710 | DEBUG    | btflow.core.state:_parse_schema:77 - 🔍 [StateManager] 解析 Schema: AgentState
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:185 - 📋 [Converter] workflow.state.fields has 2 items: [('score', 0), ('tags', [])]
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:192 - 📋 [Converter] Initializing state with: {'score': 0, 'tags': []}
-2026-01-29 19:26:54.710 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:194 - 📋 [Converter] State after init: {'score': 0, 'tags': []}
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReflexionState
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
+2026-02-01 19:40:53.569 | INFO     | btflow.nodes.builtin.reflexion:update:236 - ✅ [check] Score 达标: 8.5 >= 8.0
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReflexionState
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
+2026-02-01 19:40:53.569 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
+2026-02-01 19:40:53.569 | DEBUG    | btflow.nodes.builtin.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReflexionState
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
+2026-02-01 19:40:53.570 | WARNING  | btflow.nodes.builtin.reflexion:update:231 - ⚠️ [check] 达到最大轮数 (5), 强制停止
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReflexionState
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
+2026-02-01 19:40:53.570 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
+2026-02-01 19:40:53.570 | INFO     | btflow.nodes.builtin.reflexion:update:236 - ✅ [check] Score 达标: 8.0 >= 8.0
+2026-02-01 19:40:53.571 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReflexionState
+2026-02-01 19:40:53.571 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.571 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
+2026-02-01 19:40:53.571 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
+2026-02-01 19:40:53.571 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
+2026-02-01 19:40:53.571 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:53.589 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:53.589 | INFO     | btflow.nodes.builtin.reflexion:update:236 - ✅ [check] Score 达标: 9.0 >= 8.0
+2026-02-01 19:40:53.589 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 0 轮)
+2026-02-01 19:40:53.607 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
+2026-02-01 19:40:53.607 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:53.607 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:53.607 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:53.609 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReflexionState
+2026-02-01 19:40:53.609 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.609 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
+2026-02-01 19:40:53.609 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
+2026-02-01 19:40:53.609 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
+2026-02-01 19:40:53.609 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:53.627 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:53.627 | DEBUG    | btflow.nodes.builtin.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
+2026-02-01 19:40:53.627 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=5)
+2026-02-01 19:40:53.645 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
+2026-02-01 19:40:53.663 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
+2026-02-01 19:40:53.663 | DEBUG    | btflow.nodes.builtin.reflexion:update:240 - 🔄 [check] Score 不达标: 6.5 < 8.0
+2026-02-01 19:40:53.663 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 2 轮失败，继续下一轮 (max=5)
+2026-02-01 19:40:53.681 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
+2026-02-01 19:40:53.698 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
+2026-02-01 19:40:53.698 | INFO     | btflow.nodes.builtin.reflexion:update:236 - ✅ [check] Score 达标: 8.5 >= 8.0
+2026-02-01 19:40:53.698 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 2 轮)
+2026-02-01 19:40:53.716 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
+2026-02-01 19:40:53.716 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:53.716 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:53.716 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:53.719 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: ReflexionState
+2026-02-01 19:40:53.719 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'messages' -> add
+2026-02-01 19:40:53.719 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'answer_history' -> add
+2026-02-01 19:40:53.719 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'score_history' -> add
+2026-02-01 19:40:53.719 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'reflection_history' -> add
+2026-02-01 19:40:53.719 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:53.738 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:53.738 | DEBUG    | btflow.nodes.builtin.reflexion:update:240 - 🔄 [check] Score 不达标: 4.0 < 8.0
+2026-02-01 19:40:53.738 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 1 轮失败，继续下一轮 (max=3)
+2026-02-01 19:40:53.755 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
+2026-02-01 19:40:53.774 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
+2026-02-01 19:40:53.774 | DEBUG    | btflow.nodes.builtin.reflexion:update:240 - 🔄 [check] Score 不达标: 5.0 < 8.0
+2026-02-01 19:40:53.774 | DEBUG    | btflow.core.composites:update:107 - 🔄 [agent] 第 2 轮失败，继续下一轮 (max=3)
+2026-02-01 19:40:53.791 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
+2026-02-01 19:40:53.808 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
+2026-02-01 19:40:53.809 | WARNING  | btflow.nodes.builtin.reflexion:update:231 - ⚠️ [check] 达到最大轮数 (3), 强制停止
+2026-02-01 19:40:53.809 | DEBUG    | btflow.core.composites:update:94 - ✅ [agent] 循环成功结束 (共 2 轮)
+2026-02-01 19:40:53.826 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 6] Root Status: SUCCESS
+2026-02-01 19:40:53.827 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:53.827 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:53.827 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:53.829 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: SimpleState
+2026-02-01 19:40:53.830 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:53.848 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:53.898 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
+2026-02-01 19:40:53.898 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:53.898 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:53.898 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:53.898 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:53.916 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:53.968 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
+2026-02-01 19:40:53.968 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:53.968 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:53.968 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:53.970 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: SimpleState
+2026-02-01 19:40:53.970 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=100]...
+2026-02-01 19:40:53.980 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:54.582 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: RUNNING
+2026-02-01 19:40:55.185 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 3] Root Status: RUNNING
+2026-02-01 19:40:55.787 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 4] Root Status: RUNNING
+2026-02-01 19:40:56.388 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 5] Root Status: RUNNING
+2026-02-01 19:40:56.389 | WARNING  | btflow.core.runtime:run:208 - ⚠️ [Runner] 达到最大 Tick 限制 (5)，停止。
+2026-02-01 19:40:56.389 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:56.389 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:56.394 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: SimpleState
+2026-02-01 19:40:56.395 | INFO     | btflow.core.runtime:run:118 - 🚀 [Runner] 启动 (Thread: default_thread) [Mode: Event-Driven, max_fps=60.0]...
+2026-02-01 19:40:56.413 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 1] Root Status: RUNNING
+2026-02-01 19:40:56.466 | DEBUG    | btflow.core.runtime:run:258 - ⏱️ [Tick 2] Root Status: SUCCESS
+2026-02-01 19:40:56.466 | INFO     | btflow.core.runtime:run:264 - ✅ [Runner] 执行成功 (SUCCESS).
+2026-02-01 19:40:56.466 | DEBUG    | btflow.core.runtime:run:293 - 🧹 [Runner] 正在清理资源...
+2026-02-01 19:40:56.466 | INFO     | btflow.core.runtime:run:301 - 💤 [Runner] 结束。
+2026-02-01 19:40:56.470 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: SimpleState
+2026-02-01 19:40:56.472 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: StateTestSchema
+2026-02-01 19:40:56.472 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
+2026-02-01 19:40:56.473 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: StateTestSchema
+2026-02-01 19:40:56.473 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
+2026-02-01 19:40:56.474 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: StateTestSchema
+2026-02-01 19:40:56.474 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
+2026-02-01 19:40:56.475 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: StateTestSchema
+2026-02-01 19:40:56.475 | DEBUG    | btflow.core.state:_parse_schema:101 -    ⚙️ [Reducer] 绑定字段: 'history' -> add
+2026-02-01 19:40:56.476 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: RequiredState
+2026-02-01 19:40:56.489 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentState
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:185 - 📋 [Converter] workflow.state.fields has 0 items: []
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:192 - 📋 [Converter] Initializing state with: {}
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:194 - 📋 [Converter] State after init: {}
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node root (type: Sequence)
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node child1 (type: Parallel)
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_create_node:201 - 🔍 [Converter] Creating node child2 (type: Selector)
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_assemble_children:96 - 🔍 [Sort] Parent root: Candidates: {'child1': (0.0, 0.0), 'child2': (0.0, 0.0)}
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_assemble_children:100 - ✅ [Sort] Result: ['child1', 'child2']
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_assemble_children:113 - 🔍 [Converter] Processing child child1 (type: Parallel) for parent root (type: Sequence)
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_assemble_children:115 - 🔍 [Converter] Parent has register_tool: False, Child has tool attr: False
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_assemble_children:113 - 🔍 [Converter] Processing child child2 (type: Selector) for parent root (type: Sequence)
+2026-02-01 19:40:56.489 | INFO     | btflow_studio.backend.app.converter:_assemble_children:115 - 🔍 [Converter] Parent has register_tool: False, Child has tool attr: False
+2026-02-01 19:40:56.490 | DEBUG    | btflow.core.state:_parse_schema:81 - 🔍 [StateManager] 解析 Schema: AgentState
+2026-02-01 19:40:56.490 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:185 - 📋 [Converter] workflow.state.fields has 2 items: [('score', 0), ('tags', [])]
+2026-02-01 19:40:56.490 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:192 - 📋 [Converter] Initializing state with: {'score': 0, 'tags': []}
+2026-02-01 19:40:56.490 | INFO     | btflow_studio.backend.app.converter:_create_state_manager:194 - 📋 [Converter] State after init: {'score': 0, 'tags': []}

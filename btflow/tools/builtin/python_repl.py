@@ -8,7 +8,7 @@ import traceback
 from typing import Any, Optional, Dict
 from contextlib import redirect_stdout, redirect_stderr
 
-from btflow.tools import Tool
+from btflow.tools.base import Tool
 
 
 class PythonREPLTool(Tool):

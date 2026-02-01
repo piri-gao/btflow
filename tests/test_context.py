@@ -2,14 +2,14 @@ import unittest
 from types import SimpleNamespace
 
 from btflow.context import ContextBuilder
-from btflow.memory import InMemoryHistory
+from btflow.memory import Memory
 from btflow.messages import system, human
 
 
 class TestContextBuilder(unittest.TestCase):
     def test_build_includes_system_tools_memory(self):
-        mem = InMemoryHistory()
-        mem.add([human("memory hello")])
+        mem = Memory()
+        mem.add("memory hello")
 
         builder = ContextBuilder(
             system_prompt="sys",

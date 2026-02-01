@@ -12,8 +12,8 @@ from btflow.messages.formatting import message_to_text
 
 
 from btflow.messages import Message, human, ai, messages_to_prompt
-from btflow.memory import BaseMemory
-from btflow.context.builder import ContextBuilder, ContextBuilderProtocol
+from btflow.memory import Memory
+from btflow.context import ContextBuilder, ContextBuilderProtocol
 
 class SelfRefineLLMNode(AsyncBehaviour):
     """
@@ -26,7 +26,7 @@ class SelfRefineLLMNode(AsyncBehaviour):
         model: str = "gemini-2.5-flash",
         provider: Optional[LLMProvider] = None,
         system_prompt: Optional[str] = None,
-        memory: Optional[BaseMemory] = None,
+        memory: Optional[Memory] = None,
         memory_top_k: int = 5,
         stream: bool = False,
         streaming_output_key: str = "streaming_output",

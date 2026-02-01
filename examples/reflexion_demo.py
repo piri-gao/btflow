@@ -1,5 +1,5 @@
 """
-Reflexion Agent Demo - Self-Refine 模式
+Reflexion Agent Demo - Self-Refine 模式（OpenAI 兼容 API）
 
 演示如何使用 btflow 的 Reflexion 模式迭代改进输出质量。
 
@@ -10,24 +10,29 @@ Reflexion Agent Demo - Self-Refine 模式
     4. 重复直到达标或达到最大轮数
 
 运行方式：
-    export GOOGLE_API_KEY="your-api-key"
+    export OPENAI_API_KEY="your-api-key"
+    export BASE_URL="https://your-openai-compatible-endpoint"
     python examples/reflexion_demo.py
 """
 import asyncio
 import os
+import sys
+from dotenv import load_dotenv
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+load_dotenv()
 
 from btflow.patterns.reflexion import ReflexionAgent
-from btflow.llm import GeminiProvider
 
 
-async def demo_haiku():
+async def demo_haiku(provider):
     """演示：生成诗歌"""
     print("\n" + "="*60)
     print("📝 Demo: Generate a Haiku")
     print("="*60 + "\n")
     
     agent = ReflexionAgent.create(
-        provider=GeminiProvider(),
+        provider=provider,
         model="gemini-2.5-flash",
         threshold=8.0,   # 分数阈值
         max_rounds=3     # 最大改进轮数
@@ -52,14 +57,14 @@ async def demo_haiku():
         print(f"\n📈 Score Progress: {' → '.join(f'{s:.1f}' for s in state.score_history)}")
 
 
-async def demo_explanation():
+async def demo_explanation(provider):
     """演示：生成解释"""
     print("\n" + "="*60)
     print("🧠 Demo: Explain a Concept")
     print("="*60 + "\n")
     
     agent = ReflexionAgent.create(
-        provider=GeminiProvider(),
+        provider=provider,
         model="gemini-2.5-flash",
         threshold=9.8,   # 极高阈值，强制多轮改进
         max_rounds=5     # 允许更多改进
@@ -92,33 +97,27 @@ async def demo_explanation():
 
 async def main():
     """运行演示"""
-    if not os.getenv("GOOGLE_API_KEY"):
-        print("❌ Error: GOOGLE_API_KEY environment variable not set!")
-        print("Please run: export GOOGLE_API_KEY='your-api-key'")
+    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY")
+    base_url = os.getenv("BASE_URL")
+    if not api_key:
+        print("❌ Error: OPENAI_API_KEY (or API_KEY) environment variable not set!")
+        print("Please run: export OPENAI_API_KEY='your-api-key'")
+        return
+
+    try:
+        from btflow.llm.providers.openai import OpenAIProvider
+    except RuntimeError as e:
+        print(str(e))
+        return
+    try:
+        provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+    except RuntimeError as e:
+        print(str(e))
         return
     
     print("🔄 BTflow Reflexion Agent Demo (Self-Refine)")
     print("=" * 60)
-    print("Select demo to run:")
-    print("  1. Generate a Haiku")
-    print("  2. Explain a Concept")
-    print("  3. Run all demos")
-    print("=" * 60)
-    
-    choice = input("Enter choice (1-3, default=1): ").strip() or "1"
-    
-    demos = {
-        "1": demo_haiku,
-        "2": demo_explanation,
-    }
-    
-    if choice == "3":
-        for demo in demos.values():
-            await demo()
-    elif choice in demos:
-        await demos[choice]()
-    else:
-        print(f"Invalid choice: {choice}")
+    await demo_haiku(provider)
 
 
 if __name__ == "__main__":

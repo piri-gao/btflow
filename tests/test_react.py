@@ -15,7 +15,7 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
-from btflow.nodes.agents.react import ToolExecutor, IsFinalAnswer, ReActLLMNode
+from btflow.nodes import ToolExecutor, IsFinalAnswer, ReActLLMNode
 from btflow.tools import Tool
 from btflow import tool as tool_decorator
 from btflow.messages import human, ai, Message, message_to_text

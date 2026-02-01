@@ -2,9 +2,6 @@ import asyncio
 import os
 from typing import Optional, Any, AsyncIterator
 
-from google import genai
-from google.genai import types
-
 from btflow.core.logging import logger
 from btflow.llm.base import LLMProvider, MessageChunk
 from btflow.messages import Message
@@ -14,6 +11,14 @@ class GeminiProvider(LLMProvider):
     """Thin wrapper around google-genai for async content generation."""
 
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+        try:
+            from google import genai
+            from google.genai import types
+        except ImportError as e:
+            raise RuntimeError(
+                "google-genai package not installed. Run: pip install google-genai"
+            ) from e
+
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("API_KEY")
         self.base_url = base_url or os.getenv("BASE_URL")
         
@@ -25,6 +30,7 @@ class GeminiProvider(LLMProvider):
             logger.debug(f"🔌 [GeminiProvider] Using custom Base URL: {self.base_url}")
             http_options = {"base_url": self.base_url}
             
+        self._types = types
         self.client = genai.Client(api_key=self.api_key, http_options=http_options)
 
     async def generate_text(
@@ -41,7 +47,7 @@ class GeminiProvider(LLMProvider):
         strict_tools: bool = False,
         **kwargs
     ) -> Message:
-        config = types.GenerateContentConfig(
+        config = self._types.GenerateContentConfig(
             system_instruction=system_instruction,
             temperature=temperature,
             top_p=top_p,
@@ -77,7 +83,7 @@ class GeminiProvider(LLMProvider):
         strict_tools: bool = False,
         **kwargs
     ):
-        config = types.GenerateContentConfig(
+        config = self._types.GenerateContentConfig(
             system_instruction=system_instruction,
             temperature=temperature,
             top_p=top_p,

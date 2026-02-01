@@ -1,5 +1,8 @@
 import unittest
 
+import pytest
+
+fastmcp = pytest.importorskip("fastmcp")
 from fastmcp import FastMCP
 
 from btflow.protocols.mcp import MCPClient

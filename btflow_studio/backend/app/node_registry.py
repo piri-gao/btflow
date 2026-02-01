@@ -120,8 +120,9 @@ node_registry.register_metadata(NodeMetadata(
 ))
 
 # 2. Debug & Action Nodes
-from btflow.nodes.common.debug import Log
-from btflow.nodes.common.action import Wait, SetTask
+from btflow.nodes import Log
+from btflow.nodes import Wait
+from btflow.nodes.builtin.action import SetTask
 
 node_registry.register(
     Log,
@@ -173,10 +174,11 @@ node_registry.register(
 # 3. Import and Register Advanced Patterns & Tools
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.composites import LoopUntilSuccess
-from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
-from btflow.nodes.common.mock import MockReActLLMNode
-from btflow.nodes.agents.reflexion import SelfRefineLLMNode, IsGoodEnough
-from btflow.tools import CalculatorTool, SearchTool, WikipediaTool
+from btflow.nodes import ReActLLMNode, ToolExecutor, IsFinalAnswer
+from btflow.nodes.builtin.mock import MockReActLLMNode
+from btflow.nodes import SelfRefineLLMNode, IsGoodEnough
+from btflow.tools import CalculatorTool
+from btflow.tools.mock import SearchTool, WikipediaTool
 from btflow.tools.node import ToolNode
 
 # Tools
@@ -187,13 +189,13 @@ node_registry.register_metadata(NodeMetadata(
 ))
 
 node_registry.register_metadata(NodeMetadata(
-    id="SearchTool", label="Google Search", category="Tools", icon="🔍",
+    id="SearchTool", label="Mock Search", category="Tools", icon="🔍",
     description="Search the web (requires Google Search API)",
     node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", "Search"), tool=SearchTool())
 ))
 
 node_registry.register_metadata(NodeMetadata(
-    id="WikipediaTool", label="Wikipedia", category="Tools", icon="📖",
+    id="WikipediaTool", label="Mock Wikipedia", category="Tools", icon="📖",
     description="Search and browse Wikipedia",
     node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", "Wikipedia"), tool=WikipediaTool())
 ))

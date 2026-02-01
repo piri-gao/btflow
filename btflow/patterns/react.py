@@ -19,10 +19,10 @@ from py_trees.composites import Sequence
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
-from btflow.nodes.agents.react import ReActLLMNode, ToolExecutor, IsFinalAnswer
-from btflow.llm import LLMProvider, GeminiProvider, AutoProviderFactory
+from btflow.nodes import ReActLLMNode, ToolExecutor, IsFinalAnswer
+from btflow.llm import LLMProvider, AutoProviderFactory
 from btflow.tools import Tool
-from btflow.memory import BaseMemory
+from btflow.memory import Memory, create_memory_tools
 
 
 # ============ State Schema ============
@@ -57,7 +57,7 @@ class ReActAgent:
                 return str(eval(input))
 
         agent = ReActAgent.create(
-            provider=GeminiProvider(),
+            provider=LLMProvider.default(),
             tools=[Calculator()],
             max_rounds=10
         )
@@ -72,7 +72,7 @@ class ReActAgent:
         provider: Optional[LLMProvider] = None,
         tools: Optional[List[Tool]] = None,
         model: str = "gemini-2.5-flash",
-        memory: Optional[BaseMemory] = None,
+        memory: Optional[Memory] = None,
         memory_top_k: int = 5,
         max_rounds: int = 10,
         state_schema: Type[BaseModel] = ReActState,
@@ -80,10 +80,19 @@ class ReActAgent:
         strict_tool_calls: bool = False,
         stream: bool = False,
         streaming_output_key: str = "streaming_output",
+        auto_memory_tools: bool = True,
     ) -> BTAgent:
         """使用指定 Provider 创建 ReAct Agent。"""
         tools = tools or []
-        provider = provider or AutoProviderFactory().select()
+        provider = provider or LLMProvider.default()
+
+        if memory is not None and auto_memory_tools:
+            memory_tools = memory.as_tools() if hasattr(memory, "as_tools") else create_memory_tools(memory)
+            existing = {t.name.lower() for t in tools}
+            for tool in memory_tools:
+                if tool.name.lower() not in existing:
+                    tools.append(tool)
+                    existing.add(tool.name.lower())
 
         tool_executor = ToolExecutor(name="ToolExecutor", tools=tools)
         tools_desc = tool_executor.get_tools_description()

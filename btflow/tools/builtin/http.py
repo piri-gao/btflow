@@ -6,7 +6,7 @@ import json
 from typing import Any, Optional, Dict
 import aiohttp
 
-from btflow.tools import Tool
+from btflow.tools.base import Tool
 
 
 class HTTPTool(Tool):

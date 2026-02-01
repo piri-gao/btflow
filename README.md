@@ -54,7 +54,7 @@ class AgentState(BaseModel):
 ```python
 import asyncio
 from btflow import StateManager, ReactiveRunner, BTAgent, Sequence
-from btflow.nodes.llm import GeminiNode
+from btflow.nodes import GeminiNode
 
 async def main():
     # 1. Initialize State

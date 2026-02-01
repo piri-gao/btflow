@@ -10,7 +10,7 @@ import inspect
 from btflow.core.logging import logger
 from btflow.tools import Tool
 from btflow.tools.node import ToolNode
-from btflow.nodes.agents.react import ToolExecutor
+from btflow.nodes import ToolExecutor
 
 class WorkflowConverter:
     """

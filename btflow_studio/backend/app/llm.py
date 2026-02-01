@@ -5,8 +5,6 @@ Supports multi-turn conversations and workflow modifications.
 import os
 import json
 from typing import List, Dict, Any, Optional
-from google import genai
-from google.genai import types
 from dotenv import load_dotenv
 from btflow.core.logging import logger
 
@@ -145,10 +143,19 @@ class WorkflowLLM:
     """Handles LLM interactions for workflow generation."""
     
     def __init__(self, model_name: str = "models/gemini-2.5-flash"):
+        try:
+            from google import genai
+            from google.genai import types
+        except ImportError as e:
+            raise RuntimeError(
+                "google-genai package not installed. Run: pip install google-genai"
+            ) from e
+
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
             logger.warning("⚠️ GEMINI_API_KEY/GOOGLE_API_KEY not found in env!")
         self.client = genai.Client(api_key=api_key)
+        self._types = types
         self.model_name = model_name
         if model_name.startswith("models/"):
             self.fallback_model_name = "models/gemini-1.5-flash"
@@ -211,10 +218,10 @@ class WorkflowLLM:
         # Generate response
         try:
             contents = [
-                types.Content(role=msg["role"], parts=[types.Part.from_text(msg["parts"][0])])
+                self._types.Content(role=msg["role"], parts=[self._types.Part.from_text(msg["parts"][0])])
                 for msg in messages
             ]
-            config = types.GenerateContentConfig(
+            config = self._types.GenerateContentConfig(
                 temperature=0.3,
                 top_p=0.95,
                 top_k=40,

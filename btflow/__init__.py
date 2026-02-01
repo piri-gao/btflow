@@ -32,7 +32,7 @@ from py_trees.blackboard import Client as BlackboardClient
 from py_trees import display
 
 # Re-export common nodes
-from btflow.nodes.common import MockLLMAction, Log, Wait
+from btflow.nodes import MockLLMAction, Log, Wait
 
 __all__ = [
     # Core
@@ -82,7 +82,7 @@ __all__ = [
 def __getattr__(name: str):
     if name == "GeminiNode":
         try:
-            from btflow.nodes.llm import GeminiNode  # type: ignore
+            from btflow.nodes import GeminiNode  # type: ignore
         except ImportError as e:
             raise RuntimeError(
                 "GeminiNode requires optional dependency 'google-genai'. "

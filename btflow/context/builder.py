@@ -1,28 +1,18 @@
-from typing import List, Optional, Protocol, Sequence, Any
+from typing import Any, List, Optional
 
+from btflow.context.base import ContextBuilderProtocol
 from btflow.messages import Message, system
-from btflow.memory import BaseMemory
+from btflow.memory import Memory, SearchOptions
 
 
-class ContextBuilderProtocol(Protocol):
-    """Protocol for custom context builders."""
-
-    def build(
-        self,
-        state: Any,
-        tools_schema: Optional[dict] = None,
-    ) -> Sequence[Message]:
-        ...
-
-
-class ContextBuilder:
+class ContextBuilder(ContextBuilderProtocol):
     """Build a message list from system prompt, memory, tools, and user input."""
 
     def __init__(
         self,
         system_prompt: Optional[str] = None,
         tools_desc: Optional[str] = None,
-        memory: Optional[BaseMemory] = None,
+        memory: Optional[Memory] = None,
         memory_top_k: int = 5,
         max_messages: Optional[int] = None,
     ):
@@ -32,11 +22,7 @@ class ContextBuilder:
         self.memory_top_k = memory_top_k
         self.max_messages = max_messages
 
-    def build(
-        self,
-        state: Any,
-        tools_schema: Optional[dict] = None,
-    ) -> List[Message]:
+    def build(self, state: Any, tools_schema: Optional[dict] = None) -> List[Message]:
         messages: List[Message] = []
 
         user_messages: List[Message]
@@ -55,12 +41,15 @@ class ContextBuilder:
 
         if self.memory is not None:
             query = user_messages[-1].content if user_messages else ""
-            memory_messages = self.memory.search(query=query, k=self.memory_top_k)
+            memory_messages = self.memory.search_messages(query=query, options=SearchOptions(k=self.memory_top_k))
             messages.extend(memory_messages)
 
         messages.extend(user_messages)
 
         if self.max_messages is not None and len(messages) > self.max_messages:
-            messages = messages[-self.max_messages:]
+            messages = messages[-self.max_messages :]
 
         return messages
+
+
+__all__ = ["ContextBuilder"]

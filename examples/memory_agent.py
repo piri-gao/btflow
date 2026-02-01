@@ -6,13 +6,15 @@ The agent can store and retrieve information across conversations.
 """
 import asyncio
 import os
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from btflow.patterns.react import ReActAgent
-from btflow.llm.providers.openai import OpenAIProvider
-from btflow.memory import VectorMemory, create_memory_tools
+from btflow.memory import Memory
 
 
 async def main():
@@ -22,33 +24,40 @@ async def main():
     if not api_key:
         print("Please set API_KEY in .env")
         return
-    
-    provider = OpenAIProvider(api_key=api_key, base_url=base_url)
-    
+
+    try:
+        from btflow.llm.providers.openai import OpenAIProvider
+    except RuntimeError as e:
+        print(str(e))
+        return
+
+    try:
+        provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+    except RuntimeError as e:
+        print(str(e))
+        return
+
     # 2. Create persistent memory (saved to file)
-    memory = VectorMemory(persist_path=".memory/agent_memory.json")
+    memory = Memory(persist_path=".memory/agent_memory.json")
     print(f"📚 Memory loaded: {len(memory)} items")
-    
-    # 3. Create memory tools
-    memory_tools = create_memory_tools(memory)
-    
-    # 4. Create agent with memory tools
+
+    # 3. Create agent with memory (tools auto-injected)
     agent = ReActAgent.create(
         model="gemini-2.0-flash",
         provider=provider,
-        tools=memory_tools,
+        memory=memory,
         max_rounds=10,
     )
-    
+
     print("🤖 Agent with memory ready!")
     print("Commands: 'quit' to exit, 'clear' to clear memory\n")
-    
+
     while True:
         try:
             user_input = input("You: ").strip()
         except (EOFError, KeyboardInterrupt):
             break
-            
+
         if not user_input:
             continue
         if user_input.lower() == "quit":
@@ -57,13 +66,13 @@ async def main():
             memory.clear()
             print("🗑️ Memory cleared!")
             continue
-        
+
         # Reset agent state for new task
         agent.state_manager.initialize({"task": user_input, "messages": []})
-        
+
         # Run agent
         await agent.runner.run()
-        
+
         # Get result
         state = agent.state_manager.get()
         print(f"\n🤖 Agent: {state.final_answer}\n")

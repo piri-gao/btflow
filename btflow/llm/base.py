@@ -45,3 +45,33 @@ class LLMProvider(ABC):
         **kwargs
     ) -> AsyncIterator[MessageChunk]:
         raise NotImplementedError
+
+    @classmethod
+    def default(cls, **kwargs) -> "LLMProvider":
+        """Create a default LLMProvider. Tries OpenAI, Gemini, then Anthropic."""
+        # Try OpenAI first (most common)
+        try:
+            from btflow.llm.providers.openai import OpenAIProvider
+            return OpenAIProvider(**kwargs)
+        except (ImportError, RuntimeError):
+            pass
+        
+        # Try Gemini
+        try:
+            from btflow.llm.providers.gemini import GeminiProvider
+            return GeminiProvider(**kwargs)
+        except (ImportError, RuntimeError):
+            pass
+        
+        # Try Anthropic
+        try:
+            from btflow.llm.providers.anthropic import AnthropicProvider
+            return AnthropicProvider(**kwargs)
+        except (ImportError, RuntimeError):
+            pass
+        
+        raise RuntimeError(
+            "No LLM provider available. Install one of: openai, google-genai, anthropic"
+        )
+
+

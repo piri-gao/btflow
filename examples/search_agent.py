@@ -10,7 +10,7 @@ from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState, ReActAgent
 from btflow.llm.providers.openai import OpenAIProvider
-from btflow.tools.web.duckduckgo import DuckDuckGoSearchTool
+from btflow.tools import DuckDuckGoSearchTool
 from btflow.core.logging import logger
 
 async def main():
