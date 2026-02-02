@@ -3,8 +3,8 @@
 展示如何在 step() 模式下同时运行异步大脑节点和同步肌肉节点
 
 场景模拟：机器人导航
-- 大脑（Gemini LLM）：异步决策目标点（低频）
-- 肌肉（控制器）：同步执行运动（高频，每帧）
+- 大脑（LLM）：异步决策目标点（低频）
+- 肌肉（控制器）：同步执行移动（高频，每帧）
 - 环境：2D 网格世界，有障碍物
 
 使用前请确保设置环境变量（任选其一）：
@@ -33,19 +33,19 @@ load_dotenv()
 # === 1. 定义 State Schema ===
 class BrainMuscleState(BaseModel):
     # 观测数据（每帧更新）
-    position: tuple = (0.0, 0.0)
+    position: tuple = (0, 0)
     obstacles: list = []  # 障碍物位置列表
-    goal: tuple = (20.0, 20.0)  # 最终目标
+    goal: tuple = (19, 19)  # 最终目标
     frame: int = 0
     
     # 大脑决策（持久化，低频更新）
-    waypoint: tuple = (5.0, 5.0)  # 中间路径点
+    waypoint: tuple = (5, 5)  # 中间路径点
     reasoning: str = ""  # LLM 的推理过程
     plan_count: int = 0
     
     # 肌肉动作（ActionField，每帧重置）
-    velocity_x: Annotated[float, ActionField()] = 0.0
-    velocity_y: Annotated[float, ActionField()] = 0.0
+    move_x: Annotated[int, ActionField()] = 0
+    move_y: Annotated[int, ActionField()] = 0
 
 
 # === 2. 大脑节点：LLM 路径规划 ===
@@ -67,6 +67,9 @@ class LLMBrainNode(AsyncBehaviour):
     
     async def update_async(self) -> Status:
         state = self.state_manager.get()
+
+        if state.plan_count > 0 and state.frame % 5 != 0:
+            return Status.SUCCESS
         
         print(f"\n🧠 [Brain] LLM 正在规划路径...")
         print(f"   当前位置: {state.position}")
@@ -74,15 +77,16 @@ class LLMBrainNode(AsyncBehaviour):
         
         prompt = f"""你是一个机器人导航规划器。
 
-当前状态：
+当前状态（20x20 网格，坐标范围 0-19）：
 - 机器人位置: {state.position}
 - 最终目标: {state.goal}
 - 障碍物位置: {state.obstacles}
 
 请规划下一个路径点（waypoint），要求：
-1. 朝着最终目标方向前进
-2. 避开障碍物（保持至少 3 个单位距离）
-3. 每次移动距离不超过 8 个单位
+1. waypoint 必须是整数坐标 [x, y]
+2. waypoint 必须在 0-19 范围内
+3. waypoint 不能落在障碍物上
+4. 尽量朝向最终目标，并绕开障碍物
 
 请以 JSON 格式返回：
 {{"waypoint": [x, y], "reasoning": "简短说明"}}
@@ -107,7 +111,16 @@ class LLMBrainNode(AsyncBehaviour):
             text = text.strip()
             
             result = json.loads(text)
-            waypoint = tuple(result["waypoint"])
+            waypoint_raw = result.get("waypoint", [])
+            if not isinstance(waypoint_raw, (list, tuple)) or len(waypoint_raw) != 2:
+                raise ValueError("Invalid waypoint format")
+            x = int(round(float(waypoint_raw[0])))
+            y = int(round(float(waypoint_raw[1])))
+            x = max(0, min(19, x))
+            y = max(0, min(19, y))
+            if (x, y) in state.obstacles:
+                x, y = state.waypoint
+            waypoint = (x, y)
             reasoning = result.get("reasoning", "")
             
             self.state_manager.update({
@@ -129,7 +142,7 @@ class LLMBrainNode(AsyncBehaviour):
 # === 4. 肌肉节点：同步控制 ===
 class MuscleNode(Behaviour):
     """
-    实时控制：根据当前位置和路径点计算速度
+    实时控制：根据当前位置和路径点选择下一步移动
     每帧执行，读取大脑的 waypoint
     """
     def __init__(self, name: str):
@@ -140,23 +153,21 @@ class MuscleNode(Behaviour):
     def update(self) -> Status:
         state = self.state_manager.get()
         
-        # 计算到路径点的方向
         dx = state.waypoint[0] - state.position[0]
         dy = state.waypoint[1] - state.position[1]
-        
-        distance = (dx**2 + dy**2) ** 0.5
-        
-        if distance > 0.5:
-            # 归一化 + 速度控制
-            speed = min(1.0, distance / 3.0)
-            vx = (dx / distance) * speed
-            vy = (dy / distance) * speed
+
+        if dx == 0 and dy == 0:
+            step_x, step_y = 0, 0
+        elif abs(dx) >= abs(dy):
+            step_x = 1 if dx > 0 else -1
+            step_y = 0
         else:
-            vx, vy = 0.0, 0.0
+            step_x = 0
+            step_y = 1 if dy > 0 else -1
         
         self.state_manager.update({
-            "velocity_x": vx,
-            "velocity_y": vy
+            "move_x": step_x,
+            "move_y": step_y
         })
         
         return Status.SUCCESS
@@ -165,40 +176,50 @@ class MuscleNode(Behaviour):
 # === 5. 简单环境模拟 ===
 class GridWorldEnv:
     def __init__(self):
-        self.position = [0.0, 0.0]
-        self.goal = (20.0, 20.0)
-        self.obstacles = [
-            (8.0, 8.0),
-            (12.0, 5.0),
-            (6.0, 15.0)
-        ]
+        self.width = 20
+        self.height = 20
+        self.position = [0, 0]
+        self.goal = (19, 19)
+        self.obstacles = {
+            (8, 8),
+            (12, 5),
+            (6, 15),
+        }
         self.frame = 0
     
     def reset(self):
-        self.position = [0.0, 0.0]
+        self.position = [0, 0]
         self.frame = 0
         return self._get_obs()
     
     def step(self, action: dict):
-        vx = action.get("velocity_x", 0)
-        vy = action.get("velocity_y", 0)
-        
-        dt = 0.1  # 10Hz
-        self.position[0] += vx * dt
-        self.position[1] += vy * dt
+        move_x = int(action.get("move_x", 0))
+        move_y = int(action.get("move_y", 0))
+
+        if abs(move_x) + abs(move_y) > 1:
+            move_y = 0
+
+        next_x = self.position[0] + move_x
+        next_y = self.position[1] + move_y
+        if (
+            0 <= next_x < self.width
+            and 0 <= next_y < self.height
+            and (next_x, next_y) not in self.obstacles
+        ):
+            self.position[0] = next_x
+            self.position[1] = next_y
+
         self.frame += 1
         
         # 检查是否到达目标
-        dx = self.goal[0] - self.position[0]
-        dy = self.goal[1] - self.position[1]
-        done = (dx**2 + dy**2) ** 0.5 < 2.0
+        done = tuple(self.position) == self.goal
         
         return self._get_obs(), done
     
     def _get_obs(self):
         return {
             "position": tuple(self.position),
-            "obstacles": self.obstacles,
+            "obstacles": sorted(self.obstacles),
             "goal": self.goal,
             "frame": self.frame
         }
@@ -206,8 +227,8 @@ class GridWorldEnv:
 
 async def main():
     print("=" * 60)
-print("🧠💪 脑肌结合 Demo（真实 LLM 版本）")
-print("展示 LLM 大脑 + 同步肌肉 在 step() 模式下协同工作")
+    print("🧠💪 脑肌结合 Demo（真实 LLM 版本）")
+    print("展示 LLM 大脑 + 同步肌肉 在 step() 模式下协同工作")
     print("=" * 60)
     
     # === 初始化 ===
@@ -260,11 +281,11 @@ print("展示 LLM 大脑 + 同步肌肉 在 step() 模式下协同工作")
         obs, done = env.step(action)
         
         # 打印关键帧
-        if frame % 20 == 0:
+        if frame % 5 == 0:
             state = state_manager.get()
             brain_status = brain_node.status.name
-            print(f"  Frame {frame:3d}: pos=({obs['position'][0]:5.1f}, {obs['position'][1]:5.1f}) "
-                  f"→ waypoint=({state.waypoint[0]:5.1f}, {state.waypoint[1]:5.1f}) "
+            print(f"  Frame {frame:3d}: pos=({obs['position'][0]:2d}, {obs['position'][1]:2d}) "
+                  f"→ waypoint=({state.waypoint[0]:2d}, {state.waypoint[1]:2d}) "
                   f"[Brain: {brain_status}, Plans: {state.plan_count}]")
         
         # 小延迟模拟帧率
