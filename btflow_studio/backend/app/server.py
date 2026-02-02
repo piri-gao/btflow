@@ -233,18 +233,13 @@ async def run_workflow(workflow_id: str, background_tasks: BackgroundTasks):
         root = converter.compile()
         state_manager = converter.state_manager
         
-        # 2. Setup Runner & Agent
-        runner = ReactiveRunner(root, state_manager)
-        
-        # 显式调用 setup 以触发 ToolExecutor 的工具注册
-        logger.info("🔧 [Server] Setting up behavior tree...")
-        root.setup(timeout=15)
+        # 2. Setup Agent
+        # BTAgent implicitly creates a ReactiveRunner which sets up the tree (injects state_manager, calls setup())
+        agent = BTAgent(root, state_manager)
         
         # Debug: 打印树结构
         import py_trees
         logger.info("🌳 [Server] Tree Structure:\n{}", py_trees.display.ascii_tree(root))
-
-        agent = BTAgent(runner)
         
         # 3. Store reference
         running_agents[workflow_id] = agent
