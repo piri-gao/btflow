@@ -7,8 +7,11 @@
 - 肌肉（控制器）：同步执行运动（高频，每帧）
 - 环境：2D 网格世界，有障碍物
 
-使用前请确保设置环境变量：
+使用前请确保设置环境变量（任选其一）：
     export GOOGLE_API_KEY="your-api-key"
+    export OPENAI_API_KEY="your-api-key"
+    export API_KEY="your-api-key"
+    export BASE_URL="https://your-openai-compatible-endpoint"
 """
 import sys
 import os
@@ -22,9 +25,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # 统一 import
 from btflow import BTAgent, StateManager, ActionField, AsyncBehaviour, Parallel, ParallelPolicy, Status, Behaviour
-
-from google import genai
-from google.genai import types
+from btflow.llm import LLMProvider
 
 load_dotenv()
 
@@ -47,24 +48,22 @@ class BrainMuscleState(BaseModel):
     velocity_y: Annotated[float, ActionField()] = 0.0
 
 
-# === 2. Gemini 客户端 ===
-def get_gemini_client():
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("❌ GOOGLE_API_KEY not found! Please set it in .env or environment.")
-    return genai.Client(api_key=api_key)
-
-
-# === 3. 大脑节点：LLM 路径规划 ===
+# === 2. 大脑节点：LLM 路径规划 ===
 class LLMBrainNode(AsyncBehaviour):
     """
     真实 LLM 决策：根据当前位置和障碍物规划下一个路径点
     """
-    def __init__(self, name: str, state_manager: StateManager, model: str = "gemini-2.0-flash"):
+    def __init__(
+        self,
+        name: str,
+        state_manager: StateManager,
+        provider: LLMProvider,
+        model: str = "gemini-2.0-flash",
+    ):
         super().__init__(name)
         self.state_manager = state_manager
         self.model = model
-        self.client = get_gemini_client()
+        self.provider = provider
     
     async def update_async(self) -> Status:
         state = self.state_manager.get()
@@ -90,20 +89,16 @@ class LLMBrainNode(AsyncBehaviour):
 """
         
         try:
-            response = await asyncio.wait_for(
-                self.client.aio.models.generate_content(
-                    model=self.model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction="你是一个精确的路径规划器。只返回 JSON，不要其他内容。",
-                        temperature=0.3
-                    )
-                ),
-                timeout=30.0
+            response = await self.provider.generate_text(
+                prompt=prompt,
+                model=self.model,
+                system_instruction="你是一个精确的路径规划器。只返回 JSON，不要其他内容。",
+                temperature=0.3,
+                timeout=30.0,
             )
             
             # 解析 JSON
-            text = response.text.strip()
+            text = response.content.strip()
             # 移除可能的 markdown 代码块标记
             if text.startswith("```"):
                 text = text.split("\n", 1)[1]
@@ -126,9 +121,6 @@ class LLMBrainNode(AsyncBehaviour):
             
             return Status.SUCCESS
             
-        except asyncio.TimeoutError:
-            print(f"🔥 [Brain] LLM 超时!")
-            return Status.FAILURE
         except Exception as e:
             print(f"🔥 [Brain] 错误: {e}")
             return Status.FAILURE
@@ -214,16 +206,23 @@ class GridWorldEnv:
 
 async def main():
     print("=" * 60)
-    print("🧠💪 脑肌结合 Demo（真实 LLM 版本）")
-    print("展示 Gemini LLM 大脑 + 同步肌肉 在 step() 模式下协同工作")
+print("🧠💪 脑肌结合 Demo（真实 LLM 版本）")
+print("展示 LLM 大脑 + 同步肌肉 在 step() 模式下协同工作")
     print("=" * 60)
     
     # === 初始化 ===
     state_manager = StateManager(schema=BrainMuscleState)
     state_manager.initialize()
     
+    base_url = os.getenv("BASE_URL")
+    try:
+        provider = LLMProvider.default(preference=["gemini", "openai"], base_url=base_url)
+    except RuntimeError as e:
+        print(str(e))
+        return
+
     # 构建行为树
-    brain_node = LLMBrainNode("LLM_Brain", state_manager)
+    brain_node = LLMBrainNode("LLM_Brain", state_manager, provider=provider)
     muscle_node = MuscleNode("Muscle")
     
     root = Parallel(

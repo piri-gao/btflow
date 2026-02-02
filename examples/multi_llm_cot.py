@@ -2,10 +2,13 @@
 多 LLM 协作示例：CoT Chain（思维链）
 
 展示 Planner → Executor → Reviewer 三阶段推理模式
-使用真实的 Gemini API 调用
+使用真实 LLM 调用（Gemini 或 OpenAI 兼容接口）
 
-使用前请确保设置环境变量：
+使用前请确保设置环境变量（任选其一）：
     export GOOGLE_API_KEY="your-api-key"
+    export OPENAI_API_KEY="your-api-key"
+    export API_KEY="your-api-key"
+    export BASE_URL="https://your-openai-compatible-endpoint"
 """
 import sys
 import os
@@ -18,10 +21,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # 统一 import
 from btflow import BTAgent, StateManager, Sequence, AsyncBehaviour, Status
-
-# 引入 Google GenAI SDK
-from google import genai
-from google.genai import types
+from btflow.llm import LLMProvider
 
 load_dotenv()
 
@@ -35,24 +35,16 @@ class CoTState(BaseModel):
     trace: Annotated[List[str], operator.add] = Field(default_factory=list)
 
 
-# === 2. Gemini 客户端工厂 ===
-def get_gemini_client():
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("❌ GOOGLE_API_KEY not found! Please set it in .env or environment.")
-    return genai.Client(api_key=api_key)
-
-
-# === 3. 定义 LLM 节点 ===
+# === 2. 定义 LLM 节点 ===
 
 class PlannerNode(AsyncBehaviour):
     """第一阶段：分析问题，制定计划"""
     
-    def __init__(self, name: str, model: str = "gemini-2.5-flash"):
+    def __init__(self, name: str, provider: LLMProvider, model: str = "gemini-2.5-flash"):
         super().__init__(name)
         self.state_manager: StateManager = None
         self.model = model
-        self.client = get_gemini_client()
+        self.provider = provider
     
     async def update_async(self) -> Status:
         state = self.state_manager.get()
@@ -61,19 +53,15 @@ class PlannerNode(AsyncBehaviour):
         print(f"\n🧠 [Planner] 正在分析问题...")
         
         try:
-            response = await asyncio.wait_for(
-                self.client.aio.models.generate_content(
-                    model=self.model,
-                    contents=f"请分析以下问题并制定解答计划（用中文回答）：\n\n{question}",
-                    config=types.GenerateContentConfig(
-                        system_instruction="你是一位擅长分析问题的专家。请分解问题，制定清晰的解答计划（3-5个步骤）。",
-                        temperature=0.7
-                    )
-                ),
-                timeout=30.0
+            response = await self.provider.generate_text(
+                prompt=f"请分析以下问题并制定解答计划（用中文回答）：\n\n{question}",
+                model=self.model,
+                system_instruction="你是一位擅长分析问题的专家。请分解问题，制定清晰的解答计划（3-5个步骤）。",
+                temperature=0.7,
+                timeout=30.0,
             )
             
-            plan = response.text
+            plan = response.content
             self.state_manager.update({
                 "plan": plan,
                 "trace": ["[Planner] ✅ 计划生成完成"]
@@ -90,11 +78,11 @@ class PlannerNode(AsyncBehaviour):
 class ExecutorNode(AsyncBehaviour):
     """第二阶段：执行计划，生成答案"""
     
-    def __init__(self, name: str, model: str = "gemini-2.5-flash"):
+    def __init__(self, name: str, provider: LLMProvider, model: str = "gemini-2.5-flash"):
         super().__init__(name)
         self.state_manager: StateManager = None
         self.model = model
-        self.client = get_gemini_client()
+        self.provider = provider
     
     async def update_async(self) -> Status:
         state = self.state_manager.get()
@@ -112,19 +100,15 @@ class ExecutorNode(AsyncBehaviour):
 
 请按照计划逐步解答问题（用中文回答）：
 """
-            response = await asyncio.wait_for(
-                self.client.aio.models.generate_content(
-                    model=self.model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction="你是一位知识渊博的老师。请按照给定的计划，逐步推理并给出详细的答案。",
-                        temperature=0.5
-                    )
-                ),
-                timeout=60.0
+            response = await self.provider.generate_text(
+                prompt=prompt,
+                model=self.model,
+                system_instruction="你是一位知识渊博的老师。请按照给定的计划，逐步推理并给出详细的答案。",
+                temperature=0.5,
+                timeout=60.0,
             )
             
-            answer = response.text
+            answer = response.content
             self.state_manager.update({
                 "answer": answer,
                 "trace": ["[Executor] ✅ 答案生成完成"]
@@ -141,11 +125,11 @@ class ExecutorNode(AsyncBehaviour):
 class ReviewerNode(AsyncBehaviour):
     """第三阶段：检查答案，给出评价"""
     
-    def __init__(self, name: str, model: str = "gemini-2.5-flash"):
+    def __init__(self, name: str, provider: LLMProvider, model: str = "gemini-2.5-flash"):
         super().__init__(name)
         self.state_manager: StateManager = None
         self.model = model
-        self.client = get_gemini_client()
+        self.provider = provider
     
     async def update_async(self) -> Status:
         state = self.state_manager.get()
@@ -167,19 +151,15 @@ class ReviewerNode(AsyncBehaviour):
 3. 准确性：结论是否正确
 4. 综合评分：优秀/良好/一般/需改进
 """
-            response = await asyncio.wait_for(
-                self.client.aio.models.generate_content(
-                    model=self.model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction="你是一位严谨的审查专家。请客观评估答案质量，指出优点和可改进之处。",
-                        temperature=0.3
-                    )
-                ),
-                timeout=30.0
+            response = await self.provider.generate_text(
+                prompt=prompt,
+                model=self.model,
+                system_instruction="你是一位严谨的审查专家。请客观评估答案质量，指出优点和可改进之处。",
+                temperature=0.3,
+                timeout=30.0,
             )
             
-            review = response.text
+            review = response.content
             self.state_manager.update({
                 "review": review,
                 "trace": ["[Reviewer] ✅ 审查完成"]
@@ -201,13 +181,20 @@ async def main():
     # 初始化
     state_manager = StateManager(schema=CoTState)
     state_manager.initialize()
+
+    base_url = os.getenv("BASE_URL")
+    try:
+        provider = LLMProvider.default(preference=["gemini", "openai"], base_url=base_url)
+    except RuntimeError as e:
+        print(str(e))
+        return
     
     # 构建 CoT Chain
     root = Sequence(name="CoT_Chain", memory=True)
     
-    planner = PlannerNode("Planner")
-    executor = ExecutorNode("Executor")
-    reviewer = ReviewerNode("Reviewer")
+    planner = PlannerNode("Planner", provider=provider)
+    executor = ExecutorNode("Executor", provider=provider)
+    reviewer = ReviewerNode("Reviewer", provider=provider)
     
     root.add_children([planner, executor, reviewer])
     
