@@ -2,10 +2,11 @@
 BTflow: Event-driven, State-managed Behavior Tree Framework for LLM Agents.
 """
 # Core components
-from btflow.core.decorators import tool, node
+from btflow.nodes.decorators import node
+from btflow.tools.decorators import tool
 from btflow.core.agent import BTAgent
 from btflow.core.state import ActionField, StateManager
-from btflow.core.behaviour import AsyncBehaviour
+from btflow.nodes.base import AsyncNode, Node, AsyncBehaviour
 from btflow.core.runtime import ReactiveRunner
 from btflow.core.persistence import SimpleCheckpointer
 from btflow.core.trace import (
@@ -40,6 +41,8 @@ __all__ = [
     "StateManager",
     "ActionField",
     "AsyncBehaviour",
+    "AsyncNode",
+    "Node",
     "ReactiveRunner",
     "SimpleCheckpointer",
     "trace_emit",

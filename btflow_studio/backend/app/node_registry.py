@@ -178,7 +178,7 @@ from btflow.nodes import ReActLLMNode, ToolExecutor, IsFinalAnswer
 from btflow.nodes.builtin.mock import MockReActLLMNode
 from btflow.nodes import SelfRefineLLMNode, IsGoodEnough
 from btflow.tools import CalculatorTool
-from btflow.tools.mock import SearchTool, WikipediaTool
+from btflow.tools.builtin.mock import MockSearchTool, MockWikipediaTool
 from btflow.tools.node import ToolNode
 
 # Tools

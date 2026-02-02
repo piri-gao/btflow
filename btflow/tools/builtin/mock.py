@@ -5,7 +5,7 @@ from typing import Any
 from btflow.tools.base import Tool
 
 
-class SearchTool(Tool):
+class MockSearchTool(Tool):
     """A mock search tool for demonstration purposes."""
     name = "search"
     description = "Search the web for information. Input should be a search query."
@@ -27,7 +27,7 @@ class SearchTool(Tool):
         return f"Search results for '{input}': No specific results found. This is a mock search tool."
 
 
-class WikipediaTool(Tool):
+class MockWikipediaTool(Tool):
     """A mock Wikipedia lookup tool."""
     name = "wikipedia"
     description = "Look up information on Wikipedia. Input should be a topic or person name."
@@ -41,4 +41,4 @@ class WikipediaTool(Tool):
         )
 
 
-__all__ = ["SearchTool", "WikipediaTool"]
+__all__ = ["MockSearchTool", "MockWikipediaTool"]

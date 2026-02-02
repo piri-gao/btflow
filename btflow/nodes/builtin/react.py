@@ -463,7 +463,7 @@ class ToolExecutor(AsyncBehaviour):
             return str(obj)
 
     async def _run_tool(self, tool: Tool, parsed_input: Any) -> Any:
-        from btflow.tools.execution import execute_tool
+        from btflow.tools.base import execute_tool
         return await execute_tool(tool, parsed_input)
 
     def _extract_tool_call_from_dict(self, data: Any) -> Optional[Tuple[str, Any]]:

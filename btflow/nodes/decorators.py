@@ -5,7 +5,6 @@ from py_trees.common import Status
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.state import StateManager
 from btflow.core.logging import logger
-from btflow.tools.base import Tool
 
 def _get_metadata(func: Callable, name: Optional[str] = None, description: Optional[str] = None):
     """Utility to extract name and description from a function."""
@@ -83,56 +82,4 @@ def node(
         return decorator
     return decorator(_func)
 
-class FunctionTool(Tool):
-    """Wrap a simple callable as a Tool."""
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        fn: Callable[..., Any],
-        input_schema: Optional[dict] = None,
-        output_schema: Optional[dict] = None,
-    ):
-        self.name = name
-        self.description = description
-        self._fn = fn
-        if input_schema is not None:
-            self.input_schema = input_schema
-        if output_schema is not None:
-            self.output_schema = output_schema
-
-    def run(self, *args, **kwargs) -> Any:
-        return self._fn(*args, **kwargs)
-
-def tool(
-    _func: Optional[Callable] = None,
-    *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    input_schema: Optional[dict] = None,
-    output_schema: Optional[dict] = None,
-):
-    """
-    Decorator to wrap a function into a Tool instance.
-    Usage:
-        @tool
-        def my_tool(input): ...
-        
-        @tool(name="custom")
-        def my_tool(input): ...
-    """
-    def decorator(func: Callable):
-        tool_name, tool_desc = _get_metadata(func, name, description)
-        return FunctionTool(
-            name=tool_name,
-            description=tool_desc,
-            fn=func,
-            input_schema=input_schema,
-            output_schema=output_schema,
-        )
-
-    if _func is None:
-        return decorator
-    return decorator(_func)
-
-__all__ = ["node", "tool", "FunctionTool", "FunctionNode"]
+__all__ = ["node", "FunctionNode"]

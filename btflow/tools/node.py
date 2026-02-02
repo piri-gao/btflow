@@ -142,7 +142,7 @@ class ToolNode(AsyncBehaviour):
         return None
 
     async def _run_tool(self, args: Any, injected: Optional[Dict[str, Any]] = None) -> Any:
-        from btflow.tools.execution import execute_tool
+        from btflow.tools.base import execute_tool
         return await execute_tool(self.tool, args, injected=injected)
 
 

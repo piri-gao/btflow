@@ -12,7 +12,8 @@ from btflow.memory.retriever import (
     normalize_vector,
     simple_embedding,
 )
-from btflow.memory.store import InMemoryStore, JsonStore, MemoryStore
+from btflow.memory.ingest import load_text, chunk_text
+from btflow.memory.store import InMemoryStore, JsonStore, SQLiteStore, MemoryStore
 from btflow.messages import Message
 from btflow.messages.formatting import content_to_text
 
@@ -56,6 +57,9 @@ class Memory:
                 record.embedding = normalize_vector(vec, normalize=self.normalize_embeddings)
         return self.store.add(record)
 
+    def add_text(self, text: str, metadata: Optional[Dict[str, object]] = None, embed: bool = True) -> str:
+        return self.add(text=text, metadata=metadata, embed=embed)
+
     def add_message(self, message: Message, embed: bool = True) -> str:
         metadata: Dict[str, object] = dict(message.metadata or {})
         metadata["role"] = message.role
@@ -67,6 +71,37 @@ class Memory:
             metadata["tool_calls"] = message.tool_calls
         content = content_to_text(message.content)
         return self.add(content, metadata=metadata, embed=embed)
+
+    def ingest_text(
+        self,
+        text: str,
+        chunk_size: int = 500,
+        overlap: int = 0,
+        metadata: Optional[Dict[str, object]] = None,
+        embed: bool = True,
+    ) -> List[str]:
+        ids: List[str] = []
+        chunks = chunk_text(text, chunk_size=chunk_size, overlap=overlap)
+        base_meta = dict(metadata or {})
+        for i, chunk in enumerate(chunks):
+            meta = dict(base_meta)
+            meta.update({"chunk_index": i, "chunk_size": chunk_size, "overlap": overlap})
+            ids.append(self.add(chunk, metadata=meta, embed=embed))
+        return ids
+
+    def ingest_file(
+        self,
+        path: str,
+        chunk_size: int = 500,
+        overlap: int = 0,
+        metadata: Optional[Dict[str, object]] = None,
+        embed: bool = True,
+        encoding: str = "utf-8",
+    ) -> List[str]:
+        text = load_text(path, encoding=encoding)
+        meta = dict(metadata or {})
+        meta.setdefault("source", path)
+        return self.ingest_text(text, chunk_size=chunk_size, overlap=overlap, metadata=meta, embed=embed)
 
     def search(self, query: str, options: Optional[SearchOptions] = None) -> List[MemoryRecord]:
         records = self.store.list()

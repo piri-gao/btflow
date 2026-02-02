@@ -2,14 +2,15 @@
 
 from btflow.tools.base import Tool
 from btflow.tools.node import ToolNode
-from btflow.tools.execution import execute_tool
+from btflow.tools.base import execute_tool
+from btflow.tools.decorators import tool, FunctionTool
 from btflow.tools.builtin import (
     CalculatorTool,
     PythonREPLTool,
     FileReadTool,
     FileWriteTool,
 )
-from btflow.tools.mock import SearchTool, WikipediaTool
+from btflow.tools.builtin.mock import MockSearchTool, MockWikipediaTool
 
 # Re-export optional tools (may be None if dependencies not installed)
 from btflow.tools.builtin import HTTPTool, DuckDuckGoSearchTool
@@ -19,10 +20,12 @@ __all__ = [
     "Tool",
     "ToolNode",
     "execute_tool",
+    "tool",
+    "FunctionTool",
     # Built-in tools
     "CalculatorTool",
-    "SearchTool",
-    "WikipediaTool",
+    "MockSearchTool",
+    "MockWikipediaTool",
     "PythonREPLTool",
     "FileReadTool",
     "FileWriteTool",

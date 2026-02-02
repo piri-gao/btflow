@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -75,6 +76,8 @@ class InMemoryStore(MemoryStore):
             for _ in range(overflow):
                 old_id = self._order.pop(0)
                 self._records.pop(old_id, None)
+
+
         return record.id
 
     def get(self, record_id: str) -> Optional[MemoryRecord]:
@@ -152,5 +155,114 @@ class JsonStore(InMemoryStore):
                 old_id = self._order.pop(0)
                 self._records.pop(old_id, None)
 
+class SQLiteStore(MemoryStore):
+    def __init__(self, path: str, max_size: Optional[int] = None):
+        self.path = Path(path)
+        self.max_size = max_size
+        if self.path.parent:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(self.path)
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS records (
+                seq INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT UNIQUE,
+                text TEXT,
+                metadata TEXT,
+                created_at TEXT,
+                embedding TEXT
+            )
+            """
+        )
+        self._conn.commit()
 
-__all__ = ["MemoryStore", "InMemoryStore", "JsonStore", "record_to_dict", "record_from_dict"]
+    def add(self, record: MemoryRecord) -> str:
+        self._conn.execute(
+            "INSERT OR REPLACE INTO records (id, text, metadata, created_at, embedding) VALUES (?, ?, ?, ?, ?)",
+            (
+                record.id,
+                record.text,
+                json.dumps(record.metadata, ensure_ascii=False),
+                record.created_at.isoformat(),
+                json.dumps(record.embedding) if record.embedding is not None else None,
+            ),
+        )
+        self._conn.commit()
+        if self.max_size is not None:
+            self._trim_to_size()
+        return record.id
+
+    def get(self, record_id: str) -> Optional[MemoryRecord]:
+        cur = self._conn.execute(
+            "SELECT id, text, metadata, created_at, embedding FROM records WHERE id = ?",
+            (record_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return record_from_dict(
+            {
+                "id": row[0],
+                "text": row[1],
+                "metadata": json.loads(row[2] or "{}"),
+                "created_at": row[3],
+                "embedding": json.loads(row[4]) if row[4] else None,
+            }
+        )
+
+    def list(self) -> List[MemoryRecord]:
+        cur = self._conn.execute(
+            "SELECT id, text, metadata, created_at, embedding FROM records ORDER BY seq ASC"
+        )
+        records: List[MemoryRecord] = []
+        for row in cur.fetchall():
+            records.append(
+                record_from_dict(
+                    {
+                        "id": row[0],
+                        "text": row[1],
+                        "metadata": json.loads(row[2] or "{}"),
+                        "created_at": row[3],
+                        "embedding": json.loads(row[4]) if row[4] else None,
+                    }
+                )
+            )
+        return records
+
+    def delete(self, record_id: str) -> bool:
+        cur = self._conn.execute("DELETE FROM records WHERE id = ?", (record_id,))
+        self._conn.commit()
+        return cur.rowcount > 0
+
+    def clear(self) -> None:
+        self._conn.execute("DELETE FROM records")
+        self._conn.commit()
+
+    def __len__(self) -> int:
+        cur = self._conn.execute("SELECT COUNT(*) FROM records")
+        row = cur.fetchone()
+        return int(row[0] or 0)
+
+    def _trim_to_size(self) -> None:
+        if self.max_size is None:
+            return
+        cur = self._conn.execute("SELECT COUNT(*) FROM records")
+        count = int(cur.fetchone()[0] or 0)
+        overflow = count - self.max_size
+        if overflow <= 0:
+            return
+        self._conn.execute(
+            "DELETE FROM records WHERE seq IN (SELECT seq FROM records ORDER BY seq ASC LIMIT ?)",
+            (overflow,),
+        )
+        self._conn.commit()
+
+
+__all__ = [
+    "MemoryStore",
+    "InMemoryStore",
+    "JsonStore",
+    "SQLiteStore",
+    "record_to_dict",
+    "record_from_dict",
+]
