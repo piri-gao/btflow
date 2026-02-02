@@ -78,7 +78,12 @@ async def main():
     
     # Automatically choose provider based on env vars
     try:
-        provider = LLMProvider.default(api_key=api_key, base_url=base_url)
+        # Prefer Gemini. We do NOT pass api_key explicitly, 
+        # allowing the provider to find its own key in env vars (e.g. GOOGLE_API_KEY).
+        provider = LLMProvider.default(
+            preference=["gemini", "openai"],
+            base_url=base_url
+        )
         print(f"🤖 Using LLM Provider: {type(provider).__name__}")
     except Exception as e:
         print(f"❌ Error initializing LLM provider: {e}")

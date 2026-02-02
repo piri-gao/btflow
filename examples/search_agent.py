@@ -18,13 +18,9 @@ async def main():
     search_tool = DuckDuckGoSearchTool()
     
     # 2. Setup LLM Provider (OpenAI-compatible proxy for Gemini)
-    api_key = os.getenv("API_KEY")
     base_url = os.getenv("BASE_URL")
-    if not api_key:
-        print("Please set API_KEY environment variable in .env.")
-        return
-        
-    provider = LLMProvider.default(api_key=api_key, base_url=base_url)
+    # Prefer Gemini to avoid key mismatch issues if OpenAI package is missing
+    provider = LLMProvider.default(preference=["gemini", "openai"], base_url=base_url)
     
     # 3. Create the ReAct agent tree
     # This agent wrapping the tree and state_manager

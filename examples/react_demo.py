@@ -120,15 +120,11 @@ async def demo_multi_tools(provider):
 
 async def main():
     """运行演示"""
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY")
     base_url = os.getenv("BASE_URL")
-    if not api_key:
-        print("❌ Error: OPENAI_API_KEY (or API_KEY) environment variable not set!")
-        print("Please run: export OPENAI_API_KEY='your-api-key'")
-        return
 
     try:
-        provider = LLMProvider.default(api_key=api_key, base_url=base_url)
+        # Prefer Gemini to avoid key mismatch issues
+        provider = LLMProvider.default(preference=["gemini", "openai"], base_url=base_url)
     except RuntimeError as e:
         print(str(e))
         return

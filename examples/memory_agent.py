@@ -20,14 +20,11 @@ from btflow.llm import LLMProvider
 
 async def main():
     # 1. Setup LLM Provider
-    api_key = os.getenv("API_KEY")
     base_url = os.getenv("BASE_URL")
-    if not api_key:
-        print("Please set API_KEY in .env")
-        return
 
     try:
-        provider = LLMProvider.default(api_key=api_key, base_url=base_url)
+        # Prefer Gemini to avoid key mismatch issues
+        provider = LLMProvider.default(preference=["gemini", "openai"], base_url=base_url)
     except RuntimeError as e:
         print(str(e))
         return
