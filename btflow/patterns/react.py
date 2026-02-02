@@ -20,7 +20,7 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
 from btflow.nodes import ReActLLMNode, ToolExecutor, IsFinalAnswer
-from btflow.llm import LLMProvider, AutoProviderFactory
+from btflow.llm import LLMProvider
 from btflow.tools import Tool
 from btflow.memory import Memory, create_memory_tools
 

@@ -19,7 +19,7 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
 from btflow.nodes import SelfRefineLLMNode, IsGoodEnough
-from btflow.llm import LLMProvider, AutoProviderFactory
+from btflow.llm import LLMProvider
 from btflow.memory import Memory
 
 

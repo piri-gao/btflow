@@ -15,6 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from btflow.patterns.react import ReActAgent
 from btflow.memory import Memory
+from btflow.llm import LLMProvider
 
 
 async def main():
@@ -26,13 +27,7 @@ async def main():
         return
 
     try:
-        from btflow.llm.providers.openai import OpenAIProvider
-    except RuntimeError as e:
-        print(str(e))
-        return
-
-    try:
-        provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+        provider = LLMProvider.default(api_key=api_key, base_url=base_url)
     except RuntimeError as e:
         print(str(e))
         return

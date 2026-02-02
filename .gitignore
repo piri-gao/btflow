@@ -7,6 +7,7 @@ __pycache__/
 # 你的存档文件 (这是运行时产生的，不要提交)
 .checkpoints/
 *.
+.memory/
 
 # 测试缓存
 .pytest_cache

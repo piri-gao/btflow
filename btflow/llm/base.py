@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+import os
 from typing import Any, Optional, List, Dict, AsyncIterator
 from btflow.messages import Message
 
@@ -47,31 +48,31 @@ class LLMProvider(ABC):
         raise NotImplementedError
 
     @classmethod
-    def default(cls, **kwargs) -> "LLMProvider":
-        """Create a default LLMProvider. Tries OpenAI, Gemini, then Anthropic."""
-        # Try OpenAI first (most common)
-        try:
-            from btflow.llm.providers.openai import OpenAIProvider
-            return OpenAIProvider(**kwargs)
-        except (ImportError, RuntimeError):
-            pass
-        
-        # Try Gemini
-        try:
-            from btflow.llm.providers.gemini import GeminiProvider
-            return GeminiProvider(**kwargs)
-        except (ImportError, RuntimeError):
-            pass
-        
-        # Try Anthropic
-        try:
-            from btflow.llm.providers.anthropic import AnthropicProvider
-            return AnthropicProvider(**kwargs)
-        except (ImportError, RuntimeError):
-            pass
-        
-        raise RuntimeError(
-            "No LLM provider available. Install one of: openai, google-genai, anthropic"
-        )
+    def default(
+        cls,
+        preference: Optional[List[str]] = None,
+        **kwargs,
+    ) -> "LLMProvider":
+        """Create a default LLMProvider based on available env keys."""
+        order = preference or ["openai", "gemini", "anthropic"]
+        api_key = kwargs.get("api_key")
 
+        for name in order:
+            if name == "openai":
+                if api_key or os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY"):
+                    from btflow.llm.providers.openai import OpenAIProvider
+                    return OpenAIProvider(**kwargs)
+            elif name == "gemini":
+                if os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"):
+                    from btflow.llm.providers.gemini import GeminiProvider
+                    return GeminiProvider(**kwargs)
+            elif name == "anthropic":
+                if os.getenv("ANTHROPIC_API_KEY"):
+                    from btflow.llm.providers.anthropic import AnthropicProvider
+                    return AnthropicProvider(**kwargs)
+
+        raise RuntimeError(
+            "No LLM provider configured. Set one of: OPENAI_API_KEY (or API_KEY), "
+            "GOOGLE_API_KEY/GEMINI_API_KEY, or ANTHROPIC_API_KEY."
+        )
 

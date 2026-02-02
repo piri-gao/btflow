@@ -1,5 +1,4 @@
 from btflow.llm.base import LLMProvider, MessageChunk
-from btflow.llm.auto import AutoProviderFactory
 
 __all__ = [
     "LLMProvider",
@@ -7,7 +6,6 @@ __all__ = [
     "GeminiProvider",
     "OpenAIProvider",
     "AnthropicProvider",
-    "AutoProviderFactory",
 ]
 
 

@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from btflow.patterns.react import ReActAgent
-from btflow.llm.providers.openai import OpenAIProvider
+from btflow.llm import LLMProvider
 from btflow.protocols.mcp import MCPClient
 from btflow.core.logging import logger
 
@@ -28,7 +28,7 @@ async def main():
         print("Please set API_KEY in .env")
         return
     
-    provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+    provider = LLMProvider.default(api_key=api_key, base_url=base_url)
     
     # 2. Connect to Memory MCP Server
     # Uses npx to auto-install and run the server

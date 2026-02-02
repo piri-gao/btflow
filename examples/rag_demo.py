@@ -74,11 +74,11 @@ async def main():
         print("❌ Error: OPENAI_API_KEY (or API_KEY) not set in .env")
         return
 
-    from btflow.llm.base import LLMProvider
+    from btflow.llm import LLMProvider
     
-    # Automatically choose best provider (Gemini or OpenAI) based on env vars
+    # Automatically choose provider based on env vars
     try:
-        provider = LLMProvider.default()
+        provider = LLMProvider.default(api_key=api_key, base_url=base_url)
         print(f"🤖 Using LLM Provider: {type(provider).__name__}")
     except Exception as e:
         print(f"❌ Error initializing LLM provider: {e}")

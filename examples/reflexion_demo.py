@@ -23,6 +23,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 load_dotenv()
 
 from btflow.patterns.reflexion import ReflexionAgent
+from btflow.llm import LLMProvider
 
 
 async def demo_haiku(provider):
@@ -105,12 +106,7 @@ async def main():
         return
 
     try:
-        from btflow.llm.providers.openai import OpenAIProvider
-    except RuntimeError as e:
-        print(str(e))
-        return
-    try:
-        provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+        provider = LLMProvider.default(api_key=api_key, base_url=base_url)
     except RuntimeError as e:
         print(str(e))
         return

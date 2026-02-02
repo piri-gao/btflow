@@ -9,7 +9,7 @@ load_dotenv() # Load from .env file
 from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState, ReActAgent
-from btflow.llm.providers.openai import OpenAIProvider
+from btflow.llm import LLMProvider
 from btflow.tools import DuckDuckGoSearchTool
 from btflow.core.logging import logger
 
@@ -24,7 +24,7 @@ async def main():
         print("Please set API_KEY environment variable in .env.")
         return
         
-    provider = OpenAIProvider(api_key=api_key, base_url=base_url)
+    provider = LLMProvider.default(api_key=api_key, base_url=base_url)
     
     # 3. Create the ReAct agent tree
     # This agent wrapping the tree and state_manager
