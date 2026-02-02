@@ -2,8 +2,9 @@
 BTAgent: 统一接入层
 支持 step() 和 run() 双模驱动
 """
+from __future__ import annotations
 import asyncio
-from typing import Literal, Dict, Any, Optional, Union, TYPE_CHECKING
+from typing import Literal, Dict, Any, Optional, TYPE_CHECKING
 from py_trees.common import Status
 from py_trees.behaviour import Behaviour
 
@@ -30,33 +31,22 @@ class BTAgent:
         # RL 场景
         action = await agent.step({"observation": obs})
     
-    Example (兼容旧 API):
-        runner = ReactiveRunner(root, state_manager)
-        agent = BTAgent(runner)
     """
     
     def __init__(
         self, 
-        root_or_runner: Union[Behaviour, ReactiveRunner],
-        state_manager: Optional["StateManager"] = None
+        root: Behaviour,
+        state_manager: StateManager
     ):
         """
         创建 BTAgent。
         
         Args:
-            root_or_runner: 行为树根节点，或者已创建的 ReactiveRunner（兼容旧 API）
-            state_manager: 状态管理器（当第一个参数是根节点时必需）
+            root: 行为树根节点
+            state_manager: 状态管理器
         """
-        if isinstance(root_or_runner, ReactiveRunner):
-            # 兼容旧 API: BTAgent(runner)
-            self.runner = root_or_runner
-            self.state_manager = root_or_runner.state_manager
-        else:
-            # 新 API: BTAgent(root, state_manager)
-            if state_manager is None:
-                raise ValueError("state_manager is required when passing root node")
-            self.runner = ReactiveRunner(root_or_runner, state_manager)
-            self.state_manager = state_manager
+        self.runner = ReactiveRunner(root, state_manager)
+        self.state_manager = state_manager
         
         self._mode: Literal["idle", "step", "run"] = "idle"
     

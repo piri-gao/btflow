@@ -56,8 +56,11 @@ class TestBTAgentStep(unittest.IsolatedAsyncioTestCase):
         
         # 简单的单节点树（同步节点用于 step 测试）
         self.root = SyncActionNode("Action")
-        self.runner = ReactiveRunner(self.root, self.state)
-        self.agent = BTAgent(self.runner)
+        # Runner is created inside BTAgent now for the default constructor
+        # If we need access to runner, we can access agent.runner
+        self.agent = BTAgent(self.root, self.state)
+        # For testing purposes, we can alias agent.runner if needed
+        self.runner = self.agent.runner
     
     async def test_step_returns_actions(self):
         """step() 应返回 ActionField 标记的字段"""
@@ -99,8 +102,9 @@ class TestBTAgentReset(unittest.IsolatedAsyncioTestCase):
         self.state.initialize()
         
         self.root = SyncActionNode("Action")
-        self.runner = ReactiveRunner(self.root, self.state)
-        self.agent = BTAgent(self.runner)
+        # Runner is created inside BTAgent now for the default constructor
+        self.agent = BTAgent(self.root, self.state)
+        self.runner = self.agent.runner
     
     async def test_reset_clears_agent_state(self):
         """reset() 应重置 agent 状态"""

@@ -59,11 +59,8 @@ async def main():
             print("🗑️ Memory cleared!")
             continue
 
-        # Reset agent state for new task
-        agent.state_manager.initialize({"task": user_input, "messages": []})
-
         # Run agent
-        await agent.runner.run()
+        await agent.run(input_data={"task": user_input, "messages": []}, reset_tree=True, reset_data=False)
 
         # Get result
         state = agent.state_manager.get()

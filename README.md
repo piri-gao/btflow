@@ -53,7 +53,7 @@ class AgentState(BaseModel):
 
 ```python
 import asyncio
-from btflow import StateManager, ReactiveRunner, BTAgent, Sequence
+from btflow import StateManager, BTAgent, Sequence
 from btflow.nodes import GeminiNode
 
 async def main():
@@ -68,8 +68,7 @@ async def main():
     root.add_children([node1])
 
     # 3. Run Agent
-    runner = ReactiveRunner(root, state_manager)
-    agent = BTAgent(runner)
+    agent = BTAgent(root, state_manager)
     
     await agent.run(input_data={"messages": ["Hello!"]})
 

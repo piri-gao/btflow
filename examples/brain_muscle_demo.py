@@ -248,7 +248,7 @@ async def main():
     
     root = Parallel(
         name="BrainMuscle",
-        policy=ParallelPolicy.SuccessOnAll(),
+        policy=ParallelPolicy.SuccessOnAll(synchronise=False),
         children=[brain_node, muscle_node]
     )
     

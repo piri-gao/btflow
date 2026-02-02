@@ -6,12 +6,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv() # Load from .env file
 
-from btflow.core.state import StateManager
-from btflow.core.runtime import ReactiveRunner
-from btflow.patterns.react import ReActState, ReActAgent
+from btflow.patterns.react import ReActAgent
 from btflow.llm import LLMProvider
 from btflow.tools import DuckDuckGoSearchTool
-from btflow.core.logging import logger
 
 async def main():
     # 1. Setup tools
@@ -25,23 +22,19 @@ async def main():
     # 3. Create the ReAct agent tree
     # This agent wrapping the tree and state_manager
     agent = ReActAgent.create(
-        model="gemini-2.0-flash", # Use a fast model
+        model="gemini-2.5-flash", # Use a fast model
         provider=provider,
         tools=[search_tool],
         max_rounds=10,
         stream=False # Disabled for proxy compatibility
     )
     
-    # 4. Access internal components for demo control
-    runner = agent.runner
-    state_manager = agent.state_manager
-    
     # 5. Define the task
     task = "Who won the Australian Open men's singles in 2025? If it hasn't happened or finished yet, report the current status."
-    state_manager.initialize({
+    input_data = {
         "task": task,
         "messages": []
-    })
+    }
     
     # 6. Run the agent
     print(f"\n🚀 [Agent Task]: {task}\n")
@@ -54,12 +47,12 @@ async def main():
         # but for a CLI demo, we'll let it finish or use trace events.
         pass
     
-    state_manager.subscribe(on_state_change)
-    
-    await runner.run()
+    agent.state_manager.subscribe(on_state_change)
+
+    await agent.run(input_data=input_data)
     
     # 7. Final Results
-    final_state = state_manager.get()
+    final_state = agent.state_manager.get()
     print("-" * 50)
     print(f"\n🎯 [Final Answer]:\n{final_state.final_answer}")
 

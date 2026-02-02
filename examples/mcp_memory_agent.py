@@ -17,7 +17,6 @@ load_dotenv()
 from btflow.patterns.react import ReActAgent
 from btflow.llm import LLMProvider
 from btflow.protocols.mcp import MCPClient
-from btflow.core.logging import logger
 
 
 async def main():
@@ -51,19 +50,15 @@ async def main():
             max_rounds=10,
         )
         
-        runner = agent.runner
-        state_manager = agent.state_manager
-        
         # 5. First task: Store some memories
         task1 = "Please store the following facts in memory: 1) My name is Alice 2) I like Python programming 3) My favorite color is blue"
         
         print(f"\n🚀 Task 1: {task1}\n")
         print("-" * 50)
-        
-        state_manager.initialize({"task": task1, "messages": []})
-        await runner.run()
-        
-        final_state = state_manager.get()
+
+        await agent.run(input_data={"task": task1, "messages": []})
+
+        final_state = agent.state_manager.get()
         print(f"\n🎯 Result: {final_state.final_answer}")
         
         # 6. Second task: Retrieve memories
@@ -82,8 +77,7 @@ async def main():
             max_rounds=10,
         )
         
-        agent2.state_manager.initialize({"task": task2, "messages": []})
-        await agent2.runner.run()
+        await agent2.run(input_data={"task": task2, "messages": []})
         
         final_state2 = agent2.state_manager.get()
         print(f"\n🎯 Result: {final_state2.final_answer}")
