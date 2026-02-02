@@ -54,7 +54,8 @@ class AgentState(BaseModel):
 ```python
 import asyncio
 from btflow import StateManager, BTAgent, Sequence
-from btflow.nodes import GeminiNode
+from btflow.nodes import LLMNode
+from btflow.llm import LLMProvider
 
 async def main():
     # 1. Initialize State
@@ -64,7 +65,8 @@ async def main():
     # 2. Build Tree
     root = Sequence(name="MainSeq", memory=True)
     # Note: StateManager is auto-injected!
-    node1 = GeminiNode(name="Think", model="gemini-1.5-flash")
+    provider = LLMProvider.default(preference=["gemini", "openai"])
+    node1 = LLMNode(name="Think", provider=provider, model="gemini-2.5-flash")
     root.add_children([node1])
 
     # 3. Run Agent

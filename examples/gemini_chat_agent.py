@@ -1,5 +1,5 @@
 """
-Gemini ChatBot (连续对话模式)
+LLM ChatBot (连续对话模式)
 使用 BTAgent 接口进行多轮对话
 """
 import sys
@@ -11,7 +11,9 @@ from pydantic import BaseModel, Field
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # 一行 import 搞定！
-from btflow import BTAgent, StateManager, Sequence, GeminiNode
+from btflow import BTAgent, StateManager, Sequence
+from btflow.nodes import LLMNode
+from btflow.llm import LLMProvider
 
 # === 1. 定义状态 ===
 class AgentState(BaseModel):
@@ -20,7 +22,7 @@ class AgentState(BaseModel):
 
 async def main():
     print("\n" + "="*50)
-    print("✨ Gemini ChatBot (使用 BTAgent)")
+    print("✨ LLM ChatBot (使用 BTAgent)")
     print("   输入 'exit' 或 'quit' 退出")
     print("="*50)
 
@@ -32,13 +34,21 @@ async def main():
     })
 
     # === 3. 构建树 (不需要传 state_manager，Runner 会自动注入) ===
-    root = Sequence(name="GeminiFlow", memory=True)
-    gemini_node = GeminiNode(
-        name="Gemini", 
-        model="gemini-2.5-flash", 
-        system_prompt="你是一个乐于助人的 AI 助手。"
+    root = Sequence(name="LLMFlow", memory=True)
+    try:
+        provider = LLMProvider.default(preference=["gemini", "openai"], base_url=os.getenv("BASE_URL"))
+    except RuntimeError as e:
+        print(str(e))
+        return
+    llm_node = LLMNode(
+        name="ChatLLM",
+        provider=provider,
+        model="gemini-2.5-flash",
+        system_prompt="你是一个乐于助人的 AI 助手。",
+        assistant_prefix="Assistant",
+        step_key="step_count",
     )
-    root.add_children([gemini_node])
+    root.add_children([llm_node])
 
     # === 4. 创建 BTAgent (无需手动创建 Runner！) ===
     agent = BTAgent(root, state_manager)
@@ -66,7 +76,7 @@ async def main():
 
             # 打印本次回复
             current_msgs = state_manager.get().messages
-            if current_msgs and current_msgs[-1].startswith("Gemini:"):
+            if current_msgs and current_msgs[-1].startswith("Assistant:"):
                 print(f"🤖 {current_msgs[-1]}")
 
         except KeyboardInterrupt:

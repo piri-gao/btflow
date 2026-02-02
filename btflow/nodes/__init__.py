@@ -9,7 +9,7 @@ from btflow.nodes.builtin import (
     IsFinalAnswer,
     SelfRefineLLMNode,
     IsGoodEnough,
-    GeminiNode,
+    LLMNode,
     MockLLMAction,
     Log,
     Wait,
@@ -32,7 +32,7 @@ __all__ = [
     "IsGoodEnough",
     
     # LLM
-    "GeminiNode",
+    "LLMNode",
     
     # Common
     "MockLLMAction",

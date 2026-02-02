@@ -74,25 +74,10 @@ __all__ = [
     "BehaviourTree",
     "BlackboardClient",
     "display",
-    # Nodes
-    "GeminiNode",
     "MockLLMAction",
     "Log",
     "Wait",
 ]
-
-
-def __getattr__(name: str):
-    if name == "GeminiNode":
-        try:
-            from btflow.nodes import GeminiNode  # type: ignore
-        except ImportError as e:
-            raise RuntimeError(
-                "GeminiNode requires optional dependency 'google-genai'. "
-                "Install it with: pip install google-genai"
-            ) from e
-        return GeminiNode
-    raise AttributeError(f"module 'btflow' has no attribute '{name}'")
 
 
 def __dir__():
