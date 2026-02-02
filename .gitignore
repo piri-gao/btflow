@@ -8,6 +8,7 @@ __pycache__/
 .checkpoints/
 *.
 .memory/
+*.log
 
 # 测试缓存
 .pytest_cache
