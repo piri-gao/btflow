@@ -53,6 +53,7 @@ class LLMNode(AsyncBehaviour):
                 if self.streaming_output_key:
                     self.state_manager.update({self.streaming_output_key: ""})
                 parts: List[str] = []
+                chunk_count = 0
                 try:
                     async for chunk in self.provider.generate_stream(
                         prompt_content,
@@ -65,6 +66,7 @@ class LLMNode(AsyncBehaviour):
                             text = chunk.text or ""
                         else:
                             text = getattr(chunk, "text", "") or ""
+                        chunk_count += 1
                         if text:
                             parts.append(text)
                             if self.streaming_output_key:

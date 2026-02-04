@@ -2,6 +2,18 @@ from typing import List, Dict, Any, Optional, Type, Callable, Union
 from pydantic import BaseModel, Field
 import inspect
 
+
+def _docstring(obj: Any) -> str:
+    return (inspect.getdoc(obj) or "").strip()
+
+
+def _resolve_description(explicit: Optional[str], target: Any = None) -> str:
+    if explicit and explicit.strip():
+        return explicit.strip()
+    if target is None:
+        return ""
+    return _docstring(target)
+
 class NodeMetadata(BaseModel):
     """Metadata for a node type to be rendered in the UI."""
     model_config = {"arbitrary_types_allowed": True}
@@ -51,7 +63,7 @@ class NodeRegistry:
             
             node_id = id or target_cls.__name__
             node_label = label or node_id
-            node_desc = description or (target_cls.__doc__ or "").strip()
+            node_desc = _resolve_description(description, target_cls)
             
             meta = NodeMetadata(
                 id=node_id,
@@ -75,6 +87,8 @@ class NodeRegistry:
     
     def register_metadata(self, meta: NodeMetadata):
         """Register metadata without a python class (for virtual nodes)."""
+        if (not meta.description) and meta.node_class is not None:
+            meta.description = _docstring(meta.node_class)
         self._nodes[meta.id] = meta
         # Also add to class map if node_class is provided (e.g., for lambda factories)
         if meta.node_class is not None:
@@ -181,24 +195,25 @@ from btflow.tools import CalculatorTool
 from btflow.tools.builtin.mock import MockSearchTool, MockWikipediaTool
 from btflow.tools.node import ToolNode
 
+def _tool_description(tool_cls: Type) -> str:
+    return _resolve_description(None, tool_cls) or getattr(tool_cls, "description", "")
+
+
+def _register_tool_meta(tool_cls: Type, node_id: str, label: str, icon: str):
+    node_registry.register_metadata(NodeMetadata(
+        id=node_id,
+        label=label,
+        category="Tools",
+        icon=icon,
+        description=_tool_description(tool_cls),
+        node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", label), tool=tool_cls())
+    ))
+
+
 # Tools
-node_registry.register_metadata(NodeMetadata(
-    id="CalculatorTool", label="Calculator", category="Tools", icon="🧮",
-    description="Perform mathematical calculations",
-    node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", "Calculator"), tool=CalculatorTool())
-))
-
-node_registry.register_metadata(NodeMetadata(
-    id="SearchTool", label="Mock Search", category="Tools", icon="🔍",
-    description="Search the web (requires Google Search API)",
-    node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", "Search"), tool=SearchTool())
-))
-
-node_registry.register_metadata(NodeMetadata(
-    id="WikipediaTool", label="Mock Wikipedia", category="Tools", icon="📖",
-    description="Search and browse Wikipedia",
-    node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", "Wikipedia"), tool=WikipediaTool())
-))
+_register_tool_meta(CalculatorTool, "CalculatorTool", "Calculator", "🧮")
+_register_tool_meta(MockSearchTool, "SearchTool", "Mock Search", "🔍")
+_register_tool_meta(MockWikipediaTool, "WikipediaTool", "Mock Wikipedia", "📖")
 
 # LoopUntilSuccess
 node_registry.register_metadata(NodeMetadata(
