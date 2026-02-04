@@ -69,6 +69,18 @@ class Tool(ABC):
             "required": ["input"],
         }
 
+    def _docstring_description(self) -> str:
+        doc = inspect.getdoc(self.__class__)
+        return doc.strip() if doc else ""
+
+    def _effective_description(self) -> str:
+        doc = self._docstring_description()
+        if doc:
+            return doc
+        if self.description and self.description != "No description provided":
+            return self.description
+        return ""
+
     def _normalize_output_schema(self) -> Dict[str, Any]:
         """Normalize output schema into an object-shaped JSON Schema."""
         schema = self.output_schema or {}
@@ -95,7 +107,7 @@ class Tool(ABC):
         """OpenAI-style function schema (name/description/parameters)."""
         return {
             "name": self.name,
-            "description": self.description,
+            "description": self._effective_description(),
             "parameters": self._normalize_parameters(),
             "returns": self._normalize_output_schema(),
         }
@@ -104,7 +116,7 @@ class Tool(ABC):
         """Return a normalized tool spec for prompts and UIs."""
         return {
             "name": self.name,
-            "description": self.description,
+            "description": self._effective_description(),
             "input_schema": self.input_schema,
             "output_schema": self.output_schema,
             "parameters": self._normalize_parameters(),
@@ -160,4 +172,3 @@ async def _call_kwargs(func, kwargs: Dict[str, Any]) -> Any:
     if inspect.iscoroutinefunction(func):
         return await func(**kwargs)
     return await asyncio.to_thread(func, **kwargs)
-

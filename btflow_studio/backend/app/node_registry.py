@@ -2,6 +2,8 @@ from typing import List, Dict, Any, Optional, Type, Callable, Union
 from pydantic import BaseModel, Field
 import inspect
 
+from btflow import Sequence, Selector, Parallel
+
 
 def _docstring(obj: Any) -> str:
     return (inspect.getdoc(obj) or "").strip()
@@ -111,26 +113,26 @@ node_registry = NodeRegistry()
 # 1. Composites
 node_registry.register_metadata(NodeMetadata(
     id="Sequence", label="Sequence", category="Control Flow", icon="➡️",
-    description="Execute children sequentially until one fails.",
-    config_schema={"memory": {"type": "boolean", "default": False}}
+    config_schema={"memory": {"type": "boolean", "default": False}},
+    node_class=Sequence
 ))
 
 node_registry.register_metadata(NodeMetadata(
     id="Selector", label="Selector", category="Control Flow", icon="❓",
-    description="Execute children until one succeeds.",
-    config_schema={"memory": {"type": "boolean", "default": False}}
+    config_schema={"memory": {"type": "boolean", "default": False}},
+    node_class=Selector
 ))
 
 node_registry.register_metadata(NodeMetadata(
     id="Parallel", label="Parallel", category="Control Flow", icon="🔀",
-    description="Run children in parallel.",
     config_schema={
         "policy": {
             "type": "select", 
             "options": ["SuccessOnAll", "SuccessOnOne", "FailureOnAll", "FailureOnOne"],
             "default": "SuccessOnAll"
         }
-    }
+    },
+    node_class=Parallel
 ))
 
 # 2. Debug & Action Nodes
@@ -144,7 +146,6 @@ node_registry.register(
     label="Log Message",
     category="Debug",
     icon="📝",
-    description="Print a message to the console",
     config_schema={
         "message": {
             "type": "text",
@@ -160,7 +161,6 @@ node_registry.register(
     label="Wait",
     category="Action",
     icon="⏳",
-    description="Wait for a specified duration",
     config_schema={
         "duration": {
             "type": "number",
@@ -176,7 +176,6 @@ node_registry.register(
     label="Set Agent Task",
     category="Action",
     icon="🎯",
-    description="Set the goal or task for the agent",
     config_schema={
         "task_content": {
             "type": "textarea",
@@ -196,7 +195,7 @@ from btflow.tools.builtin.mock import MockSearchTool, MockWikipediaTool
 from btflow.tools.node import ToolNode
 
 def _tool_description(tool_cls: Type) -> str:
-    return _resolve_description(None, tool_cls) or getattr(tool_cls, "description", "")
+    return _resolve_description(None, tool_cls)
 
 
 def _register_tool_meta(tool_cls: Type, node_id: str, label: str, icon: str):
@@ -218,7 +217,6 @@ _register_tool_meta(MockWikipediaTool, "WikipediaTool", "Mock Wikipedia", "📖"
 # LoopUntilSuccess
 node_registry.register_metadata(NodeMetadata(
     id="LoopUntilSuccess", label="Loop Until Success", category="Control Flow", icon="🔄",
-    description="Loop child until it succeeds (converts FAILURE to RUNNING).",
     config_schema={
         "max_iterations": {"type": "number", "default": 10}
     },
@@ -230,7 +228,6 @@ node_registry._class_map["LoopUntilSuccess"] = LoopUntilSuccess
 node_registry.register(
     ReActLLMNode,
     id="ReActLLMNode", label="ReAct LLM", category="Agent (ReAct)", icon="🤖",
-    description="LLM Node for ReAct Pattern (Thought/Action/Answer)",
     config_schema={
         "model": {"type": "text", "default": "gemini-2.5-flash"},
         "system_prompt": {"type": "textarea", "default": ""}
@@ -240,21 +237,18 @@ node_registry.register(
 node_registry.register(
     MockReActLLMNode,
     id="MockReActLLMNode", label="Mock ReAct LLM", category="Agent (ReAct)", icon="🎭",
-    description="Mock LLM for testing ReAct without API",
     config_schema={}
 )
 
 node_registry.register(
     ToolExecutor,
     id="ToolExecutor", label="Tool Executor", category="Agent (ReAct)", icon="🛠️",
-    description="Executes tools based on Action from LLM",
     config_schema={} 
 )
 
 node_registry.register(
     IsFinalAnswer,
     id="IsFinalAnswer", label="Is Final Answer?", category="Agent (ReAct)", icon="✅",
-    description="Check if Final Answer is present",
     config_schema={
         "max_rounds": {"type": "number", "default": 10}
     }
@@ -264,7 +258,6 @@ node_registry.register(
 node_registry.register(
     SelfRefineLLMNode,
     id="SelfRefineLLMNode", label="Self-Refine LLM", category="Agent (Reflexion)", icon="🪞",
-    description="Generate answer and self-evaluate score",
     config_schema={
         "model": {"type": "text", "default": "gemini-2.5-flash"}
     }
@@ -273,7 +266,6 @@ node_registry.register(
 node_registry.register(
     IsGoodEnough,
     id="IsGoodEnough", label="Is Good Enough?", category="Agent (Reflexion)", icon="⚖️",
-    description="Check if score meets threshold",
     config_schema={
         "threshold": {"type": "number", "default": 8.0},
         "max_rounds": {"type": "number", "default": 5}

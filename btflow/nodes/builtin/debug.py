@@ -4,6 +4,7 @@ from typing import Callable, Optional
 from btflow.core.logging import logger
 
 class Log(Behaviour):
+    """Log a message to console (and broadcast to Studio if configured)."""
     # Class-level callback that can be set by the runner
     _broadcast_callback: Optional[Callable[[str, str], None]] = None
     

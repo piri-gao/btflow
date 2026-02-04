@@ -5,6 +5,7 @@ from py_trees.common import Status
 from btflow.core.logging import logger
 
 class Wait(AsyncBehaviour):
+    """Wait for a specified duration, then return SUCCESS."""
     def __init__(self, name: str, duration: float = 1.0):
         super().__init__(name=name)
         self.duration = float(duration)  # Ensure float even if string is passed
