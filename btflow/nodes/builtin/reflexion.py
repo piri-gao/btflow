@@ -17,7 +17,9 @@ from btflow.context import ContextBuilder, ContextBuilderProtocol
 
 class SelfRefineLLMNode(AsyncBehaviour):
     """
-    Self-Refine 节点：生成答案 + 自我评估。
+    Reflexion LLM node.
+
+    Generates an answer, scores it, and optionally refines it based on feedback.
     """
 
     def __init__(
@@ -210,9 +212,7 @@ Please improve your answer based on the feedback, then re-evaluate and provide y
 
 
 class IsGoodEnough(Behaviour):
-    """
-    条件节点：检查是否达到目标分数。
-    """
+    """Check if the current score meets the threshold."""
 
     def __init__(self, name: str = "IsGoodEnough", threshold: float = 8.0, max_rounds: int = 10):
         super().__init__(name)

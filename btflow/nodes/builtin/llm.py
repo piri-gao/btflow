@@ -12,7 +12,10 @@ from btflow.messages.formatting import messages_to_prompt, message_to_text
 
 class LLMNode(AsyncBehaviour):
     """
-    Generic LLM node using an injected provider.
+    Generic LLM node.
+
+    Builds a prompt from state.messages (or a string), calls the provider,
+    and writes the assistant reply back to state.
     """
 
     def __init__(

@@ -6,8 +6,7 @@ from btflow.core.logging import logger
 
 class DuckDuckGoSearchTool(Tool):
     """
-    Free web search tool using DuckDuckGo.
-    Does not require an API key.
+    DuckDuckGo web search (no API key required).
     """
     name = "duckduckgo_search"
     description = (

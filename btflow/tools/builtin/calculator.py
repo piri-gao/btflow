@@ -1,10 +1,10 @@
-"""Calculator tool for math expressions."""
+"""Evaluate a simple math expression (digits and operators only)."""
 
 from btflow.tools.base import Tool
 
 
 class CalculatorTool(Tool):
-    """A simple calculator tool that evaluates math expressions."""
+    """Evaluate a math expression like '2+2' or '3*4-5'."""
     name = "calculator"
     description = "Performs basic math calculations. Input should be a valid Python math expression like '2+2' or '3*4-5'."
     input_schema = {"type": "string", "description": "Python math expression, e.g. '2+2'"}

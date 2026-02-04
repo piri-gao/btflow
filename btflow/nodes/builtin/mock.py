@@ -7,11 +7,9 @@ from btflow.core.behaviour import AsyncBehaviour
 
 class MockLLMAction(AsyncBehaviour):
     """
-    模拟一个 LLM 调用节点。
-    它会从 State 读取 messages，模拟网络延迟，然后追加一条回复。
-    
-    Note:
-        state_manager 由 Runner 自动注入，不需要在构造时传入。
+    Mock LLM node.
+
+    Reads state.messages, simulates latency, and appends a reply.
     """
     def __init__(self, name: str):
         super().__init__(name)
@@ -47,8 +45,9 @@ class MockLLMAction(AsyncBehaviour):
 
 class MockReActLLMNode(AsyncBehaviour):
     """
-    Mock LLM Node for testing ReAct workflow without API calls.
-    Simulates: Thought -> Action -> Observation -> Final Answer
+    Mock ReAct LLM node for tests.
+
+    Simulates: Thought -> Action -> Observation -> Final Answer.
     """
     def __init__(self, name: str = "MockLLM", **kwargs):
         super().__init__(name)

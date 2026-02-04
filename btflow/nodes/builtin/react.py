@@ -22,9 +22,10 @@ from btflow.context import ContextBuilder, ContextBuilderProtocol
 
 class ReActLLMNode(AsyncBehaviour):
     """
-    ReAct 推理节点：调用 Gemini 进行思考。
+    ReAct LLM node.
 
-    每次 tick 都会调用 LLM，由 Repeat 控制循环。
+    Reads state.messages/task, builds a ReAct prompt, calls the LLM, and appends
+    Thought/Action/Final Answer content back to state.messages.
     """
 
     def __init__(
@@ -271,12 +272,10 @@ Always think step by step."""
 
 class ToolExecutor(AsyncBehaviour):
     """
-    工具执行节点：检测并执行 Action。
+    Tool execution node for ReAct.
 
-    解析最后一条消息中的 Action/Input，执行对应工具，
-    将结果作为 Observation 写入消息历史。
-
-    无论是否有 Action，都返回 SUCCESS（不阻塞 Sequence）。
+    Parses the latest Action/Input, invokes the matching tool, and appends
+    Observations back to state.messages. Always returns SUCCESS.
     """
 
     ACTION_PATTERN = re.compile(
@@ -722,10 +721,7 @@ class ToolExecutor(AsyncBehaviour):
 
 class IsFinalAnswer(Behaviour):
     """
-    条件节点：检查是否有 Final Answer。
-
-    - 有 Final Answer → SUCCESS
-    - 无 Final Answer → FAILURE
+    Check for Final Answer in the latest messages.
     """
 
     FINAL_ANSWER_PATTERN = re.compile(

@@ -6,7 +6,7 @@ from btflow.tools.base import Tool
 
 
 class MockSearchTool(Tool):
-    """A mock search tool for demonstration purposes."""
+    """Mock web search tool for demos and tests."""
     name = "search"
     description = "Search the web for information. Input should be a search query."
     input_schema = {"type": "string", "description": "Search query"}
@@ -28,7 +28,7 @@ class MockSearchTool(Tool):
 
 
 class MockWikipediaTool(Tool):
-    """A mock Wikipedia lookup tool."""
+    """Mock Wikipedia lookup tool."""
     name = "wikipedia"
     description = "Look up information on Wikipedia. Input should be a topic or person name."
     input_schema = {"type": "string", "description": "Topic or person name"}
