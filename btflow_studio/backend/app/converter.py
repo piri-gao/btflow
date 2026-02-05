@@ -1,9 +1,11 @@
 import btflow
 from typing import Dict, Any, Type, List
+from pathlib import Path
 from pydantic import create_model
 from btflow.core.state import StateManager
-from .workflow_schema import WorkflowDefinition, NodeDefinition
+from .workflow_schema import WorkflowDefinition, NodeDefinition, StateFieldDefinition
 from .node_registry import node_registry
+from .tool_registry import get_tool_class_by_id
 from btflow import Sequence, Selector, Parallel
 from btflow import ParallelPolicy
 import inspect
@@ -11,6 +13,9 @@ from btflow.core.logging import logger
 from btflow.tools import Tool
 from btflow.tools.node import ToolNode
 from btflow.nodes import ToolExecutor
+from btflow.memory import Memory
+from btflow.memory.store import InMemoryStore, JsonStore, SQLiteStore
+from btflow.memory.tools import MemorySearchTool, MemoryAddTool
 
 class WorkflowConverter:
     """
@@ -21,6 +26,7 @@ class WorkflowConverter:
         self.workflow = workflow
         self.node_map: Dict[str, btflow.Behaviour] = {}
         self.state_manager = self._create_state_manager()
+        self.memories = self._create_memories()
     
     def compile(self) -> btflow.Behaviour:
         """Builds the behavior tree from the workflow definition."""
@@ -145,6 +151,10 @@ class WorkflowConverter:
     def _create_state_manager(self) -> StateManager:
         """Dynamically creates the Pydantic State Schema from definition."""
         fields = {}
+        state_def = self.workflow.state
+        field_defs = state_def.fields
+        if not field_defs or (state_def.schema_name or "") == "AutoState":
+            field_defs = self._infer_state_fields()
         
         type_map = {
             "str": str,
@@ -156,7 +166,7 @@ class WorkflowConverter:
             "tuple": tuple
         }
         
-        for field in self.workflow.state.fields:
+        for field in field_defs:
             py_type = type_map.get(field.type, str)
             # TODO: Handle ActionField annotation if field.is_action is True
             fields[field.name] = (py_type, field.default)
@@ -183,9 +193,9 @@ class WorkflowConverter:
         # Build initial state from field defaults
         initial_state = {}
         logger.info("📋 [Converter] workflow.state.fields has {} items: {}", 
-                    len(self.workflow.state.fields), 
-                    [(f.name, f.default) for f in self.workflow.state.fields])
-        for field in self.workflow.state.fields:
+                    len(field_defs), 
+                    [(f.name, f.default) for f in field_defs])
+        for field in field_defs:
             # 修复：不要跳过空字符串和空列表，只跳过 None
             initial_state[field.name] = field.default
         
@@ -193,6 +203,88 @@ class WorkflowConverter:
         sm.initialize(initial_state)
         logger.info("📋 [Converter] State after init: {}", sm.get().model_dump())
         return sm
+
+    def _infer_state_fields(self) -> List[StateFieldDefinition]:
+        """Infer state schema from bindings + node port metadata."""
+        fields: Dict[str, StateFieldDefinition] = {}
+
+        def add_field(name: str, field_type: str, default: Any):
+            if name not in fields:
+                fields[name] = StateFieldDefinition(name=name, type=field_type, default=default)
+
+        def normalize_binding(value: Any, fallback: str) -> str:
+            if not value:
+                return fallback
+            if isinstance(value, str):
+                if value.startswith("state."):
+                    value = value[len("state."):]
+            return str(value).strip()
+
+        def port_meta(meta_list: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+            result: Dict[str, Dict[str, Any]] = {}
+            for item in meta_list or []:
+                if isinstance(item, dict) and "name" in item:
+                    result[item["name"]] = item
+                elif isinstance(item, str):
+                    result[item] = {"name": item, "type": "str", "default": ""}
+            return result
+
+        for node in self.workflow.nodes:
+            meta = node_registry.get(node.type)
+            inputs = port_meta(meta.inputs if meta else [])
+            outputs = port_meta(meta.outputs if meta else [])
+
+            input_bindings = node.input_bindings or {}
+            output_bindings = node.output_bindings or {}
+
+            for name, info in inputs.items():
+                target = normalize_binding(input_bindings.get(name), name)
+                add_field(target, info.get("type", "str"), info.get("default", ""))
+
+            for name, info in outputs.items():
+                target = normalize_binding(output_bindings.get(name), name)
+                add_field(target, info.get("type", "str"), info.get("default", ""))
+
+        if not fields:
+            add_field("messages", "list", [])
+            add_field("task", "str", "")
+            add_field("round", "int", 0)
+        return list(fields.values())
+
+    def _default_memory_path(self, memory_id: str) -> str:
+        workflow_id = self.workflow.id or "workflow"
+        safe_id = memory_id or "default"
+        base_dir = Path(__file__).resolve().parent / "data" / "memory"
+        filename = f"{workflow_id}_{safe_id}.sqlite"
+        return str(base_dir / filename)
+
+    def _create_memories(self) -> Dict[str, Memory]:
+        resources = getattr(self.workflow, "resources", None)
+        memory_defs = resources.memories if resources and resources.memories else []
+
+        if not memory_defs:
+            default_path = self._default_memory_path("default")
+            store = SQLiteStore(default_path)
+            return {"default": Memory(store=store, embedding_dim=64, normalize_embeddings=True)}
+
+        memory_map: Dict[str, Memory] = {}
+        for res in memory_defs:
+            if res.type == "sqlite":
+                path = res.persist_path or self._default_memory_path(res.id)
+                store = SQLiteStore(path, max_size=res.max_size)
+            elif res.type == "json":
+                path = res.persist_path or self._default_memory_path(res.id).replace(".sqlite", ".json")
+                store = JsonStore(path, max_size=res.max_size, autosave=res.autosave)
+            else:
+                store = InMemoryStore(max_size=res.max_size)
+
+            memory_map[res.id] = Memory(
+                store=store,
+                embedding_dim=res.embedding_dim,
+                normalize_embeddings=res.normalize_embeddings,
+            )
+
+        return memory_map
 
 
 
@@ -218,7 +310,90 @@ class WorkflowConverter:
             policy = policy_class()  # Instantiate!
             return Parallel(name=node_def.label or node_def.id, policy=policy)
             
-        # 2. Handle Custom Nodes (Registered Classes)
+        # 2. Handle ToolExecutor with tool selection
+        if node_def.type == "ToolExecutor":
+            memory_id = node_def.config.get("memory_id") if node_def.config else None
+            if memory_id is None and self.memories:
+                memory_id = "default"
+            memory = self.memories.get(memory_id) if memory_id else None
+            tools = []
+            for tool_id in node_def.config.get("tools", []) or []:
+                tool_cls = get_tool_class_by_id(tool_id)
+                if not tool_cls:
+                    logger.warning("❌ [Converter] Unknown tool id '{}'", tool_id)
+                    continue
+                try:
+                    if tool_cls in (MemorySearchTool, MemoryAddTool):
+                        if memory is None:
+                            logger.warning("❌ [Converter] Memory tool '{}' requires memory_id", tool_id)
+                            continue
+                        tools.append(tool_cls(memory))
+                    else:
+                        tools.append(tool_cls())
+                except Exception as e:
+                    logger.warning("❌ [Converter] Failed to init tool {}: {}", tool_id, e)
+            node = ToolExecutor(name=node_def.label or node_def.id, tools=tools)
+            self._apply_bindings(node, node_def)
+            return node
+
+        # 2.5 Handle deterministic ToolNode
+        if node_def.type == "ToolNode":
+            tool_id = node_def.config.get("tool_id") if node_def.config else None
+            if not tool_id:
+                logger.warning("❌ [Converter] ToolNode missing tool_id")
+                return btflow.Dummy(name=node_def.label or node_def.id)
+            tool_cls = get_tool_class_by_id(tool_id)
+            if not tool_cls:
+                logger.warning("❌ [Converter] Unknown tool id '{}'", tool_id)
+                return btflow.Dummy(name=node_def.label or node_def.id)
+
+            memory_id = node_def.config.get("memory_id") if node_def.config else None
+            if memory_id is None and self.memories:
+                memory_id = "default"
+            memory = self.memories.get(memory_id) if memory_id else None
+
+            try:
+                if tool_cls in (MemorySearchTool, MemoryAddTool):
+                    if memory is None:
+                        logger.warning("❌ [Converter] Memory tool '{}' requires memory_id", tool_id)
+                        return btflow.Dummy(name=node_def.label or node_def.id)
+                    tool_instance = tool_cls(memory)
+                else:
+                    tool_instance = tool_cls()
+            except Exception as e:
+                logger.warning("❌ [Converter] Failed to init tool {}: {}", tool_id, e)
+                return btflow.Dummy(name=node_def.label or node_def.id)
+
+            tool_meta = node_registry.get(node_def.type)
+            input_key = "input"
+            output_key = "output"
+            if tool_meta and tool_meta.inputs:
+                first_input = tool_meta.inputs[0]
+                if isinstance(first_input, dict) and first_input.get("name"):
+                    input_key = first_input["name"]
+                elif isinstance(first_input, str):
+                    input_key = first_input
+            if tool_meta and tool_meta.outputs:
+                first_output = tool_meta.outputs[0]
+                if isinstance(first_output, dict) and first_output.get("name"):
+                    output_key = first_output["name"]
+                elif isinstance(first_output, str):
+                    output_key = first_output
+
+            node = ToolNode(
+                name=node_def.label or node_def.id,
+                tool=tool_instance,
+                input_key=input_key,
+                output_key=output_key,
+                execute=node_def.config.get("execute") if node_def.config else None,
+                strict_output_validation=node_def.config.get("strict_output_validation", False)
+                if node_def.config
+                else False,
+            )
+            self._apply_bindings(node, node_def)
+            return node
+
+        # 3. Handle Custom Nodes (Registered Classes)
         cls = node_registry.get_class(node_def.type)
         logger.info("🔍 [Converter] Got class for {}: {} (callable: {})", node_def.type, cls, callable(cls))
         if not cls:
@@ -240,6 +415,12 @@ class WorkflowConverter:
                     kwargs["name"] = node_def.label or node_def.id
                 elif param_name == "state_manager":
                     kwargs["state_manager"] = self.state_manager
+                elif param_name == "memory":
+                    memory_id = node_def.config.get("memory_id") if node_def.config else None
+                    if memory_id is None and self.memories:
+                        memory_id = "default"
+                    if memory_id and memory_id in self.memories:
+                        kwargs["memory"] = self.memories[memory_id]
                 elif param_name in node_def.config:
                     # Inject configuration values
                     val = node_def.config[param_name]
@@ -252,6 +433,7 @@ class WorkflowConverter:
         
         try:
             instance = cls(**kwargs)
+            self._apply_bindings(instance, node_def)
             
             # Debug log for tool detection
             logger.info("🔍 [Converter] Created instance {} (type: {}), has run: {}, has description: {}, is Behaviour: {}", 
@@ -271,3 +453,11 @@ class WorkflowConverter:
             import traceback
             logger.error("Traceback: {}", traceback.format_exc())
             return btflow.Dummy(name=node_def.id)
+
+    def _apply_bindings(self, node: Any, node_def: NodeDefinition):
+        input_bindings = node_def.input_bindings or {}
+        output_bindings = node_def.output_bindings or {}
+        if input_bindings:
+            setattr(node, "_input_bindings", input_bindings)
+        if output_bindings:
+            setattr(node, "_output_bindings", output_bindings)

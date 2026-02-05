@@ -33,7 +33,7 @@ from py_trees.blackboard import Client as BlackboardClient
 from py_trees import display
 
 # Re-export common nodes
-from btflow.nodes import MockLLMAction, Log, Wait
+from btflow.nodes import Log, Wait
 
 __all__ = [
     # Core
@@ -74,7 +74,6 @@ __all__ = [
     "BehaviourTree",
     "BlackboardClient",
     "display",
-    "MockLLMAction",
     "Log",
     "Wait",
 ]

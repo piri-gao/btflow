@@ -3,40 +3,31 @@ import os
 from btflow import (
     Sequence, 
     Selector, 
-    Parallel, 
-    StateManager, 
-    MockLLMAction, 
+    Log, 
     display
 )
 
 # 路径补丁
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from pydantic import BaseModel
-
-class DummyState(BaseModel):
-    pass
-
 def build_demo_tree():
     """构建一个稍微复杂点的树来展示可视化效果"""
-    state_manager = StateManager(schema=DummyState)
-    
     # 根节点：Sequence (带记忆)
     # 图标解释: [-] 代表 Sequence (顺序执行)
     root = Sequence(name="MainProcess", memory=True)
     
     # 1. 第一阶段
-    node_a = MockLLMAction(name="SayHello", state_manager=state_manager)
+    node_a = Log(name="SayHello", message="Hello")
     
     # 2. 第二阶段：Selector (带记忆)
     # 图标解释: [?] 代表 Selector (选择执行/Fallback)
     decision_node = Selector(name="ReasoningLogic", memory=True)
-    plan_a = MockLLMAction(name="TryPlanA", state_manager=state_manager)
-    plan_b = MockLLMAction(name="FallbackPlanB", state_manager=state_manager)
+    plan_a = Log(name="TryPlanA", message="Plan A")
+    plan_b = Log(name="FallbackPlanB", message="Plan B")
     decision_node.add_children([plan_a, plan_b])
     
     # 3. 第三阶段
-    node_c = MockLLMAction(name="Summarize", state_manager=state_manager)
+    node_c = Log(name="Summarize", message="Summary")
     
     # 组装
     root.add_children([node_a, decision_node, node_c])

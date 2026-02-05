@@ -1,10 +1,21 @@
 import axios from 'axios';
 import type { Edge, Node } from 'reactflow';
 
-const API_Base = 'http://localhost:8000/api';
+const devHost = typeof window !== 'undefined' && window.location.hostname
+    ? window.location.hostname
+    : 'localhost';
+const devApiBase = `http://${devHost}:8000/api`;
+const API_Base = import.meta.env.VITE_API_BASE || (typeof window !== 'undefined' && window.location.port === '5173'
+    ? devApiBase
+    : '/api');
 
 export const fetchNodes = async () => {
     const res = await axios.get(`${API_Base}/nodes`);
+    return res.data;
+};
+
+export const fetchTools = async () => {
+    const res = await axios.get(`${API_Base}/tools`);
     return res.data;
 };
 
@@ -21,7 +32,9 @@ export const saveWorkflow = async (id: string, workflow: { nodes: Node[], edges:
             type: n.data?.nodeType || n.type || 'Sequence', // Use specific type if available
             label: n.data?.label || n.data?.nodeType || n.id,
             position: n.position,
-            config: n.data?.config || {}
+            config: n.data?.config || {},
+            input_bindings: (n.data as any)?.input_bindings || {},
+            output_bindings: (n.data as any)?.output_bindings || {}
         })),
         edges: workflow.edges.map(e => ({
             id: e.id,
@@ -30,13 +43,8 @@ export const saveWorkflow = async (id: string, workflow: { nodes: Node[], edges:
         })),
         // Include state for ReAct workflows
         state: workflow.state || {
-            schema_name: "ReActState",
-            fields: [
-                { name: "messages", type: "list", default: [] },
-                { name: "final_answer", type: "str", default: "" },
-                { name: "round", type: "int", default: 0 },
-                { name: "task", type: "str", default: "" }
-            ]
+            schema_name: "AutoState",
+            fields: []
         }
     };
     await axios.put(`${API_Base}/workflows/${id}`, payload);

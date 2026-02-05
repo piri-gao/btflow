@@ -16,17 +16,29 @@ import ReactFlow, {
   type OnSelectionChangeParams
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import Sidebar from './components/Sidebar';
+import LeftPanel from './components/LeftPanel';
 import NodePanel from './components/NodePanel';
 import LogPanel from './components/LogPanel';
 import ChatPanel from './components/ChatPanel';
 import { ControlFlowNode, ActionNode, DebugNode } from './components/CustomNodes';
-import { fetchNodes, saveWorkflow, runWorkflow, stopWorkflow, createWorkflow } from './api/client';
+import { fetchNodes, fetchTools, saveWorkflow, runWorkflow, stopWorkflow, createWorkflow } from './api/client';
 
 interface LogEntry {
   timestamp: string;
   type: 'log' | 'status' | 'error' | 'trace';
   message: string;
+}
+
+interface TraceEvent {
+  timestamp: string;
+  event: string;
+  data: Record<string, any>;
+}
+
+interface ToolEvent {
+  timestamp: string;
+  event: 'tool_call' | 'tool_result';
+  data: Record<string, any>;
 }
 
 const initialNodes: Node[] = [];
@@ -57,10 +69,13 @@ function Flow() {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [nodeMetas, setNodeMetas] = useState<any[]>([]);
+  const [tools, setTools] = useState<any[]>([]);
 
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [traceEvents, setTraceEvents] = useState<TraceEvent[]>([]);
+  const [toolEvents, setToolEvents] = useState<ToolEvent[]>([]);
   const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'chat'>('properties');
 
   // Derive selectedNode from nodes to keep it in sync
@@ -72,6 +87,7 @@ function Flow() {
 
   useEffect(() => {
     fetchNodes().then(setNodeMetas).catch(err => console.error("Failed to fetch nodes", err));
+    fetchTools().then(setTools).catch(err => console.error("Failed to fetch tools", err));
     // Auto-create a session workflow for now
     createWorkflow("Untitled Session").then(wf => {
       setWorkflowId(wf.id);
@@ -123,6 +139,12 @@ function Flow() {
         else if (msg.type === 'trace') {
           const timestamp = new Date().toLocaleTimeString();
           const data = msg.data || {};
+          if (msg.event !== 'llm_token') {
+            setTraceEvents(prev => [...prev, { timestamp, event: msg.event, data }]);
+          }
+          if (msg.event === 'tool_call' || msg.event === 'tool_result') {
+            setToolEvents(prev => [...prev, { timestamp, event: msg.event, data }]);
+          }
           const parts: string[] = [];
           if (data.node) parts.push(`node=${data.node}`);
           if (data.tool) parts.push(`tool=${data.tool}`);
@@ -130,7 +152,9 @@ function Flow() {
           if (typeof data.ok === 'boolean') parts.push(`ok=${data.ok}`);
           if (data.error) parts.push(`error=${data.error}`);
           const details = parts.length ? ` ${parts.join(' ')}` : '';
-          setLogs(prev => [...prev, { timestamp, type: 'trace', message: `trace:${msg.event}${details}` }]);
+          if (msg.event !== 'llm_token') {
+            setLogs(prev => [...prev, { timestamp, type: 'trace', message: `trace:${msg.event}${details}` }]);
+          }
         }
       } catch (e) {
         console.error("WS Parse error", e);
@@ -188,6 +212,8 @@ function Flow() {
           label: label,
           nodeType: type,
           config: {},
+          input_bindings: {},
+          output_bindings: {},
           icon: nodeMetas.find(n => n.id === type)?.icon || '📦'
         },
       };
@@ -236,6 +262,8 @@ function Flow() {
         label: n.label || n.type,
         nodeType: n.type,
         config: n.config || {},
+        input_bindings: n.input_bindings || {},
+        output_bindings: n.output_bindings || {},
         icon: n.icon || (nodeMetas.find(m => m.id === n.type)?.icon) || '📦'
       }
     }));
@@ -250,13 +278,19 @@ function Flow() {
     setEdges(newEdges);
   }, [setNodes, setEdges, nodeMetas]);
 
+  const onClearCanvas = useCallback(() => {
+    setNodes([]);
+    setEdges([]);
+    setSelectedNodeId(null);
+  }, [setNodes, setEdges]);
+
   return (
     <div className="flex flex-col h-screen w-screen bg-gray-50">
       {/* Top Area: Sidebar + Canvas + NodePanel */}
       <div className="flex flex-1 overflow-hidden">
         <ReactFlowProvider>
           {/* Sidebar */}
-          <Sidebar nodeMetas={nodeMetas} />
+          <LeftPanel nodeMetas={nodeMetas} tools={tools} onApplyWorkflow={applyWorkflow} />
 
           {/* Main Canvas */}
           <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
@@ -280,6 +314,9 @@ function Flow() {
               <Panel position="top-right" className="bg-white p-2 rounded shadow-md flex gap-2 border border-gray-200">
                 <button onClick={onSave} disabled={isRunning} className={`px-3 py-1 rounded text-sm font-medium border border-gray-300 ${isRunning ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}`}>
                   💾 Save
+                </button>
+                <button onClick={onClearCanvas} disabled={isRunning} className={`px-3 py-1 rounded text-sm font-medium border border-gray-300 ${isRunning ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}`}>
+                  🧹 Clear
                 </button>
 
                 {!isRunning ? (
@@ -328,6 +365,7 @@ function Flow() {
                   selectedNode={selectedNode}
                   setNodes={setNodes}
                   nodeMetas={nodeMetas}
+                  tools={tools}
                 />
               ) : (
                 <ChatPanel
@@ -344,7 +382,13 @@ function Flow() {
       {/* Bottom Log Panel */}
       <LogPanel
         logs={logs}
-        onClear={() => setLogs([])}
+        traceEvents={traceEvents}
+        toolEvents={toolEvents}
+        onClear={() => {
+          setLogs([]);
+          setTraceEvents([]);
+          setToolEvents([]);
+        }}
       />
     </div>
   );

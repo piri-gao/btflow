@@ -27,8 +27,8 @@ class NodeMetadata(BaseModel):
     description: str = ""
     
     # I/O Contracts
-    inputs: List[str] = Field(default_factory=list, description="List of expected input parameter names")
-    outputs: List[str] = Field(default_factory=list, description="List of state fields this node updates")
+    inputs: List[Dict[str, Any]] = Field(default_factory=list, description="Input ports for binding")
+    outputs: List[Dict[str, Any]] = Field(default_factory=list, description="Output ports for binding")
     
     # Configuration Schema (for UI form generation)
     # Format: { "param_name": { "type": "select", "options": [...], ... } }
@@ -176,6 +176,9 @@ node_registry.register(
     label="Set Agent Task",
     category="Action",
     icon="🎯",
+    outputs=[
+        {"name": "task", "type": "str", "default": ""}
+    ],
     config_schema={
         "task_content": {
             "type": "textarea",
@@ -186,12 +189,9 @@ node_registry.register(
 )
 # 3. Import and Register Advanced Patterns & Tools
 from btflow.core.composites import LoopUntilSuccess
-from btflow.core.composites import LoopUntilSuccess
 from btflow.nodes import ReActLLMNode, ToolExecutor, IsFinalAnswer
-from btflow.nodes.builtin.mock import MockReActLLMNode
 from btflow.nodes import SelfRefineLLMNode, IsGoodEnough
 from btflow.tools import CalculatorTool
-from btflow.tools.builtin.mock import MockSearchTool, MockWikipediaTool
 from btflow.tools.node import ToolNode
 
 def _tool_description(tool_cls: Type) -> str:
@@ -205,14 +205,48 @@ def _register_tool_meta(tool_cls: Type, node_id: str, label: str, icon: str):
         category="Tools",
         icon=icon,
         description=_tool_description(tool_cls),
+        inputs=[{"name": "input", "type": "any", "default": ""}],
+        outputs=[{"name": "output", "type": "any", "default": None}],
         node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", label), tool=tool_cls())
     ))
 
 
 # Tools
 _register_tool_meta(CalculatorTool, "CalculatorTool", "Calculator", "🧮")
-_register_tool_meta(MockSearchTool, "SearchTool", "Mock Search", "🔍")
-_register_tool_meta(MockWikipediaTool, "WikipediaTool", "Mock Wikipedia", "📖")
+
+# Generic ToolNode (deterministic tool execution)
+node_registry.register(
+    ToolNode,
+    id="ToolNode",
+    label="Tool Node",
+    category="Tools",
+    icon="🧰",
+    inputs=[{"name": "input", "type": "any", "default": ""}],
+    outputs=[{"name": "output", "type": "any", "default": None}],
+    config_schema={
+        "tool_id": {
+            "type": "select",
+            "label": "Tool",
+            "source": "tools",
+            "default": "",
+        },
+        "execute": {
+            "type": "boolean",
+            "label": "Execute",
+            "default": True,
+        },
+        "strict_output_validation": {
+            "type": "boolean",
+            "label": "Strict Output",
+            "default": False,
+        },
+        "memory_id": {
+            "type": "text",
+            "label": "Memory ID",
+            "default": "default",
+        },
+    },
+)
 
 # LoopUntilSuccess
 node_registry.register_metadata(NodeMetadata(
@@ -228,27 +262,58 @@ node_registry._class_map["LoopUntilSuccess"] = LoopUntilSuccess
 node_registry.register(
     ReActLLMNode,
     id="ReActLLMNode", label="ReAct LLM", category="Agent (ReAct)", icon="🤖",
+    inputs=[
+        {"name": "messages", "type": "list", "default": []},
+        {"name": "task", "type": "str", "default": ""},
+        {"name": "tools_desc", "type": "str", "default": ""},
+        {"name": "tools_schema", "type": "list", "default": []},
+    ],
+    outputs=[
+        {"name": "messages", "type": "list", "default": []},
+        {"name": "round", "type": "int", "default": 0},
+        {"name": "streaming_output", "type": "str", "default": ""},
+    ],
     config_schema={
         "model": {"type": "text", "default": "gemini-2.5-flash"},
-        "system_prompt": {"type": "textarea", "default": ""}
+        "system_prompt": {"type": "textarea", "default": ""},
+        "memory_id": {"type": "text", "default": "default"},
+        "memory_top_k": {"type": "number", "default": 5}
     }
 )
 
-node_registry.register(
-    MockReActLLMNode,
-    id="MockReActLLMNode", label="Mock ReAct LLM", category="Agent (ReAct)", icon="🎭",
-    config_schema={}
-)
 
 node_registry.register(
     ToolExecutor,
     id="ToolExecutor", label="Tool Executor", category="Agent (ReAct)", icon="🛠️",
-    config_schema={} 
+    inputs=[
+        {"name": "messages", "type": "list", "default": []},
+    ],
+    outputs=[
+        {"name": "messages", "type": "list", "default": []},
+        {"name": "tools_desc", "type": "str", "default": ""},
+        {"name": "tools_schema", "type": "list", "default": []},
+    ],
+    config_schema={
+        "tools": {
+            "type": "multiselect",
+            "label": "Tools",
+            "source": "tools",
+            "default": []
+        },
+        "memory_id": {"type": "text", "default": "default"}
+    }
 )
 
 node_registry.register(
     IsFinalAnswer,
     id="IsFinalAnswer", label="Is Final Answer?", category="Agent (ReAct)", icon="✅",
+    inputs=[
+        {"name": "messages", "type": "list", "default": []},
+        {"name": "round", "type": "int", "default": 0},
+    ],
+    outputs=[
+        {"name": "final_answer", "type": "str", "default": ""},
+    ],
     config_schema={
         "max_rounds": {"type": "number", "default": 10}
     }
@@ -258,14 +323,43 @@ node_registry.register(
 node_registry.register(
     SelfRefineLLMNode,
     id="SelfRefineLLMNode", label="Self-Refine LLM", category="Agent (Reflexion)", icon="🪞",
+    inputs=[
+        {"name": "task", "type": "str", "default": ""},
+        {"name": "messages", "type": "list", "default": []},
+        {"name": "round", "type": "int", "default": 0},
+        {"name": "answer", "type": "str", "default": ""},
+        {"name": "score", "type": "float", "default": 0.0},
+        {"name": "reflection", "type": "str", "default": ""},
+    ],
+    outputs=[
+        {"name": "messages", "type": "list", "default": []},
+        {"name": "answer", "type": "str", "default": ""},
+        {"name": "answer_history", "type": "list", "default": []},
+        {"name": "score", "type": "float", "default": 0.0},
+        {"name": "score_history", "type": "list", "default": []},
+        {"name": "reflection", "type": "str", "default": ""},
+        {"name": "reflection_history", "type": "list", "default": []},
+        {"name": "round", "type": "int", "default": 0},
+        {"name": "is_complete", "type": "bool", "default": False},
+        {"name": "streaming_output", "type": "str", "default": ""},
+    ],
     config_schema={
-        "model": {"type": "text", "default": "gemini-2.5-flash"}
+        "model": {"type": "text", "default": "gemini-2.5-flash"},
+        "memory_id": {"type": "text", "default": "default"},
+        "memory_top_k": {"type": "number", "default": 5}
     }
 )
 
 node_registry.register(
     IsGoodEnough,
     id="IsGoodEnough", label="Is Good Enough?", category="Agent (Reflexion)", icon="⚖️",
+    inputs=[
+        {"name": "score", "type": "float", "default": 0.0},
+        {"name": "round", "type": "int", "default": 0},
+    ],
+    outputs=[
+        {"name": "is_complete", "type": "bool", "default": False},
+    ],
     config_schema={
         "threshold": {"type": "number", "default": 8.0},
         "max_rounds": {"type": "number", "default": 5}

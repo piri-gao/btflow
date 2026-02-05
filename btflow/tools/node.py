@@ -14,7 +14,7 @@ class ToolNode(AsyncBehaviour):
     """
     Tool wrapper to allow a Tool to be used as a node in the tree.
     Supports two modes:
-      - Workflow mode: executes tool directly with input_map/output_key.
+      - Workflow mode: executes tool directly using input_key/output_key (bindings-friendly).
       - Agent mode: tool can still be exposed to LLM via ToolExecutor.
     """
 
@@ -23,28 +23,30 @@ class ToolNode(AsyncBehaviour):
         name: str,
         tool: Tool,
         input_map: Optional[Dict[str, Any]] = None,
-        output_key: Optional[str] = None,
+        output_key: Optional[str] = "output",
+        *,
+        input_key: str = "input",
         execute: Optional[bool] = None,
         strict_output_validation: bool = False,
     ):
         super().__init__(name)
         self.tool = tool
+        self.input_key = input_key
         self.input_map = input_map or {}
         self.output_key = output_key
-        # Default: only execute when input_map is provided
-        self.execute = bool(self.input_map) if execute is None else execute
-        self._warned_no_input_map = False
+        # Default: execute unless explicitly disabled
+        self.execute = True if execute is None else execute
+        self._warned_no_input = False
         self.strict_output_validation = strict_output_validation
 
     async def update_async(self) -> Status:
         if not self.execute:
-            if not self.input_map and not self._warned_no_input_map:
+            if not self._warned_no_input:
                 logger.warning(
-                    "⚠️ [{}] ToolNode execute=False because input_map is empty. "
-                    "Set execute=True to run a no-input tool.",
+                    "⚠️ [{}] ToolNode execute=False (skipping tool execution).",
                     self.name,
                 )
-                self._warned_no_input_map = True
+                self._warned_no_input = True
             logger.debug("🧩 [{}] ToolNode execute=False, skip.", self.name)
             return Status.SUCCESS
 
@@ -53,7 +55,7 @@ class ToolNode(AsyncBehaviour):
             return Status.FAILURE
 
         try:
-            tool_args = self._resolve_inputs()
+            tool_args = self._resolve_inputs(allow_non_dict=True)
             trace_emit("tool_call", {
                 "node": self.name,
                 "tool": getattr(self.tool, "name", type(self.tool).__name__),
@@ -105,12 +107,18 @@ class ToolNode(AsyncBehaviour):
 
     async def invoke_from_agent(self, args: Any):
         """Invoke tool directly from agent/router."""
-        injected = self._resolve_inputs()
+        injected = self._resolve_inputs(allow_non_dict=False)
         return await self._run_tool(args, injected=injected)
 
-    def _resolve_inputs(self) -> Dict[str, Any]:
+    def _resolve_inputs(self, allow_non_dict: bool = True) -> Any:
+        if not self.state_manager:
+            return {} if allow_non_dict else {}
         if not self.input_map:
-            return {}
+            state = self.state_manager.get()
+            value = getattr(state, self.input_key, None)
+            if allow_non_dict:
+                return {} if value is None else value
+            return value if isinstance(value, dict) else {}
 
         state = self.state_manager.get()
         try:

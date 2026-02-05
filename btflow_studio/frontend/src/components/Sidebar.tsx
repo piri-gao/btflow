@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 
 interface NodeMeta {
     id: string;
@@ -53,8 +53,21 @@ const categoryStyles: Record<string, { bg: string, border: string, hover: string
 };
 
 export default function Sidebar({ nodeMetas }: SidebarProps) {
+    const [query, setQuery] = useState('');
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+    const filteredNodes = useMemo(() => {
+        if (!query.trim()) return nodeMetas;
+        const q = query.toLowerCase();
+        return nodeMetas.filter((n) =>
+            n.id.toLowerCase().includes(q) ||
+            n.label.toLowerCase().includes(q) ||
+            (n.description || '').toLowerCase().includes(q)
+        );
+    }, [nodeMetas, query]);
+
     // Group nodes by category
-    const groupedNodes = nodeMetas.reduce((acc, node) => {
+    const groupedNodes = filteredNodes.reduce((acc, node) => {
         const category = node.category || 'Other';
         if (!acc[category]) acc[category] = [];
         acc[category].push(node);
@@ -72,32 +85,47 @@ export default function Sidebar({ nodeMetas }: SidebarProps) {
     ];
 
     return (
-        <div className="w-64 bg-white border-r border-gray-200 p-4 shadow-sm z-10 flex flex-col h-full overflow-y-auto">
-            <h1 className="text-xl font-bold mb-6 text-blue-600">BTflow Studio</h1>
+        <div className="w-64 bg-white p-4 z-10 flex flex-col h-full overflow-y-auto border-r border-gray-200">
+            <div className="mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nodes</div>
+
+            <div className="mb-4">
+                <input
+                    className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Search nodes..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                />
+            </div>
 
             <div className="space-y-6">
                 {sortedCategories.map((category) => (
                     <div key={category}>
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                            {category}
-                        </h3>
-                        <div className="grid grid-cols-2 gap-2">
-                            {groupedNodes[category].map((node) => {
-                                const style = categoryStyles[category] || categoryStyles['Action'];
-                                return (
-                                    <div
-                                        key={node.id}
-                                        className={`p-2 ${style.bg} border ${style.border} rounded cursor-grab ${style.hover} transition-colors flex flex-col items-center text-center`}
-                                        draggable
-                                        onDragStart={(event) => onDragStart(event, node.id, node.label)}
-                                        title={node.description}
-                                    >
-                                        <span className="text-2xl mb-1">{node.icon}</span>
-                                        <div className="text-xs font-medium text-gray-900">{node.label}</div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        <button
+                            className="w-full flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3"
+                            onClick={() => setCollapsed(prev => ({ ...prev, [category]: !prev[category] }))}
+                        >
+                            <span>{category}</span>
+                            <span className="text-xs">{collapsed[category] ? '▸' : '▾'}</span>
+                        </button>
+                        {!collapsed[category] && (
+                            <div className="grid grid-cols-2 gap-2">
+                                {groupedNodes[category].map((node) => {
+                                    const style = categoryStyles[category] || categoryStyles['Action'];
+                                    return (
+                                        <div
+                                            key={node.id}
+                                            className={`p-2 ${style.bg} border ${style.border} rounded cursor-grab ${style.hover} transition-colors flex flex-col items-center text-center`}
+                                            draggable
+                                            onDragStart={(event) => onDragStart(event, node.id, node.label)}
+                                            title={node.description}
+                                        >
+                                            <span className="text-2xl mb-1">{node.icon}</span>
+                                            <div className="text-xs font-medium text-gray-900">{node.label}</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>

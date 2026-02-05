@@ -204,3 +204,73 @@ class StateManager:
                 if name in data_dict:
                     actions[name] = data_dict[name]
         return actions
+
+
+class MappedState:
+    def __init__(self, base: Dict[str, Any], mapping: Dict[str, str]):
+        self._base = base
+        self._mapping = mapping
+
+    def __getattr__(self, name: str):
+        key = self._mapping.get(name, name)
+        return _get_by_path(self._base, key)
+
+    def model_dump(self, *args, **kwargs):
+        data: Dict[str, Any] = {}
+        keys = set(self._base.keys()) | set(self._mapping.keys())
+        for key in keys:
+            if key in self._mapping:
+                data[key] = _get_by_path(self._base, self._mapping[key])
+            else:
+                data[key] = self._base.get(key)
+        return data
+
+
+class BoundStateManager:
+    def __init__(self, base: StateManager, input_bindings: Dict[str, Any] | None = None, output_bindings: Dict[str, Any] | None = None):
+        self._base = base
+        self._input = _normalize_bindings(input_bindings or {})
+        self._output = _normalize_bindings(output_bindings or {})
+
+    def get(self) -> MappedState:
+        state = self._base.get()
+        try:
+            base_data = state.model_dump()
+        except Exception:
+            base_data = state
+        mapping = {**self._input, **self._output}
+        return MappedState(base_data, mapping)
+
+    def update(self, updates: Dict[str, Any]):
+        mapped: Dict[str, Any] = {}
+        for key, value in updates.items():
+            target = self._output.get(key) or self._input.get(key) or key
+            mapped[target] = value
+        self._base.update(mapped)
+
+    def __getattr__(self, name: str):
+        return getattr(self._base, name)
+
+
+def _normalize_bindings(bindings: Dict[str, Any]) -> Dict[str, str]:
+    normalized: Dict[str, str] = {}
+    for key, value in bindings.items():
+        if not value:
+            continue
+        val = str(value)
+        if val.startswith("state."):
+            val = val[len("state."):]
+        normalized[key] = val
+    return normalized
+
+
+def _get_by_path(data: Any, path: str) -> Any:
+    current = data
+    for part in path.split("."):
+        if isinstance(current, dict):
+            current = current.get(part)
+        else:
+            current = getattr(current, part, None)
+        if current is None:
+            break
+    return current

@@ -15,6 +15,7 @@ import btflow
 
 from .workflow_schema import WorkflowDefinition
 from .node_registry import node_registry, NodeMetadata
+from .tool_registry import get_builtin_tools, ToolMetadata
 from .converter import WorkflowConverter
 from .websocket import manager
 from fastapi import WebSocket, WebSocketDisconnect
@@ -83,6 +84,11 @@ class WorkflowCreateRequest(BaseModel):
 async def get_nodes():
     """List all available node types."""
     return node_registry.get_all()
+
+@app.get("/api/tools", response_model=List[ToolMetadata])
+async def get_tools():
+    """List all available tools (builtin for now)."""
+    return get_builtin_tools()
 
 @app.get("/api/workflows", response_model=List[WorkflowDefinition])
 async def list_workflows():

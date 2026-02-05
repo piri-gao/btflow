@@ -10,7 +10,6 @@ from btflow.tools.builtin import (
     FileReadTool,
     FileWriteTool,
 )
-from btflow.tools.builtin.mock import MockSearchTool, MockWikipediaTool
 
 # Re-export optional tools (may be None if dependencies not installed)
 from btflow.tools.builtin import HTTPTool, DuckDuckGoSearchTool
@@ -24,8 +23,6 @@ __all__ = [
     "FunctionTool",
     # Built-in tools
     "CalculatorTool",
-    "MockSearchTool",
-    "MockWikipediaTool",
     "PythonREPLTool",
     "FileReadTool",
     "FileWriteTool",

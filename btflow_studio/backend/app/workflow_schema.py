@@ -12,6 +12,8 @@ class NodeDefinition(BaseModel):
     type: str = Field(..., description="Node type identifier (e.g., 'LLMBrain', 'Sequence')")
     position: Position = Field(default_factory=lambda: Position(x=0, y=0))
     config: Dict[str, Any] = Field(default_factory=dict, description="Node configuration parameters")
+    input_bindings: Dict[str, str] = Field(default_factory=dict, description="Input port bindings to state")
+    output_bindings: Dict[str, str] = Field(default_factory=dict, description="Output port bindings to state")
     
     # UI specific metadata (label, notes, etc.)
     label: Optional[str] = None
@@ -37,6 +39,18 @@ class StateDefinition(BaseModel):
     schema_name: str = "AgentState"
     fields: List[StateFieldDefinition] = Field(default_factory=list)
 
+class MemoryResource(BaseModel):
+    id: str = "default"
+    type: Literal["sqlite", "json", "in_memory"] = "sqlite"
+    persist_path: Optional[str] = None
+    embedding_dim: int = 64
+    normalize_embeddings: bool = True
+    max_size: Optional[int] = None
+    autosave: bool = True
+
+class ResourcesDefinition(BaseModel):
+    memories: List[MemoryResource] = Field(default_factory=list)
+
 class WorkflowDefinition(BaseModel):
     version: str = "1.0"
     id: Optional[str] = None
@@ -47,6 +61,8 @@ class WorkflowDefinition(BaseModel):
     edges: List[EdgeDefinition] = Field(default_factory=list)
     
     state: StateDefinition = Field(default_factory=StateDefinition)
+
+    resources: ResourcesDefinition = Field(default_factory=ResourcesDefinition)
     
     # Global settings
     settings: Dict[str, Any] = Field(default_factory=dict)
