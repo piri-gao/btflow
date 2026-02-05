@@ -47,6 +47,14 @@ interface StateField {
   default: any;
 }
 
+const HIDDEN_INIT_FIELDS = new Set([
+  'tools_desc',
+  'tools_schema',
+  'round',
+  'final_answer',
+  'streaming_output',
+]);
+
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
 
@@ -124,6 +132,31 @@ const inferStateFields = (nodes: Node[], nodeMetas: any[]): StateField[] => {
   return Object.values(fields);
 };
 
+const inferInputFields = (nodes: Node[], nodeMetas: any[]): StateField[] => {
+  const fields: Record<string, StateField> = {};
+
+  nodes.forEach((node) => {
+    const meta = nodeMetas.find((m) => m.id === (node.data as any)?.nodeType || m.id === node.type);
+    if (!meta) return;
+    const inputBindings = (node.data as any)?.input_bindings || {};
+
+    normalizePorts(meta.inputs || []).forEach((port) => {
+      const target = normalizeBinding(inputBindings[port.name], port.name);
+      if (HIDDEN_INIT_FIELDS.has(target)) return;
+      if (!fields[target]) {
+        fields[target] = { name: target, type: port.type, default: port.default };
+      }
+    });
+  });
+
+  if (Object.keys(fields).length === 0) {
+    fields['messages'] = { name: 'messages', type: 'list', default: [] };
+    fields['task'] = { name: 'task', type: 'str', default: '' };
+  }
+
+  return Object.values(fields);
+};
+
 function Flow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -143,6 +176,7 @@ function Flow() {
   const [initialStateValues, setInitialStateValues] = useState<Record<string, any>>({});
   const [initialStateError, setInitialStateError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const initPanelRef = useRef<HTMLDivElement>(null);
 
   // Derive selectedNode from nodes to keep it in sync
   const selectedNode = useMemo(() => {
@@ -155,10 +189,15 @@ function Flow() {
     [nodes, nodeMetas]
   );
 
+  const inferredInputFields = useMemo(
+    () => inferInputFields(nodes, nodeMetas),
+    [nodes, nodeMetas]
+  );
+
   useEffect(() => {
     setInitialStateValues((prev) => {
       const next = { ...prev };
-      inferredStateFields.forEach((field) => {
+      inferredInputFields.forEach((field) => {
         if (next[field.name] !== undefined) return;
         if (field.type === 'list' || field.type === 'dict' || field.type === 'tuple') {
           next[field.name] = JSON.stringify(field.default ?? (field.type === 'dict' ? {} : []), null, 2);
@@ -168,7 +207,7 @@ function Flow() {
       });
       return next;
     });
-  }, [inferredStateFields]);
+  }, [inferredInputFields]);
 
 
   useEffect(() => {
@@ -216,6 +255,10 @@ function Flow() {
             setNodes(nds => nds.map(n => ({ ...n, style: { ...n.style, backgroundColor: '#fff' } })));
           } else if (['completed', 'stopped', 'idle', 'error'].includes(msg.status)) {
             setIsRunning(false);
+            setNodes(nds => nds.map(n => ({
+              ...n,
+              data: { ...n.data, status: undefined }
+            })));
           }
         }
         else if (msg.type === 'log') {
@@ -343,7 +386,7 @@ function Flow() {
 
   const buildInitialState = useCallback((): { state?: Record<string, any>; error?: string } => {
     const state: Record<string, any> = {};
-    for (const field of inferredStateFields) {
+    for (const field of inferredInputFields) {
       const raw = initialStateValues[field.name];
       if (field.type === 'bool') {
         if (typeof raw === 'boolean') {
@@ -387,7 +430,7 @@ function Flow() {
       state[field.name] = raw;
     }
     return { state };
-  }, [initialStateValues, inferredStateFields]);
+  }, [initialStateValues, inferredInputFields]);
 
   const onRun = useCallback(async () => {
     if (!workflowId) return;
@@ -399,6 +442,7 @@ function Flow() {
     setInitialStateError('');
     await onSave();
     await runWorkflow(workflowId, result.state);
+    setShowInitialState(false);
   }, [workflowId, onSave, buildInitialState]);
 
   const onStop = useCallback(async () => {
@@ -497,6 +541,18 @@ function Flow() {
     event.target.value = '';
   }, [applyWorkflow]);
 
+  useEffect(() => {
+    if (!showInitialState) return;
+    const handler = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (initPanelRef.current && target && !initPanelRef.current.contains(target)) {
+        setShowInitialState(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showInitialState]);
+
   return (
     <div className="flex flex-col h-screen w-screen bg-gray-50">
       {/* Top Area: Sidebar + Canvas + NodePanel */}
@@ -556,10 +612,10 @@ function Flow() {
                 {workflowId && <span className="text-xs text-gray-400 self-center border-l pl-2 ml-1">ID: {workflowId.slice(0, 6)}...</span>}
 
                 {showInitialState && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded shadow-lg p-3 text-xs z-10">
+                  <div ref={initPanelRef} className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded shadow-lg p-3 text-xs z-10">
                     <div className="font-semibold text-gray-700 mb-2">Initial State</div>
                     <div className="max-h-64 overflow-auto pr-1">
-                      {inferredStateFields.map((field) => (
+                      {inferredInputFields.map((field) => (
                         <div key={field.name} className="mb-2">
                           <label className="block text-[10px] text-gray-500 mb-1">
                             {field.name} <span className="text-gray-400">({field.type})</span>

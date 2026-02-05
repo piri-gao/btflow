@@ -300,15 +300,21 @@ class WorkflowConverter:
             
         # 1. Handle Built-in Composites
         if node_def.type == "Sequence":
-            return Sequence(name=node_def.label or node_def.id, memory=node_def.config.get("memory", True))
+            node = Sequence(name=node_def.label or node_def.id, memory=node_def.config.get("memory", True))
+            self._apply_bindings(node, node_def)
+            return node
         elif node_def.type == "Selector":
-            return Selector(name=node_def.label or node_def.id, memory=node_def.config.get("memory", True))
+            node = Selector(name=node_def.label or node_def.id, memory=node_def.config.get("memory", True))
+            self._apply_bindings(node, node_def)
+            return node
         elif node_def.type == "Parallel":
             policy_str = node_def.config.get("policy", "SuccessOnAll")
             # Get policy instance (not class!)
             policy_class = getattr(ParallelPolicy, policy_str, ParallelPolicy.SuccessOnAll)
             policy = policy_class()  # Instantiate!
-            return Parallel(name=node_def.label or node_def.id, policy=policy)
+            node = Parallel(name=node_def.label or node_def.id, policy=policy)
+            self._apply_bindings(node, node_def)
+            return node
             
         # 2. Handle ToolExecutor with tool selection
         if node_def.type == "ToolExecutor":
@@ -439,6 +445,9 @@ class WorkflowConverter:
     def _apply_bindings(self, node: Any, node_def: NodeDefinition):
         input_bindings = node_def.input_bindings or {}
         output_bindings = node_def.output_bindings or {}
+        setattr(node, "_studio_id", node_def.id)
+        if node_def.label:
+            setattr(node, "_studio_label", node_def.label)
         if input_bindings:
             setattr(node, "_input_bindings", input_bindings)
         if output_bindings:

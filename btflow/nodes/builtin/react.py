@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import re
 from typing import Dict, List, Optional, Any, Tuple
 
@@ -53,10 +54,11 @@ class ReActLLMNode(AsyncBehaviour):
         self.stream = stream
         self.streaming_output_key = streaming_output_key
         
-        # Internal context builder (tools are embedded in system prompt)
+        # Internal context builder (tools are attached separately)
         if context_builder is None:
             self.context_builder = ContextBuilder(
                 system_prompt=self.system_prompt,
+                tools_desc=self.tools_description,
                 memory=memory,
                 memory_top_k=memory_top_k,
             )
@@ -64,10 +66,7 @@ class ReActLLMNode(AsyncBehaviour):
             self.context_builder = context_builder
 
     def _get_default_prompt(self, dynamic_tools_desc: str = "") -> str:
-        description = dynamic_tools_desc or self.tools_description
-        tools_section = f"\nAvailable tools:\n{description}" if description else "No tools available."
-
-        return f"""You are a helpful assistant that can use tools to answer questions.
+        return """You are a helpful assistant that can use tools to answer questions.
 
 You must follow one of these formats:
 
@@ -112,6 +111,8 @@ Always think step by step."""
                           self.context_builder.system_prompt = new_prompt
                       elif hasattr(self.context_builder, "set_system_prompt"):
                           self.context_builder.set_system_prompt(new_prompt)
+            if hasattr(self.context_builder, "tools_desc"):
+                self.context_builder.tools_desc = tools_desc
 
             logger.debug("📋 [{}] State dump: messages_count={}, task={}", self.name, len(messages), task)
 
@@ -256,7 +257,14 @@ Always think step by step."""
                 "round": state.round + 1
             })
 
-            logger.info("💭 [{}] Round {} 响应:\n{}", self.name, state.round + 1, content[:200])
+            log_limit = int(os.getenv("BTFLOW_LOG_MAX_LEN", "200") or "200")
+            if log_limit <= 0:
+                preview = content
+            elif len(content) > log_limit:
+                preview = content[:log_limit] + "..."
+            else:
+                preview = content
+            logger.info("💭 [{}] Round {} 响应:\n{}", self.name, state.round + 1, preview)
             return Status.SUCCESS
 
         except asyncio.TimeoutError:

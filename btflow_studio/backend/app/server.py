@@ -3,9 +3,29 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
+from pathlib import Path
 
-load_dotenv()
+env_path = Path(__file__).resolve().parents[3] / ".env"
+env_vals = dotenv_values(env_path)
+
+LLM_KEYS = [
+    "API_KEY",
+    "OPENAI_API_KEY",
+    "OPENAI_BASE_URL",
+    "OPENAI_API_BASE",
+    "GOOGLE_API_KEY",
+    "GEMINI_API_KEY",
+    "BASE_URL",
+]
+
+for key in LLM_KEYS:
+    if key in env_vals and env_vals[key] is not None:
+        os.environ[key] = env_vals[key]
+    else:
+        os.environ.pop(key, None)
+
+load_dotenv(env_path, override=True)
 
 from typing import List, Dict, Optional, Any
 import uuid
@@ -43,7 +63,8 @@ class StudioVisitor(btflow.VisitorBase):
 
     def run(self, behaviour: btflow.Behaviour):
         """Collect status for each visited behaviour."""
-        self.status_map[behaviour.name] = behaviour.status.name
+        node_id = getattr(behaviour, "_studio_id", behaviour.name)
+        self.status_map[node_id] = behaviour.status.name
 
     def finalise(self):
         """Broadcast collected statuses after tick completes (with rate limiting)."""
