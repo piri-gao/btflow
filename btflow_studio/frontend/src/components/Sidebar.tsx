@@ -40,15 +40,10 @@ const categoryStyles: Record<string, { bg: string, border: string, hover: string
         border: 'border-yellow-300',
         hover: 'hover:bg-yellow-100 hover:border-yellow-400'
     },
-    'Agent (ReAct)': {
+    'Agent': {
         bg: 'bg-orange-50',
         border: 'border-orange-300',
         hover: 'hover:bg-orange-100 hover:border-orange-400'
-    },
-    'Agent (Reflexion)': {
-        bg: 'bg-indigo-50',
-        border: 'border-indigo-300',
-        hover: 'hover:bg-indigo-100 hover:border-indigo-400'
     },
 };
 
@@ -75,7 +70,7 @@ export default function Sidebar({ nodeMetas }: SidebarProps) {
     }, {} as Record<string, NodeMeta[]>);
 
     // Category order
-    const categoryOrder = ['Control Flow', 'Action', 'Tools', 'Debug', 'Agent (ReAct)', 'Agent (Reflexion)', 'Other'];
+    const categoryOrder = ['Control Flow', 'Action', 'Tools', 'Debug', 'Agent', 'Other'];
 
     // Sort all categories: predefined first, then others alphabetically
     const allCategories = Object.keys(groupedNodes);

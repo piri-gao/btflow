@@ -1,5 +1,5 @@
 """
-Reflexion Agent Demo - Self-Refine 模式（OpenAI 兼容 API）
+Reflexion Agent Demo - 自我改进模式（OpenAI 兼容 API）
 
 演示如何使用 btflow 的 Reflexion 模式迭代改进输出质量。
 
@@ -52,7 +52,7 @@ async def demo_haiku(provider):
     print(f"📊 Final Status: {result}")
     print(f"💬 Final Answer:\n{state.answer}")
     print(f"⭐ Final Score: {state.score:.1f}")
-    print(f"🔄 Total Rounds: {state.round}")
+    print(f"🔄 Total Rounds: {state.rounds}")
     
     if len(state.score_history) > 1:
         print(f"\n📈 Score Progress: {' → '.join(f'{s:.1f}' for s in state.score_history)}")
@@ -83,7 +83,7 @@ async def demo_explanation(provider):
     print(f"\n{'='*60}")
     print(f"💬 Final Answer:\n{state.answer}")
     print(f"⭐ Final Score: {state.score:.1f}")
-    print(f"🔄 Total Rounds: {state.round}")
+    print(f"🔄 Total Rounds: {state.rounds}")
     
     if len(state.answer_history) > 1:
         print(f"\n📜 Improvement History:")
@@ -107,7 +107,7 @@ async def main():
         print(str(e))
         return
     
-    print("🔄 BTflow Reflexion Agent Demo (Self-Refine)")
+    print("🔄 BTflow Reflexion Agent Demo (Reflexion)")
     print("=" * 60)
     await demo_haiku(provider)
 

@@ -11,7 +11,7 @@ from btflow import ParallelPolicy
 import inspect
 from btflow.core.logging import logger
 from btflow.tools import Tool
-from btflow.tools.node import ToolNode
+from btflow.tools import ToolNode
 from btflow.nodes import ToolExecutor
 from btflow.memory import Memory
 from btflow.memory.store import InMemoryStore, JsonStore, SQLiteStore

@@ -138,7 +138,6 @@ node_registry.register_metadata(NodeMetadata(
 # 2. Debug & Action Nodes
 from btflow.nodes import Log
 from btflow.nodes import Wait
-from btflow.nodes.builtin.action import SetTask
 
 node_registry.register(
     Log,
@@ -170,29 +169,11 @@ node_registry.register(
     }
 )
 
-node_registry.register(
-    SetTask,
-    id="SetTask",
-    label="Set Agent Task",
-    category="Action",
-    icon="🎯",
-    outputs=[
-        {"name": "task", "type": "str", "default": ""}
-    ],
-    config_schema={
-        "task_content": {
-            "type": "textarea",
-            "default": "",
-            "label": "Task Content"
-        }
-    }
-)
 # 3. Import and Register Advanced Patterns & Tools
 from btflow.core.composites import LoopUntilSuccess
-from btflow.nodes import ReActLLMNode, ToolExecutor, IsFinalAnswer
-from btflow.nodes import SelfRefineLLMNode, IsGoodEnough
+from btflow.nodes import AgentLLMNode, ToolExecutor, ParserNode, ConditionNode
 from btflow.tools import CalculatorTool
-from btflow.tools.node import ToolNode
+from btflow.tools import ToolNode
 
 def _tool_description(tool_cls: Type) -> str:
     return _resolve_description(None, tool_cls)
@@ -258,10 +239,9 @@ node_registry.register_metadata(NodeMetadata(
 ))
 node_registry._class_map["LoopUntilSuccess"] = LoopUntilSuccess
 
-# ReAct Nodes
 node_registry.register(
-    ReActLLMNode,
-    id="ReActLLMNode", label="ReAct LLM", category="Agent (ReAct)", icon="🤖",
+    AgentLLMNode,
+    id="AgentLLMNode", label="Agent LLM", category="Agent", icon="🤖",
     inputs=[
         {"name": "messages", "type": "list", "default": []},
         {"name": "task", "type": "str", "default": ""},
@@ -270,21 +250,24 @@ node_registry.register(
     ],
     outputs=[
         {"name": "messages", "type": "list", "default": []},
-        {"name": "round", "type": "int", "default": 0},
+        {"name": "rounds", "type": "int", "default": 0},
         {"name": "streaming_output", "type": "str", "default": ""},
     ],
     config_schema={
         "model": {"type": "text", "default": "gemini-2.5-flash"},
         "system_prompt": {"type": "textarea", "default": ""},
         "memory_id": {"type": "text", "default": "default"},
-        "memory_top_k": {"type": "number", "default": 5}
+        "memory_top_k": {"type": "number", "default": 5},
+        "structured_tool_calls": {"type": "boolean", "default": True},
+        "strict_tool_calls": {"type": "boolean", "default": False},
+        "stream": {"type": "boolean", "default": False},
     }
 )
 
 
 node_registry.register(
     ToolExecutor,
-    id="ToolExecutor", label="Tool Executor", category="Agent (ReAct)", icon="🛠️",
+    id="ToolExecutor", label="Tool Executor", category="Agent", icon="🛠️",
     inputs=[
         {"name": "messages", "type": "list", "default": []},
     ],
@@ -305,63 +288,75 @@ node_registry.register(
 )
 
 node_registry.register(
-    IsFinalAnswer,
-    id="IsFinalAnswer", label="Is Final Answer?", category="Agent (ReAct)", icon="✅",
+    ParserNode,
+    id="ParserNode", label="Parser", category="Agent", icon="🧩",
     inputs=[
         {"name": "messages", "type": "list", "default": []},
-        {"name": "round", "type": "int", "default": 0},
     ],
     outputs=[
         {"name": "final_answer", "type": "str", "default": ""},
-    ],
-    config_schema={
-        "max_rounds": {"type": "number", "default": 10}
-    }
-)
-
-# Reflexion Nodes
-node_registry.register(
-    SelfRefineLLMNode,
-    id="SelfRefineLLMNode", label="Self-Refine LLM", category="Agent (Reflexion)", icon="🪞",
-    inputs=[
-        {"name": "task", "type": "str", "default": ""},
-        {"name": "messages", "type": "list", "default": []},
-        {"name": "round", "type": "int", "default": 0},
-        {"name": "answer", "type": "str", "default": ""},
-        {"name": "score", "type": "float", "default": 0.0},
-        {"name": "reflection", "type": "str", "default": ""},
-    ],
-    outputs=[
-        {"name": "messages", "type": "list", "default": []},
         {"name": "answer", "type": "str", "default": ""},
         {"name": "answer_history", "type": "list", "default": []},
         {"name": "score", "type": "float", "default": 0.0},
         {"name": "score_history", "type": "list", "default": []},
         {"name": "reflection", "type": "str", "default": ""},
         {"name": "reflection_history", "type": "list", "default": []},
-        {"name": "round", "type": "int", "default": 0},
-        {"name": "is_complete", "type": "bool", "default": False},
-        {"name": "streaming_output", "type": "str", "default": ""},
+        {"name": "actions", "type": "list", "default": []},
+        {"name": "parsed", "type": "str", "default": ""},
     ],
     config_schema={
-        "model": {"type": "text", "default": "gemini-2.5-flash"},
-        "memory_id": {"type": "text", "default": "default"},
-        "memory_top_k": {"type": "number", "default": 5}
+        "preset": {
+            "type": "select",
+            "options": ["final_answer", "score", "action", "custom"],
+            "labelMap": {
+                "final_answer": "提取 Final Answer",
+                "score": "提取 Score",
+                "action": "提取 Action/Input",
+                "custom": "自定义正则",
+            },
+            "default": "final_answer",
+        },
+        "custom_pattern": {
+            "type": "text",
+            "showWhen": {"preset": "custom"},
+            "placeholder": r"Score:\\s*([0-9.]+)",
+        },
     }
 )
 
 node_registry.register(
-    IsGoodEnough,
-    id="IsGoodEnough", label="Is Good Enough?", category="Agent (Reflexion)", icon="⚖️",
+    ConditionNode,
+    id="ConditionNode", label="Condition", category="Agent", icon="⚖️",
     inputs=[
+        {"name": "messages", "type": "list", "default": []},
+        {"name": "final_answer", "type": "str", "default": ""},
         {"name": "score", "type": "float", "default": 0.0},
-        {"name": "round", "type": "int", "default": 0},
+        {"name": "rounds", "type": "int", "default": 0},
     ],
     outputs=[
+        {"name": "passed", "type": "bool", "default": False},
         {"name": "is_complete", "type": "bool", "default": False},
     ],
     config_schema={
-        "threshold": {"type": "number", "default": 8.0},
-        "max_rounds": {"type": "number", "default": 5}
+        "preset": {
+            "type": "select",
+            "options": ["score_gte", "has_final_answer", "max_rounds"],
+            "labelMap": {
+                "score_gte": "分数达标",
+                "has_final_answer": "Final Answer 存在",
+                "max_rounds": "达到最大轮数",
+            },
+            "default": "score_gte",
+        },
+        "threshold": {
+            "type": "number",
+            "default": 8.0,
+            "showWhen": {"preset": "score_gte"},
+        },
+        "max_rounds": {
+            "type": "number",
+            "default": 10,
+            "showWhen": {"preset": "max_rounds"},
+        },
     }
 )

@@ -15,7 +15,7 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.react import ReActState
-from btflow.nodes import ToolExecutor, IsFinalAnswer, ReActLLMNode
+from btflow.nodes import ToolExecutor, ConditionNode, AgentLLMNode
 from btflow.tools import Tool
 from btflow import tool as tool_decorator
 from btflow.messages import human, ai, Message, message_to_text
@@ -68,7 +68,7 @@ class MockLLMNode(AsyncBehaviour):
             state = self.state_manager.get()
             self.state_manager.update({
                 "messages": [ai(response)],
-                "round": state.round + 1
+                "rounds": state.rounds + 1
             })
             return Status.SUCCESS
         return Status.FAILURE
@@ -77,7 +77,7 @@ class MockLLMNode(AsyncBehaviour):
 class StreamingTestState(BaseModel):
     messages: Annotated[List[Message], operator.add] = Field(default_factory=list)
     streaming_output: str = ""
-    round: int = 0
+    rounds: int = 0
     tools_desc: str = ""
     tools_schema: List[Dict[str, Any]] = Field(default_factory=list)
 
@@ -91,13 +91,13 @@ class StreamingDummyProvider(LLMProvider):
         yield MessageChunk(text="World")
 
 
-class TestIsFinalAnswer(unittest.TestCase):
-    """IsFinalAnswer 节点测试"""
+class TestConditionFinalAnswer(unittest.TestCase):
+    """ConditionNode has_final_answer 测试"""
     
     def setUp(self):
         self.state_manager = StateManager(schema=ReActState)
         self.state_manager.initialize({})
-        self.check = IsFinalAnswer("check", max_rounds=10)
+        self.check = ConditionNode("check", preset="has_final_answer")
         self.check.state_manager = self.state_manager
     
     def test_no_messages_returns_failure(self):
@@ -136,15 +136,16 @@ class TestIsFinalAnswer(unittest.TestCase):
         self.assertEqual(self.state_manager.get().final_answer, "7")
     
     def test_max_rounds_exceeded(self):
-        """超过最大轮数返回 SUCCESS（强制停止）"""
+        """达到最大轮数返回 SUCCESS"""
         self.state_manager.update({
             "messages": [ai("Thought: thinking...")],
-            "round": 10  # max_rounds = 10
+            "rounds": 10  # max_rounds = 10
         })
-        self.check.setup()
-        result = self.check.update()
+        max_rounds_check = ConditionNode("max_rounds", preset="max_rounds", max_rounds=10)
+        max_rounds_check.state_manager = self.state_manager
+        max_rounds_check.setup()
+        result = max_rounds_check.update()
         self.assertEqual(result, Status.SUCCESS)
-        self.assertEqual(self.state_manager.get().final_answer, "[MAX_ROUNDS_EXCEEDED]")
 
 
 class TestToolExecutor(unittest.IsolatedAsyncioTestCase):
@@ -391,7 +392,7 @@ class TestReActIntegration(unittest.IsolatedAsyncioTestCase):
         # 构建节点
         llm_node = MockLLMNode("llm", responses)
         tool_executor = ToolExecutor("tools", tools=[MockCalculatorTool()])
-        check_node = IsFinalAnswer("check", max_rounds=10)
+        check_node = ConditionNode("check", preset="has_final_answer")
         
         # 构建树
         loop_body = Sequence("loop", memory=True, children=[
@@ -412,7 +413,7 @@ class TestReActIntegration(unittest.IsolatedAsyncioTestCase):
         # 验证
         state = state_manager.get()
         self.assertEqual(state.final_answer, "15")
-        self.assertEqual(state.round, 2)
+        self.assertEqual(state.rounds, 2)
         self.assertEqual(len(state.messages), 4)  # Question + Action + Observation + Final
 
 
@@ -421,8 +422,8 @@ class TestReActStreaming(unittest.IsolatedAsyncioTestCase):
         state_manager = StateManager(schema=StreamingTestState)
         state_manager.initialize({"messages": [human("Question: say hello")]})
 
-        node = ReActLLMNode(
-            name="ReActStream",
+        node = AgentLLMNode(
+            name="AgentStream",
             model="dummy",
             provider=StreamingDummyProvider(),
             stream=True,

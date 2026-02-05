@@ -6,9 +6,9 @@ ReAct (Reasoning + Acting) 是一种 LLM Agent 模式，交替进行推理和工
 Tree Structure (使用 btflow.LoopUntilSuccess):
     Root (LoopUntilSuccess)
     └── Sequence (memory=True)
-        ├── ReActLLMNode       → 调用 LLM，输出 Thought/Action/Final Answer
+        ├── AgentLLMNode       → 调用 LLM，输出 Thought/Action/Final Answer
         ├── ToolExecutor       → 检测并执行 Action（无则跳过）
-        └── IsFinalAnswer      → 条件：有 Final Answer → SUCCESS，否则 FAILURE
+        └── ConditionNode      → 条件：有 Final Answer → SUCCESS，否则 FAILURE
 """
 import operator
 from typing import Annotated, List, Dict, Any, Optional, Type
@@ -19,7 +19,7 @@ from py_trees.composites import Sequence
 from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.agent import BTAgent
-from btflow.nodes import ReActLLMNode, ToolExecutor, IsFinalAnswer
+from btflow.nodes import AgentLLMNode, ToolExecutor, ConditionNode
 from btflow.llm import LLMProvider
 from btflow.tools import Tool
 from btflow.memory import Memory, create_memory_tools
@@ -34,7 +34,7 @@ class ReActState(BaseModel):
     task: Optional[str] = None
     messages: Annotated[List[Message], operator.add] = Field(default_factory=list)
     final_answer: Optional[str] = None
-    round: int = 0
+    rounds: int = 0
     tools_desc: str = ""
     tools_schema: List[Dict[str, Any]] = Field(default_factory=list)
     streaming_output: str = ""
@@ -97,8 +97,8 @@ class ReActAgent:
         tool_executor = ToolExecutor(name="ToolExecutor", tools=tools)
         tools_desc = tool_executor.get_tools_description()
 
-        llm_node = ReActLLMNode(
-            name="ReActLLM",
+        llm_node = AgentLLMNode(
+            name="AgentLLM",
             model=model,
             provider=provider,
             tools_description=tools_desc,
@@ -113,7 +113,7 @@ class ReActAgent:
         loop_body = Sequence(name="ReActLoop", memory=True, children=[
             llm_node,
             tool_executor,
-            IsFinalAnswer(name="CheckAnswer", max_rounds=max_rounds)
+            ConditionNode(name="CheckAnswer", preset="has_final_answer")
         ])
 
         root = LoopUntilSuccess(name="ReActAgent", max_iterations=max_rounds, child=loop_body)

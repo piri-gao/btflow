@@ -6,9 +6,9 @@ ReAct Agent Demo - 使用 OpenAI 兼容 API 实现 ReAct 模式
 Tree Structure (使用 btflow.LoopUntilSuccess):
     Root (LoopUntilSuccess)
     └── Sequence (memory=True)
-        ├── ReActLLMNode       → 调用 LLM
+        ├── AgentLLMNode       → 调用 LLM
         ├── ToolExecutor       → 执行工具
-        └── IsFinalAnswer      → 条件检查 (SUCCESS=结束, FAILURE=继续)
+        └── ConditionNode      → 条件检查 (SUCCESS=结束, FAILURE=继续)
 
 运行方式：
     export OPENAI_API_KEY="your-api-key"
@@ -77,7 +77,7 @@ async def demo_calculator(provider):
     state = agent.state_manager.get()
     print(f"\n📊 Final Status: {result}")
     print(f"💬 Final Answer: {state.final_answer}")
-    print(f"🔄 Total Rounds: {state.round}")
+    print(f"🔄 Total Rounds: {state.rounds}")
     
     print("\n📜 Conversation:")
     print("-" * 40)
@@ -113,7 +113,7 @@ async def demo_multi_tools(provider):
     state = agent.state_manager.get()
     print(f"\n📊 Final Status: {result}")
     print(f"💬 Final Answer: {state.final_answer}")
-    print(f"🔄 Total Rounds: {state.round}")
+    print(f"🔄 Total Rounds: {state.rounds}")
 
 
 # ============ Main ============

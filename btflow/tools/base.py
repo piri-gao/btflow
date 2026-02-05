@@ -40,7 +40,7 @@ class Tool(ABC):
         """
         Wrap this tool into a ToolNode for use in a behavior tree.
         """
-        from btflow.tools.node import ToolNode
+        from btflow.tools import ToolNode
         return ToolNode(
             name=name or self.name,
             tool=self,

@@ -1,5 +1,5 @@
 """
-Tests for btflow.patterns.reflexion - Reflexion Agent Pattern (Self-Refine)
+Tests for btflow.patterns.reflexion - Reflexion Agent Pattern
 """
 import asyncio
 import unittest
@@ -12,11 +12,11 @@ from btflow.core.composites import LoopUntilSuccess
 from btflow.core.state import StateManager
 from btflow.core.runtime import ReactiveRunner
 from btflow.patterns.reflexion import ReflexionState
-from btflow.nodes import IsGoodEnough
+from btflow.nodes import ConditionNode
 
 
-class MockSelfRefineNode(AsyncBehaviour):
-    """Mock Self-Refine node for testing"""
+class MockReflexionNode(AsyncBehaviour):
+    """Mock Reflexion node for testing"""
     def __init__(self, name: str, scores: List[float]):
         super().__init__(name)
         self.scores = scores
@@ -33,31 +33,31 @@ class MockSelfRefineNode(AsyncBehaviour):
                 "score": score,
                 "score_history": [score],
                 "reflection": f"Reflection {self.call_count}" if score < 8.0 else "Good enough",
-                "round": state.round + 1
+                "rounds": state.rounds + 1
             })
             return Status.SUCCESS
         return Status.FAILURE
 
 
-class TestIsGoodEnough(unittest.TestCase):
-    """IsGoodEnough 节点测试"""
+class TestConditionScore(unittest.TestCase):
+    """ConditionNode score_gte 测试"""
     
     def setUp(self):
         self.state_manager = StateManager(schema=ReflexionState)
         self.state_manager.initialize({})
-        self.check = IsGoodEnough("check", threshold=8.0, max_rounds=5)
+        self.check = ConditionNode("check", preset="score_gte", threshold=8.0, max_rounds=5)
         self.check.state_manager = self.state_manager
     
     def test_low_score_returns_failure(self):
         """低分返回 FAILURE"""
-        self.state_manager.update({"score": 5.0, "round": 1})
+        self.state_manager.update({"score": 5.0, "rounds": 1})
         self.check.setup()
         result = self.check.update()
         self.assertEqual(result, Status.FAILURE)
     
     def test_high_score_returns_success(self):
         """高分返回 SUCCESS"""
-        self.state_manager.update({"score": 8.5, "round": 1})
+        self.state_manager.update({"score": 8.5, "rounds": 1})
         self.check.setup()
         result = self.check.update()
         self.assertEqual(result, Status.SUCCESS)
@@ -65,16 +65,18 @@ class TestIsGoodEnough(unittest.TestCase):
     
     def test_threshold_exact_returns_success(self):
         """刚好达到阈值返回 SUCCESS"""
-        self.state_manager.update({"score": 8.0, "round": 1})
+        self.state_manager.update({"score": 8.0, "rounds": 1})
         self.check.setup()
         result = self.check.update()
         self.assertEqual(result, Status.SUCCESS)
     
     def test_max_rounds_exceeded(self):
-        """超过最大轮数返回 SUCCESS（强制结束）"""
-        self.state_manager.update({"score": 5.0, "round": 5})  # max_rounds = 5
-        self.check.setup()
-        result = self.check.update()
+        """达到最大轮数返回 SUCCESS"""
+        self.state_manager.update({"score": 5.0, "rounds": 5})  # max_rounds = 5
+        max_rounds_check = ConditionNode("max_rounds", preset="max_rounds", max_rounds=5)
+        max_rounds_check.state_manager = self.state_manager
+        max_rounds_check.setup()
+        result = max_rounds_check.update()
         self.assertEqual(result, Status.SUCCESS)
 
 
@@ -83,8 +85,8 @@ class TestReflexionIntegration(unittest.IsolatedAsyncioTestCase):
     
     async def test_immediate_success(self):
         """第一轮就达标"""
-        refine_node = MockSelfRefineNode("refine", scores=[9.0])
-        check_node = IsGoodEnough("check", threshold=8.0, max_rounds=5)
+        refine_node = MockReflexionNode("refine", scores=[9.0])
+        check_node = ConditionNode("check", preset="score_gte", threshold=8.0, max_rounds=5)
         
         loop_body = Sequence("loop", memory=True, children=[
             refine_node,
@@ -100,14 +102,14 @@ class TestReflexionIntegration(unittest.IsolatedAsyncioTestCase):
         
         state = state_manager.get()
         self.assertEqual(state.score, 9.0)
-        self.assertEqual(state.round, 1)
+        self.assertEqual(state.rounds, 1)
         self.assertTrue(state.is_complete)
     
     async def test_iterative_improvement(self):
         """多轮改进达标"""
         # 分数逐渐提高: 5.0 -> 6.5 -> 8.5
-        refine_node = MockSelfRefineNode("refine", scores=[5.0, 6.5, 8.5])
-        check_node = IsGoodEnough("check", threshold=8.0, max_rounds=5)
+        refine_node = MockReflexionNode("refine", scores=[5.0, 6.5, 8.5])
+        check_node = ConditionNode("check", preset="score_gte", threshold=8.0, max_rounds=5)
         
         loop_body = Sequence("loop", memory=True, children=[
             refine_node,
@@ -123,14 +125,14 @@ class TestReflexionIntegration(unittest.IsolatedAsyncioTestCase):
         
         state = state_manager.get()
         self.assertEqual(state.score, 8.5)
-        self.assertEqual(state.round, 3)
+        self.assertEqual(state.rounds, 3)
         self.assertEqual(len(state.score_history), 3)
     
     async def test_max_rounds_termination(self):
         """达到最大轮数后终止"""
         # 分数始终不够高
-        refine_node = MockSelfRefineNode("refine", scores=[4.0, 5.0, 6.0, 6.5, 7.0])
-        check_node = IsGoodEnough("check", threshold=8.0, max_rounds=3)
+        refine_node = MockReflexionNode("refine", scores=[4.0, 5.0, 6.0, 6.5, 7.0])
+        check_node = ConditionNode("check", preset="score_gte", threshold=8.0, max_rounds=3)
         
         loop_body = Sequence("loop", memory=True, children=[
             refine_node,
@@ -146,8 +148,8 @@ class TestReflexionIntegration(unittest.IsolatedAsyncioTestCase):
         
         state = state_manager.get()
         # 第 3 轮时因为达到 max_rounds 而强制结束
-        self.assertEqual(state.round, 3)
-        self.assertTrue(state.is_complete)
+        self.assertEqual(state.rounds, 3)
+        self.assertFalse(state.is_complete)
 
 
 if __name__ == "__main__":

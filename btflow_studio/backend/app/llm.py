@@ -70,18 +70,17 @@ Your role is to help users create and modify workflows through natural conversat
    - Root: `LoopUntilSuccess` (max_iterations: 10)
    - Child of Root: `Sequence` (memory: true)
    - Children of Sequence (in order): 
-     * `SetTask` (At the beginning to define the problem)
-     * `ReActLLMNode`
+     * `AgentLLMNode`
      * `ToolExecutor` (MUST connect tools like `CalculatorTool` as children here)
-     * `IsFinalAnswer` (SUCCESS=Finish, FAILURE=Continue)
+     * `ConditionNode` (preset: has_final_answer)
 
-2. **Reflexion Pattern (Self-Refine)**:
+2. **Reflexion Pattern**:
    - Root: `LoopUntilSuccess`
    - Child of Root: `Sequence` (memory: true)
    - Children of Sequence:
-     * `SetTask` (At the beginning)
-     * `SelfRefineLLMNode`
-     * `IsGoodEnough`
+     * `AgentLLMNode`
+     * `ParserNode` (preset: score)
+     * `ConditionNode` (preset: score_gte)
 
 3. **Tool Connections**:
    - Always connect individual tool nodes (labels like Calculator, Search) as direct children of a `ToolExecutor`.
@@ -94,7 +93,6 @@ Your role is to help users create and modify workflows through natural conversat
 
 **Instructions:**
 1. When user describes a new workflow, generate complete JSON
-2. If it's an agent task, start the main sequence with a `SetTask` node. Put the actual problem description in `config.task_content`.
 3. When user requests modifications, update the existing workflow
 4. Use descriptive labels
 5. Set reasonable default configs

@@ -41,7 +41,7 @@ export const saveWorkflow = async (id: string, workflow: { nodes: Node[], edges:
             source: e.source,
             target: e.target
         })),
-        // Include state for ReAct workflows
+        // Include state for workflows
         state: workflow.state || {
             schema_name: "AutoState",
             fields: []

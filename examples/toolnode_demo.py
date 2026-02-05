@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from btflow import BTAgent, StateManager, Sequence, Status
 from btflow.tools import CalculatorTool
-from btflow.tools.node import ToolNode
+from btflow.tools import ToolNode
 
 
 class ToolState(BaseModel):

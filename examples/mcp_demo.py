@@ -2,7 +2,7 @@ import asyncio
 import os
 import shutil
 from btflow.protocols.mcp import MCPServerConfig, MCPClient
-from btflow.nodes import ReActLLMNode, ToolExecutor, IsFinalAnswer
+from btflow.nodes import AgentLLMNode, ToolExecutor, ConditionNode
 from btflow.core.state import StateManager
 from btflow.messages import Message
 from py_trees.common import Status
@@ -15,7 +15,7 @@ class ReActState(BaseModel):
     tools_desc: str = ""
     tools_schema: List[Dict[str, Any]] = Field(default_factory=list)
     final_answer: Optional[str] = None
-    round: int = 0
+    rounds: int = 0
 
 
 async def main():
@@ -59,7 +59,7 @@ async def main():
                 f.write("Hello from BTflow + MCP Integration!")
 
             # Agent Nodes
-            llm_node = ReActLLMNode(
+            llm_node = AgentLLMNode(
                 model="gemini-2.0-flash-exp", # Faster model
                 tools_description="", # Will be updated dynamically by executor 
             )
@@ -68,7 +68,7 @@ async def main():
             tool_node = ToolExecutor(tools=tools) # Inject MCP tools
             tool_node.bind_state_manager(state_manager)
 
-            check_node = IsFinalAnswer()
+            check_node = ConditionNode(preset="has_final_answer")
             check_node.state_manager = state_manager # Manual bind for simple behaviour
 
             # Behavior Tree vs manual loop:
@@ -81,12 +81,12 @@ async def main():
             state_manager.update({"task": question})
             
             # Because ReactiveRunner runs forever until stopped, we'll run it for a bit
-            # or rely on IsFinalAnswer to stop? 
+            # or rely on ConditionNode to stop? 
             # btflow logic: nodes return RUNNING/SUCCESS/FAILURE.
             # We need a condition to stop the runner. Runner stops if root returns SUCCESS/FAILURE (if configured).
             # Repeat returns SUCCESS only if child returns SUCCESS (and num_failures work).
             # If child is Sequence, it returns SUCCESS if all children SUCCESS.
-            # LLM -> SUCCESS. Tool -> SUCCESS. IsFinalAnswer -> SUCCESS (if found).
+            # LLM -> SUCCESS. Tool -> SUCCESS. ConditionNode -> SUCCESS (if found).
             # So if Final Answer found, Step returns SUCCESS. Repeat loops again?
             # py_trees Repeat: repeats child returns SUCCESS or FAILURE. 
             

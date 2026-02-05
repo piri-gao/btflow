@@ -17,6 +17,33 @@ const navItems: Array<{ key: PanelKey; label: string; icon: string }> = [
   { key: 'settings', label: 'Settings', icon: '⚙️' },
 ];
 
+const REFLEXION_PROMPT = `You are a helpful assistant that iteratively improves answers.
+
+You will receive the user's task and may also see your previous responses in the conversation history.
+Each previous response uses this exact format:
+
+Answer: ...
+Score: ...
+Reflection: ...
+
+On each turn, produce a new response in the EXACT format below. If there is a previous answer,
+improve it using the reflection feedback.
+
+Answer: [Your complete answer here]
+
+Score: [A number from 0 to 10, be honest and critical]
+
+Reflection: [If score < 8, explain what could be improved. If score >= 8, write "The answer is satisfactory."]
+
+Scoring guidelines:
+- 0-3: Incorrect or very incomplete
+- 4-5: Partially correct but major issues
+- 6-7: Mostly correct but could be improved
+- 8-9: Good answer with minor issues
+- 10: Perfect answer
+
+Be critical and honest in your self-evaluation. Don't give yourself a high score unless the answer is truly excellent.`;
+
 const buildReactTemplate = () => {
   const nodes = [
     {
@@ -35,8 +62,8 @@ const buildReactTemplate = () => {
     },
     {
       id: 'react_llm',
-      type: 'ReActLLMNode',
-      label: 'ReActLLM',
+      type: 'AgentLLMNode',
+      label: 'AgentLLM',
       position: { x: 20, y: 300 },
       config: { model: 'gemini-2.5-flash', system_prompt: '', memory_id: 'default', memory_top_k: 5 },
     },
@@ -49,10 +76,10 @@ const buildReactTemplate = () => {
     },
     {
       id: 'react_check',
-      type: 'IsFinalAnswer',
-      label: 'CheckAnswer',
+      type: 'ConditionNode',
+      label: 'HasFinalAnswer',
       position: { x: 420, y: 300 },
-      config: { max_rounds: 10 },
+      config: { preset: 'has_final_answer' },
     },
   ];
   const edges = [
@@ -82,23 +109,31 @@ const buildReflexionTemplate = () => {
     },
     {
       id: 'reflex_llm',
-      type: 'SelfRefineLLMNode',
-      label: 'SelfRefine',
-      position: { x: 80, y: 300 },
-      config: { model: 'gemini-2.5-flash', memory_id: 'default', memory_top_k: 5 },
+      type: 'AgentLLMNode',
+      label: 'AgentLLM',
+      position: { x: 20, y: 300 },
+      config: { model: 'gemini-2.5-flash', system_prompt: REFLEXION_PROMPT, memory_id: 'default', memory_top_k: 5 },
+    },
+    {
+      id: 'reflex_eval',
+      type: 'ParserNode',
+      label: 'Parser',
+      position: { x: 220, y: 300 },
+      config: { preset: 'score' },
     },
     {
       id: 'reflex_check',
-      type: 'IsGoodEnough',
+      type: 'ConditionNode',
       label: 'IsGoodEnough',
-      position: { x: 300, y: 300 },
-      config: { threshold: 8.0, max_rounds: 5 },
+      position: { x: 420, y: 300 },
+      config: { preset: 'score_gte', threshold: 8.0 },
     },
   ];
   const edges = [
     { id: 'e_reflex_root', source: 'reflex_root', target: 'reflex_seq' },
     { id: 'e_reflex_1', source: 'reflex_seq', target: 'reflex_llm' },
-    { id: 'e_reflex_2', source: 'reflex_seq', target: 'reflex_check' },
+    { id: 'e_reflex_2', source: 'reflex_seq', target: 'reflex_eval' },
+    { id: 'e_reflex_3', source: 'reflex_seq', target: 'reflex_check' },
   ];
   return { nodes, edges };
 };
@@ -140,7 +175,7 @@ export default function LeftPanel({ nodeMetas, tools, onApplyWorkflow }: LeftPan
             <div className="space-y-3">
               <div className="border rounded p-3 bg-white">
                 <div className="text-sm font-medium text-gray-900">ReAct Agent</div>
-                <div className="text-xs text-gray-500 mt-1">LoopUntilSuccess + ReActLLM + ToolExecutor + IsFinalAnswer</div>
+                <div className="text-xs text-gray-500 mt-1">LoopUntilSuccess + AgentLLM + ToolExecutor + Condition</div>
                 <button
                   onClick={() => onApplyWorkflow(buildReactTemplate())}
                   className="mt-3 text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
@@ -150,7 +185,7 @@ export default function LeftPanel({ nodeMetas, tools, onApplyWorkflow }: LeftPan
               </div>
               <div className="border rounded p-3 bg-white">
                 <div className="text-sm font-medium text-gray-900">Reflexion Agent</div>
-                <div className="text-xs text-gray-500 mt-1">LoopUntilSuccess + SelfRefine + IsGoodEnough</div>
+                <div className="text-xs text-gray-500 mt-1">LoopUntilSuccess + AgentLLM + Parser + Condition</div>
                 <button
                   onClick={() => onApplyWorkflow(buildReflexionTemplate())}
                   className="mt-3 text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"

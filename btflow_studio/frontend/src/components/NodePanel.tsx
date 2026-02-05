@@ -47,6 +47,23 @@ export default function NodePanel({ selectedNode, setNodes, nodeMetas, tools }: 
     const nodeType = selectedNode.data.nodeType;
     const meta = nodeMetas.find(m => m.id === nodeType);
     const config = selectedNode.data.config || {};
+    const labelMapFor = (schema: any, value: string) => {
+        if (!schema || !schema.labelMap) return value;
+        return schema.labelMap[value] || value;
+    };
+
+    const shouldShowField = (schema: any) => {
+        const showWhen = schema?.showWhen;
+        if (!showWhen) return true;
+        return Object.entries(showWhen).every(([dep, expected]) => {
+            const depSchema = meta?.config_schema?.[dep];
+            const actual = config[dep] ?? depSchema?.default;
+            if (Array.isArray(expected)) {
+                return expected.includes(actual);
+            }
+            return actual === expected;
+        });
+    };
 
     const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const label = e.target.value;
@@ -129,6 +146,9 @@ export default function NodePanel({ selectedNode, setNodes, nodeMetas, tools }: 
                     <div className="pt-4 border-t">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Configuration</h3>
                         {Object.entries(meta.config_schema).map(([key, schema]: [string, any]) => {
+                            if (!shouldShowField(schema)) {
+                                return null;
+                            }
                             const currentValue = config[key] ?? schema.default ?? (schema.type === 'multiselect' ? [] : '');
                             const toolOptions = schema.source === 'tools' ? tools : [];
                             const label = schema.label || key;
@@ -153,7 +173,7 @@ export default function NodePanel({ selectedNode, setNodes, nodeMetas, tools }: 
                                         <option value="">Select...</option>
                                         {(schema.options || (schema.source === 'tools' ? toolOptions : [])).map((opt: any) => {
                                             if (typeof opt === 'string') {
-                                                return <option key={opt} value={opt}>{opt}</option>;
+                                                return <option key={opt} value={opt}>{labelMapFor(schema, opt)}</option>;
                                             }
                                             const value = opt.id;
                                             const label = opt.label + (opt.available === false ? ' (missing deps)' : '');
@@ -168,7 +188,7 @@ export default function NodePanel({ selectedNode, setNodes, nodeMetas, tools }: 
                                     <div className="space-y-2">
                                         {(schema.options || toolOptions).map((opt: any) => {
                                             const value = typeof opt === 'string' ? opt : opt.id;
-                                            const label = typeof opt === 'string' ? opt : opt.label;
+                                            const label = typeof opt === 'string' ? labelMapFor(schema, opt) : opt.label;
                                             const disabled = typeof opt === 'string' ? false : opt.available === false;
                                             const checked = Array.isArray(currentValue) && currentValue.includes(value);
                                             return (
