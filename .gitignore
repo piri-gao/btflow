@@ -13,6 +13,9 @@ __pycache__/
 # 测试缓存
 .pytest_cache
 
+# Studio runtime data
+btflow_studio/backend/app/data/
+
 # 虚拟环境
 venv/
 .env
