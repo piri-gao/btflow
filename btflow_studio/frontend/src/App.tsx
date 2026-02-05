@@ -41,6 +41,12 @@ interface ToolEvent {
   data: Record<string, any>;
 }
 
+interface StateField {
+  name: string;
+  type: string;
+  default: any;
+}
+
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
 
@@ -62,6 +68,62 @@ const getNodeVisualType = (nodeType: string): string => {
   return 'action';
 };
 
+const normalizeBinding = (value: any, fallback: string): string => {
+  if (!value) return fallback;
+  if (typeof value === 'string' && value.startsWith('state.')) {
+    return value.slice('state.'.length);
+  }
+  return String(value).trim();
+};
+
+const normalizePorts = (ports: any[]): { name: string; type: string; default: any }[] => {
+  if (!ports) return [];
+  return ports.map((p) => {
+    if (typeof p === 'string') {
+      return { name: p, type: 'str', default: '' };
+    }
+    return {
+      name: p.name,
+      type: p.type || 'str',
+      default: p.default ?? '',
+    };
+  });
+};
+
+const inferStateFields = (nodes: Node[], nodeMetas: any[]): StateField[] => {
+  const fields: Record<string, StateField> = {};
+
+  nodes.forEach((node) => {
+    const meta = nodeMetas.find((m) => m.id === (node.data as any)?.nodeType || m.id === node.type);
+    if (!meta) return;
+
+    const inputBindings = (node.data as any)?.input_bindings || {};
+    const outputBindings = (node.data as any)?.output_bindings || {};
+
+    normalizePorts(meta.inputs || []).forEach((port) => {
+      const target = normalizeBinding(inputBindings[port.name], port.name);
+      if (!fields[target]) {
+        fields[target] = { name: target, type: port.type, default: port.default };
+      }
+    });
+
+    normalizePorts(meta.outputs || []).forEach((port) => {
+      const target = normalizeBinding(outputBindings[port.name], port.name);
+      if (!fields[target]) {
+        fields[target] = { name: target, type: port.type, default: port.default };
+      }
+    });
+  });
+
+  if (Object.keys(fields).length === 0) {
+    fields['messages'] = { name: 'messages', type: 'list', default: [] };
+    fields['task'] = { name: 'task', type: 'str', default: '' };
+    fields['round'] = { name: 'round', type: 'int', default: 0 };
+  }
+
+  return Object.values(fields);
+};
+
 function Flow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -77,12 +139,36 @@ function Flow() {
   const [traceEvents, setTraceEvents] = useState<TraceEvent[]>([]);
   const [toolEvents, setToolEvents] = useState<ToolEvent[]>([]);
   const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'chat'>('properties');
+  const [showInitialState, setShowInitialState] = useState(false);
+  const [initialStateValues, setInitialStateValues] = useState<Record<string, any>>({});
+  const [initialStateError, setInitialStateError] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Derive selectedNode from nodes to keep it in sync
   const selectedNode = useMemo(() => {
     if (!selectedNodeId) return null;
     return nodes.find(n => n.id === selectedNodeId) || null;
   }, [nodes, selectedNodeId]);
+
+  const inferredStateFields = useMemo(
+    () => inferStateFields(nodes, nodeMetas),
+    [nodes, nodeMetas]
+  );
+
+  useEffect(() => {
+    setInitialStateValues((prev) => {
+      const next = { ...prev };
+      inferredStateFields.forEach((field) => {
+        if (next[field.name] !== undefined) return;
+        if (field.type === 'list' || field.type === 'dict' || field.type === 'tuple') {
+          next[field.name] = JSON.stringify(field.default ?? (field.type === 'dict' ? {} : []), null, 2);
+        } else {
+          next[field.name] = field.default ?? '';
+        }
+      });
+      return next;
+    });
+  }, [inferredStateFields]);
 
 
   useEffect(() => {
@@ -227,25 +313,93 @@ function Flow() {
     if (!reactFlowInstance || !workflowId) return;
 
     try {
-      await saveWorkflow(workflowId, { nodes, edges });
+      await saveWorkflow(workflowId, {
+        nodes,
+        edges,
+        state: {
+          schema_name: 'AutoState',
+          fields: inferredStateFields
+        }
+      });
     } catch (error: any) {
       // If workflow not found (404), create a new one
       if (error?.response?.status === 404) {
         console.log("Workflow not found, creating new one...");
         const newWf = await createWorkflow("Recovered Workflow");
         setWorkflowId(newWf.id);
-        await saveWorkflow(newWf.id, { nodes, edges });
+        await saveWorkflow(newWf.id, {
+          nodes,
+          edges,
+          state: {
+            schema_name: 'AutoState',
+            fields: inferredStateFields
+          }
+        });
       } else {
         console.error("Save failed:", error);
       }
     }
-  }, [reactFlowInstance, nodes, edges, workflowId]);
+  }, [reactFlowInstance, nodes, edges, workflowId, inferredStateFields]);
+
+  const buildInitialState = useCallback((): { state?: Record<string, any>; error?: string } => {
+    const state: Record<string, any> = {};
+    for (const field of inferredStateFields) {
+      const raw = initialStateValues[field.name];
+      if (field.type === 'bool') {
+        if (typeof raw === 'boolean') {
+          state[field.name] = raw;
+        }
+        continue;
+      }
+      if (field.type === 'int' || field.type === 'float') {
+        if (raw === '' || raw === null || raw === undefined) continue;
+        const num = Number(raw);
+        if (Number.isNaN(num)) {
+          return { error: `Field '${field.name}' expects a number` };
+        }
+        state[field.name] = num;
+        continue;
+      }
+      if (field.type === 'list' || field.type === 'dict' || field.type === 'tuple') {
+        if (raw === '' || raw === null || raw === undefined) continue;
+        if (field.name === 'messages' && typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw);
+            state[field.name] = parsed;
+          } catch {
+            state[field.name] = [{ role: 'user', content: raw }];
+          }
+          continue;
+        }
+        if (typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw);
+            state[field.name] = parsed;
+          } catch {
+            return { error: `Field '${field.name}' expects JSON` };
+          }
+        } else {
+          state[field.name] = raw;
+        }
+        continue;
+      }
+      if (raw === '' || raw === null || raw === undefined) continue;
+      state[field.name] = raw;
+    }
+    return { state };
+  }, [initialStateValues, inferredStateFields]);
 
   const onRun = useCallback(async () => {
     if (!workflowId) return;
+    const result = buildInitialState();
+    if (result.error) {
+      setInitialStateError(result.error || 'Invalid initial state');
+      return;
+    }
+    setInitialStateError('');
     await onSave();
-    await runWorkflow(workflowId);
-  }, [workflowId, onSave]);
+    await runWorkflow(workflowId, result.state);
+  }, [workflowId, onSave, buildInitialState]);
 
   const onStop = useCallback(async () => {
     if (!workflowId) return;
@@ -284,6 +438,65 @@ function Flow() {
     setSelectedNodeId(null);
   }, [setNodes, setEdges]);
 
+  const onSaveLocal = useCallback(async () => {
+    if (!workflowId) return;
+    await onSave();
+    const payload = {
+      version: '1.0',
+      id: workflowId,
+      name: 'Local Workflow',
+      nodes: nodes.map(n => ({
+        id: n.id,
+        type: n.data?.nodeType || n.type || 'Sequence',
+        label: n.data?.label || n.data?.nodeType || n.id,
+        position: n.position,
+        config: n.data?.config || {},
+        input_bindings: (n.data as any)?.input_bindings || {},
+        output_bindings: (n.data as any)?.output_bindings || {}
+      })),
+      edges: edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target
+      })),
+      state: {
+        schema_name: 'AutoState',
+        fields: inferredStateFields
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `btflow-workflow-${workflowId.slice(0, 6)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [workflowId, nodes, edges, onSave, inferredStateFields]);
+
+  const onLoadLocal = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const onFileSelected = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string);
+        if (!parsed.nodes || !parsed.edges) {
+          throw new Error('Invalid workflow file');
+        }
+        applyWorkflow({ nodes: parsed.nodes, edges: parsed.edges });
+      } catch (err) {
+        console.error('Failed to load workflow:', err);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }, [applyWorkflow]);
+
   return (
     <div className="flex flex-col h-screen w-screen bg-gray-50">
       {/* Top Area: Sidebar + Canvas + NodePanel */}
@@ -311,12 +524,23 @@ function Flow() {
               <Background />
               <Controls />
               <MiniMap />
-              <Panel position="top-right" className="bg-white p-2 rounded shadow-md flex gap-2 border border-gray-200">
-                <button onClick={onSave} disabled={isRunning} className={`px-3 py-1 rounded text-sm font-medium border border-gray-300 ${isRunning ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}`}>
+              <Panel position="top-right" className="bg-white p-2 rounded shadow-md flex gap-2 border border-gray-200 relative">
+                <button onClick={onSaveLocal} disabled={isRunning} className={`px-3 py-1 rounded text-sm font-medium border border-gray-300 ${isRunning ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}`}>
                   💾 Save
+                </button>
+                <button onClick={onLoadLocal} disabled={isRunning} className={`px-3 py-1 rounded text-sm font-medium border border-gray-300 ${isRunning ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}`}>
+                  📂 Load
                 </button>
                 <button onClick={onClearCanvas} disabled={isRunning} className={`px-3 py-1 rounded text-sm font-medium border border-gray-300 ${isRunning ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}`}>
                   🧹 Clear
+                </button>
+
+                <button
+                  onClick={() => setShowInitialState((prev) => !prev)}
+                  disabled={isRunning}
+                  className={`px-3 py-1 rounded text-sm font-medium border border-gray-300 ${isRunning ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}`}
+                >
+                  ⚙️ Init
                 </button>
 
                 {!isRunning ? (
@@ -330,6 +554,64 @@ function Flow() {
                 )}
 
                 {workflowId && <span className="text-xs text-gray-400 self-center border-l pl-2 ml-1">ID: {workflowId.slice(0, 6)}...</span>}
+
+                {showInitialState && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded shadow-lg p-3 text-xs z-10">
+                    <div className="font-semibold text-gray-700 mb-2">Initial State</div>
+                    <div className="max-h-64 overflow-auto pr-1">
+                      {inferredStateFields.map((field) => (
+                        <div key={field.name} className="mb-2">
+                          <label className="block text-[10px] text-gray-500 mb-1">
+                            {field.name} <span className="text-gray-400">({field.type})</span>
+                          </label>
+                          {field.type === 'bool' ? (
+                            <input
+                              type="checkbox"
+                              checked={!!initialStateValues[field.name]}
+                              onChange={(e) =>
+                                setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.checked }))
+                              }
+                            />
+                          ) : field.type === 'int' || field.type === 'float' ? (
+                            <input
+                              type="number"
+                              className="w-full text-xs p-1 border rounded"
+                              value={initialStateValues[field.name] ?? ''}
+                              onChange={(e) =>
+                                setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                              }
+                            />
+                          ) : field.type === 'list' || field.type === 'dict' || field.type === 'tuple' ? (
+                            <textarea
+                              className="w-full text-xs p-1 border rounded font-mono"
+                              rows={3}
+                              placeholder={field.name === 'messages' ? '输入一段话，或 JSON 数组' : 'JSON'}
+                              value={initialStateValues[field.name] ?? ''}
+                              onChange={(e) =>
+                                setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                              }
+                            />
+                          ) : (
+                            <input
+                              className="w-full text-xs p-1 border rounded"
+                              value={initialStateValues[field.name] ?? ''}
+                              onChange={(e) =>
+                                setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                              }
+                              placeholder={field.name === 'task' ? '例如：用一句话介绍你自己' : ''}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {initialStateError && (
+                      <div className="text-[10px] text-red-500 mt-2">{initialStateError}</div>
+                    )}
+                    <div className="text-[10px] text-gray-400 mt-2">
+                      留空表示使用默认值。
+                    </div>
+                  </div>
+                )}
               </Panel>
             </ReactFlow>
           </div>
@@ -389,6 +671,13 @@ function Flow() {
           setTraceEvents([]);
           setToolEvents([]);
         }}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        className="hidden"
+        onChange={onFileSelected}
       />
     </div>
   );

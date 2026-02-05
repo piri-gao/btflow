@@ -364,27 +364,9 @@ class WorkflowConverter:
                 logger.warning("❌ [Converter] Failed to init tool {}: {}", tool_id, e)
                 return btflow.Dummy(name=node_def.label or node_def.id)
 
-            tool_meta = node_registry.get(node_def.type)
-            input_key = "input"
-            output_key = "output"
-            if tool_meta and tool_meta.inputs:
-                first_input = tool_meta.inputs[0]
-                if isinstance(first_input, dict) and first_input.get("name"):
-                    input_key = first_input["name"]
-                elif isinstance(first_input, str):
-                    input_key = first_input
-            if tool_meta and tool_meta.outputs:
-                first_output = tool_meta.outputs[0]
-                if isinstance(first_output, dict) and first_output.get("name"):
-                    output_key = first_output["name"]
-                elif isinstance(first_output, str):
-                    output_key = first_output
-
             node = ToolNode(
                 name=node_def.label or node_def.id,
                 tool=tool_instance,
-                input_key=input_key,
-                output_key=output_key,
                 execute=node_def.config.get("execute") if node_def.config else None,
                 strict_output_validation=node_def.config.get("strict_output_validation", False)
                 if node_def.config

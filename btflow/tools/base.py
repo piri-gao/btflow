@@ -31,9 +31,11 @@ class Tool(ABC):
     def as_node(
         self,
         name: Optional[str] = None,
-        input_map: Optional[Dict[str, Any]] = None,
-        output_key: Optional[str] = None,
-        **kwargs
+        *,
+        execute: Optional[bool] = None,
+        strict_output_validation: bool = False,
+        input_bindings: Optional[Dict[str, Any]] = None,
+        output_bindings: Optional[Dict[str, Any]] = None,
     ):
         """
         Wrap this tool into a ToolNode for use in a behavior tree.
@@ -42,9 +44,10 @@ class Tool(ABC):
         return ToolNode(
             name=name or self.name,
             tool=self,
-            input_map=input_map,
-            output_key=output_key,
-            **kwargs
+            execute=execute,
+            strict_output_validation=strict_output_validation,
+            input_bindings=input_bindings,
+            output_bindings=output_bindings,
         )
 
     def _normalize_parameters(self) -> Dict[str, Any]:

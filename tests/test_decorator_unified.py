@@ -5,8 +5,8 @@ from btflow import StateManager, node, tool, Status, Sequence, ReactiveRunner
 
 class DummyState(BaseModel):
     value: int = 0
-    input_val: str = ""
-    output_val: str = ""
+    input: str = ""
+    output: str = ""
 
 class TestUnifiedDecorators(unittest.IsolatedAsyncioTestCase):
     
@@ -65,18 +65,14 @@ class TestUnifiedDecorators(unittest.IsolatedAsyncioTestCase):
         
         # 将工具转换为节点
         # 模拟工作流模式：从 state.input 读取，存入 state.output
-        t_node = calc_tool.as_node(
-            name="MyToolNode",
-            input_map={"input": "input_val"},
-            output_key="output_val"
-        )
+        t_node = calc_tool.as_node(name="MyToolNode")
         t_node.state_manager = self.sm
         
-        self.sm.update({"input_val": "what is life?"})
+        self.sm.update({"input": "what is life?"})
         
         res_status = await t_node.update_async()
         self.assertEqual(res_status, Status.SUCCESS)
-        self.assertEqual(self.sm.get().output_val, "42")
+        self.assertEqual(self.sm.get().output, "42")
 
 
 if __name__ == "__main__":

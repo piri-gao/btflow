@@ -50,8 +50,9 @@ export const saveWorkflow = async (id: string, workflow: { nodes: Node[], edges:
     await axios.put(`${API_Base}/workflows/${id}`, payload);
 };
 
-export const runWorkflow = async (id: string) => {
-    await axios.post(`${API_Base}/workflows/${id}/run`);
+export const runWorkflow = async (id: string, initialState?: Record<string, any>) => {
+    const payload = initialState ? { initial_state: initialState } : undefined;
+    await axios.post(`${API_Base}/workflows/${id}/run`, payload);
 };
 
 export const stopWorkflow = async (id: string) => {

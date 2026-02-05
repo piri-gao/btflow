@@ -8,7 +8,6 @@ from py_trees.behaviour import Behaviour
 
 from btflow.core.behaviour import AsyncBehaviour
 from btflow.core.logging import logger
-from btflow.core.logging import logger
 from btflow.core.trace import emit as trace_emit
 from btflow.core.trace import span
 from btflow.tools import Tool

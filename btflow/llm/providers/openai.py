@@ -22,10 +22,12 @@ class OpenAIProvider(LLMProvider):
                 "openai package not installed. Run: pip install openai"
             ) from e
 
-        key = api_key or os.getenv("OPENAI_API_KEY")
+        key = api_key or os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY")
         if not key:
-            logger.warning("⚠️ OPENAI_API_KEY not found in env!")
-        self.client = AsyncOpenAI(api_key=key, base_url=base_url, organization=organization)
+            logger.warning("⚠️ OPENAI_API_KEY/API_KEY not found in env!")
+
+        resolved_base_url = base_url or os.getenv("BASE_URL") or os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE")
+        self.client = AsyncOpenAI(api_key=key, base_url=resolved_base_url, organization=organization)
 
     async def generate_text(
         self,
@@ -68,20 +70,41 @@ class OpenAIProvider(LLMProvider):
             tools=tool_payload,
             tool_choice=tool_choice,
         )
-
-        message = response.choices[0].message
-        content = message.content or ""
+        content = ""
         tool_calls = []
-        
-        if getattr(message, "tool_calls", None):
-            for tc in message.tool_calls:
-                fn = getattr(tc, "function", None)
-                if fn is not None:
-                    tool_calls.append({"name": fn.name, "arguments": fn.arguments})
-        
-        if getattr(message, "function_call", None):
-            fn = message.function_call
-            tool_calls.append({"name": fn.name, "arguments": fn.arguments})
+
+        if isinstance(response, str):
+            content = response
+        elif isinstance(response, dict):
+            choices = response.get("choices") or []
+            if choices:
+                message = choices[0].get("message") or {}
+                content = message.get("content") or ""
+                for tc in message.get("tool_calls") or []:
+                    fn = tc.get("function") or {}
+                    name = fn.get("name")
+                    arguments = fn.get("arguments")
+                    if name:
+                        tool_calls.append({"name": name, "arguments": arguments})
+                if "function_call" in message:
+                    fn = message.get("function_call") or {}
+                    name = fn.get("name")
+                    arguments = fn.get("arguments")
+                    if name:
+                        tool_calls.append({"name": name, "arguments": arguments})
+            else:
+                content = response.get("output_text") or response.get("text") or ""
+        else:
+            message = response.choices[0].message
+            content = message.content or ""
+            if getattr(message, "tool_calls", None):
+                for tc in message.tool_calls:
+                    fn = getattr(tc, "function", None)
+                    if fn is not None:
+                        tool_calls.append({"name": fn.name, "arguments": fn.arguments})
+            if getattr(message, "function_call", None):
+                fn = message.function_call
+                tool_calls.append({"name": fn.name, "arguments": fn.arguments})
             
         return Message(
             role="assistant",

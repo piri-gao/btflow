@@ -80,6 +80,10 @@ class WorkflowCreateRequest(BaseModel):
     name: str = "New Workflow"
     description: Optional[str] = None
 
+
+class WorkflowRunRequest(BaseModel):
+    initial_state: Optional[Dict[str, Any]] = None
+
 @app.get("/api/nodes", response_model=List[NodeMetadata])
 async def get_nodes():
     """List all available node types."""
@@ -224,7 +228,7 @@ async def websocket_endpoint(websocket: WebSocket, workflow_id: str):
 
 
 @app.post("/api/workflows/{workflow_id}/run")
-async def run_workflow(workflow_id: str, background_tasks: BackgroundTasks):
+async def run_workflow(workflow_id: str, background_tasks: BackgroundTasks, req: Optional[WorkflowRunRequest] = None):
     if workflow_id not in workflows_db:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
@@ -238,6 +242,8 @@ async def run_workflow(workflow_id: str, background_tasks: BackgroundTasks):
         converter = WorkflowConverter(wf_def)
         root = converter.compile()
         state_manager = converter.state_manager
+        if req and req.initial_state:
+            state_manager.update(req.initial_state)
         
         # 2. Setup Agent
         # BTAgent implicitly creates a ReactiveRunner which sets up the tree (injects state_manager, calls setup())

@@ -27,10 +27,9 @@ async def main():
     calc_node = ToolNode(
         name="Calc",
         tool=CalculatorTool(),
+        input_bindings={"input": "state.expr"},
+        output_bindings={"output": "state.result"},
     )
-    # Bind ToolNode ports -> state fields
-    calc_node._input_bindings = {"input": "state.expr"}
-    calc_node._output_bindings = {"output": "state.result"}
 
     root = Sequence(name="Main", memory=True, children=[calc_node])
 
