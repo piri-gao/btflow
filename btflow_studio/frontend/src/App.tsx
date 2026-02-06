@@ -20,7 +20,7 @@ import LeftPanel from './components/LeftPanel';
 import NodePanel from './components/NodePanel';
 import LogPanel from './components/LogPanel';
 import ChatPanel from './components/ChatPanel';
-import { ControlFlowNode, ActionNode, DebugNode } from './components/CustomNodes';
+import { ControlFlowNode, ActionNode } from './components/CustomNodes';
 import { fetchNodes, fetchTools, saveWorkflow, runWorkflow, stopWorkflow, createWorkflow } from './api/client';
 
 interface LogEntry {
@@ -41,6 +41,18 @@ interface ToolEvent {
   data: Record<string, any>;
 }
 
+interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
+}
+
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  generatedWorkflow?: { nodes: any[]; edges: any[] } | null;
+}
+
 interface StateField {
   name: string;
   type: string;
@@ -53,26 +65,35 @@ const HIDDEN_INIT_FIELDS = new Set([
   'round',
   'final_answer',
   'streaming_output',
+  'score',
+  'rounds',
+  'score_history',
 ]);
 
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
+const STORAGE_KEYS = {
+  nodes: 'btflow.studio.nodes',
+  edges: 'btflow.studio.edges',
+  workflowId: 'btflow.studio.workflowId',
+  chatSessions: 'btflow.studio.chatSessions',
+  activeChatSessionId: 'btflow.studio.activeChatSessionId',
+  lastRunMessages: 'btflow.studio.lastRunMessages',
+  reuseMessages: 'btflow.studio.reuseMessages',
+};
 
 // Define once outside component to avoid re-creation
 const nodeTypes: NodeTypes = {
   controlFlow: ControlFlowNode,
   action: ActionNode,
-  debug: DebugNode,
 };
 const edgeTypes = {};
 
 // Helper to determine node visual type from nodeType
 const getNodeVisualType = (nodeType: string): string => {
   const controlFlowTypes = ['Sequence', 'Selector', 'Parallel'];
-  const debugTypes = ['Log'];
 
   if (controlFlowTypes.includes(nodeType)) return 'controlFlow';
-  if (debugTypes.includes(nodeType)) return 'debug';
   return 'action';
 };
 
@@ -171,10 +192,15 @@ function Flow() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [traceEvents, setTraceEvents] = useState<TraceEvent[]>([]);
   const [toolEvents, setToolEvents] = useState<ToolEvent[]>([]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeChatSessionId, setActiveChatSessionId] = useState<string>('');
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'chat'>('properties');
   const [showInitialState, setShowInitialState] = useState(false);
   const [initialStateValues, setInitialStateValues] = useState<Record<string, any>>({});
   const [initialStateError, setInitialStateError] = useState<string>('');
+  const [lastMessagesByWorkflow, setLastMessagesByWorkflow] = useState<Record<string, any[]>>({});
+  const [reuseMessagesByWorkflow, setReuseMessagesByWorkflow] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initPanelRef = useRef<HTMLDivElement>(null);
 
@@ -183,6 +209,41 @@ function Flow() {
     if (!selectedNodeId) return null;
     return nodes.find(n => n.id === selectedNodeId) || null;
   }, [nodes, selectedNodeId]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.nodes, JSON.stringify(nodes));
+  }, [nodes, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.edges, JSON.stringify(edges));
+  }, [edges, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated || !workflowId) return;
+    localStorage.setItem(STORAGE_KEYS.workflowId, workflowId);
+  }, [workflowId, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.chatSessions, JSON.stringify(chatSessions));
+  }, [chatSessions, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated || !activeChatSessionId) return;
+    localStorage.setItem(STORAGE_KEYS.activeChatSessionId, activeChatSessionId);
+  }, [activeChatSessionId, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.lastRunMessages, JSON.stringify(lastMessagesByWorkflow));
+  }, [lastMessagesByWorkflow, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.reuseMessages, JSON.stringify(reuseMessagesByWorkflow));
+  }, [reuseMessagesByWorkflow, hasHydrated]);
 
   const inferredStateFields = useMemo(
     () => inferStateFields(nodes, nodeMetas),
@@ -193,6 +254,19 @@ function Flow() {
     () => inferInputFields(nodes, nodeMetas),
     [nodes, nodeMetas]
   );
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!chatSessions.length) {
+      const fallbackId = 'session-1';
+      setChatSessions([{ id: fallbackId, title: 'Session 1', messages: [], generatedWorkflow: null }]);
+      setActiveChatSessionId(fallbackId);
+      return;
+    }
+    if (!activeChatSessionId || !chatSessions.find(s => s.id === activeChatSessionId)) {
+      setActiveChatSessionId(chatSessions[0].id);
+    }
+  }, [chatSessions, activeChatSessionId, hasHydrated]);
 
   useEffect(() => {
     setInitialStateValues((prev) => {
@@ -213,11 +287,69 @@ function Flow() {
   useEffect(() => {
     fetchNodes().then(setNodeMetas).catch(err => console.error("Failed to fetch nodes", err));
     fetchTools().then(setTools).catch(err => console.error("Failed to fetch tools", err));
-    // Auto-create a session workflow for now
-    createWorkflow("Untitled Session").then(wf => {
-      setWorkflowId(wf.id);
-      console.log("Created session:", wf.id);
-    });
+    const storedNodes = localStorage.getItem(STORAGE_KEYS.nodes);
+    const storedEdges = localStorage.getItem(STORAGE_KEYS.edges);
+    const storedWorkflowId = localStorage.getItem(STORAGE_KEYS.workflowId);
+    const storedSessions = localStorage.getItem(STORAGE_KEYS.chatSessions);
+    const storedActiveSession = localStorage.getItem(STORAGE_KEYS.activeChatSessionId);
+    const storedLastRunMessages = localStorage.getItem(STORAGE_KEYS.lastRunMessages);
+    const storedReuseMessages = localStorage.getItem(STORAGE_KEYS.reuseMessages);
+
+    if (storedNodes) {
+      try {
+        const parsed = JSON.parse(storedNodes);
+        setNodes(parsed);
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.nodes);
+      }
+    }
+    if (storedEdges) {
+      try {
+        const parsed = JSON.parse(storedEdges);
+        setEdges(parsed);
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.edges);
+      }
+    }
+    if (storedSessions) {
+      try {
+        const parsed = JSON.parse(storedSessions);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setChatSessions(parsed);
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.chatSessions);
+      }
+    }
+    if (storedActiveSession) {
+      setActiveChatSessionId(storedActiveSession);
+    }
+    if (storedLastRunMessages) {
+      try {
+        setLastMessagesByWorkflow(JSON.parse(storedLastRunMessages));
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.lastRunMessages);
+      }
+    }
+    if (storedReuseMessages) {
+      try {
+        setReuseMessagesByWorkflow(JSON.parse(storedReuseMessages));
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.reuseMessages);
+      }
+    }
+
+    if (storedWorkflowId) {
+      setWorkflowId(storedWorkflowId);
+    } else {
+      // Auto-create a session workflow for now
+      createWorkflow("Untitled Session").then(wf => {
+        setWorkflowId(wf.id);
+        localStorage.setItem(STORAGE_KEYS.workflowId, wf.id);
+        console.log("Created session:", wf.id);
+      });
+    }
+    setTimeout(() => setHasHydrated(true), 0);
   }, []);
 
   // WebSocket Connection
@@ -265,6 +397,15 @@ function Flow() {
           const timestamp = new Date().toLocaleTimeString();
           setLogs(prev => [...prev, { timestamp, type: 'log', message: msg.message }]);
         }
+        else if (msg.type === 'state_update') {
+          const state = msg.data || {};
+          if (workflowId && Array.isArray(state.messages)) {
+            setLastMessagesByWorkflow(prev => ({
+              ...prev,
+              [workflowId]: state.messages
+            }));
+          }
+        }
         else if (msg.type === 'trace') {
           const timestamp = new Date().toLocaleTimeString();
           const data = msg.data || {};
@@ -281,9 +422,7 @@ function Flow() {
           if (typeof data.ok === 'boolean') parts.push(`ok=${data.ok}`);
           if (data.error) parts.push(`error=${data.error}`);
           const details = parts.length ? ` ${parts.join(' ')}` : '';
-          if (msg.event !== 'llm_token') {
-            setLogs(prev => [...prev, { timestamp, type: 'trace', message: `trace:${msg.event}${details}` }]);
-          }
+          // Trace events are displayed in the Trace tab only.
         }
       } catch (e) {
         console.error("WS Parse error", e);
@@ -295,6 +434,27 @@ function Flow() {
 
     return () => ws.close();
   }, [workflowId, setNodes]);
+
+  useEffect(() => {
+    if (!showInitialState) return;
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (initPanelRef.current && initPanelRef.current.contains(target)) return;
+      setShowInitialState(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowInitialState(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [showInitialState]);
 
   const onSelectionChange = useCallback(({ nodes }: OnSelectionChangeParams) => {
     if (nodes.length > 0) {
@@ -386,6 +546,8 @@ function Flow() {
 
   const buildInitialState = useCallback((): { state?: Record<string, any>; error?: string } => {
     const state: Record<string, any> = {};
+    let messagesProvided = false;
+    const hasMessagesField = inferredInputFields.some((field) => field.name === 'messages');
     for (const field of inferredInputFields) {
       const raw = initialStateValues[field.name];
       if (field.type === 'bool') {
@@ -409,8 +571,10 @@ function Flow() {
           try {
             const parsed = JSON.parse(raw);
             state[field.name] = parsed;
+            messagesProvided = true;
           } catch {
             state[field.name] = [{ role: 'user', content: raw }];
+            messagesProvided = true;
           }
           continue;
         }
@@ -418,19 +582,29 @@ function Flow() {
           try {
             const parsed = JSON.parse(raw);
             state[field.name] = parsed;
+            if (field.name === 'messages') messagesProvided = true;
           } catch {
             return { error: `Field '${field.name}' expects JSON` };
           }
         } else {
           state[field.name] = raw;
+          if (field.name === 'messages') messagesProvided = true;
         }
         continue;
       }
       if (raw === '' || raw === null || raw === undefined) continue;
       state[field.name] = raw;
+      if (field.name === 'messages') messagesProvided = true;
+    }
+    if (!messagesProvided && hasMessagesField && workflowId) {
+      const reuse = !!reuseMessagesByWorkflow[workflowId];
+      const lastMessages = lastMessagesByWorkflow[workflowId];
+      if (reuse && Array.isArray(lastMessages) && lastMessages.length > 0) {
+        state.messages = lastMessages;
+      }
     }
     return { state };
-  }, [initialStateValues, inferredInputFields]);
+  }, [initialStateValues, inferredInputFields, lastMessagesByWorkflow, reuseMessagesByWorkflow, workflowId]);
 
   const onRun = useCallback(async () => {
     if (!workflowId) return;
@@ -475,6 +649,34 @@ function Flow() {
     setNodes(newNodes);
     setEdges(newEdges);
   }, [setNodes, setEdges, nodeMetas]);
+
+  const createChatSession = useCallback(() => {
+    const id = `session-${Date.now()}`;
+    setChatSessions((prev) => [
+      { id, title: `Session ${prev.length + 1}`, messages: [], generatedWorkflow: null },
+      ...prev
+    ]);
+    setActiveChatSessionId(id);
+  }, []);
+
+  const updateChatSession = useCallback((id: string, updater: (session: ChatSession) => ChatSession) => {
+    setChatSessions((prev) => prev.map((s) => (s.id === id ? updater(s) : s)));
+  }, []);
+
+  const deleteChatSession = useCallback((id: string) => {
+    setChatSessions((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      if (next.length === 0) {
+        const fallbackId = `session-${Date.now()}`;
+        setActiveChatSessionId(fallbackId);
+        return [{ id: fallbackId, title: 'Session 1', messages: [], generatedWorkflow: null }];
+      }
+      if (activeChatSessionId === id) {
+        setActiveChatSessionId(next[0].id);
+      }
+      return next;
+    });
+  }, [activeChatSessionId]);
 
   const onClearCanvas = useCallback(() => {
     setNodes([]);
@@ -559,7 +761,28 @@ function Flow() {
       <div className="flex flex-1 overflow-hidden">
         <ReactFlowProvider>
           {/* Sidebar */}
-          <LeftPanel nodeMetas={nodeMetas} tools={tools} onApplyWorkflow={applyWorkflow} />
+          <LeftPanel
+            nodeMetas={nodeMetas}
+            tools={tools}
+            onApplyWorkflow={applyWorkflow}
+            workflowId={workflowId}
+            currentWorkflow={{
+              nodes: nodes.map(n => ({
+                id: n.id,
+                type: n.data?.nodeType || n.type || 'Sequence',
+                label: n.data?.label || n.data?.nodeType || n.id,
+                position: n.position,
+                config: n.data?.config || {},
+                input_bindings: (n.data as any)?.input_bindings || {},
+                output_bindings: (n.data as any)?.output_bindings || {}
+              })),
+              edges: edges.map(e => ({
+                id: e.id,
+                source: e.source,
+                target: e.target
+              }))
+            }}
+          />
 
           {/* Main Canvas */}
           <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
@@ -660,6 +883,21 @@ function Flow() {
                         </div>
                       ))}
                     </div>
+                    {workflowId && inferredInputFields.some((field) => field.name === 'messages') && (
+                      <label className="flex items-center gap-2 text-[10px] text-gray-500 mt-2">
+                        <input
+                          type="checkbox"
+                          checked={!!reuseMessagesByWorkflow[workflowId]}
+                          onChange={(e) =>
+                            setReuseMessagesByWorkflow((prev) => ({
+                              ...prev,
+                              [workflowId]: e.target.checked
+                            }))
+                          }
+                        />
+                        复用上次对话消息（未填写 messages 时生效）
+                      </label>
+                    )}
                     {initialStateError && (
                       <div className="text-[10px] text-red-500 mt-2">{initialStateError}</div>
                     )}
@@ -710,6 +948,13 @@ function Flow() {
                   currentWorkflow={{ nodes, edges }}
                   onApplyWorkflow={applyWorkflow}
                   availableNodes={nodeMetas}
+                  availableTools={tools}
+                  sessions={chatSessions}
+                  activeSessionId={activeChatSessionId}
+                  onSelectSession={setActiveChatSessionId}
+                  onNewSession={createChatSession}
+                  onUpdateSession={updateChatSession}
+                  onDeleteSession={deleteChatSession}
                 />
               )}
             </div>

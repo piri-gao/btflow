@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Optional, Type
+import os
 from pydantic import BaseModel, Field
 import inspect
 
@@ -61,6 +62,10 @@ def _build_tool_meta(tool_cls: Type, category: str = "Builtin", source: str = "b
         output_schema=output_schema,
     )
 
+def _memory_enabled() -> bool:
+    value = os.getenv("BTFLOW_MEMORY_ENABLED", "true")
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
 
 def get_builtin_tools() -> List[ToolMetadata]:
     tool_classes = [
@@ -70,9 +75,12 @@ def get_builtin_tools() -> List[ToolMetadata]:
         (FileWriteTool, "Builtin"),
         (HTTPTool, "Builtin"),
         (DuckDuckGoSearchTool, "Builtin"),
-        (MemorySearchTool, "Memory"),
-        (MemoryAddTool, "Memory"),
     ]
+    if _memory_enabled():
+        tool_classes.extend([
+            (MemorySearchTool, "Memory"),
+            (MemoryAddTool, "Memory"),
+        ])
     return [_build_tool_meta(cls, category=category) for cls, category in tool_classes]
 
 
@@ -82,6 +90,8 @@ def get_tool_by_id(tool_id: str):
 
 
 def get_tool_class_by_id(tool_id: str):
+    if not _memory_enabled() and tool_id in {MemorySearchTool.__name__, MemoryAddTool.__name__}:
+        return None
     tool_map = {
         CalculatorTool.__name__: CalculatorTool,
         PythonREPLTool.__name__: PythonREPLTool,

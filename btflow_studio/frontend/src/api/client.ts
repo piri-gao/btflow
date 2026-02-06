@@ -58,3 +58,40 @@ export const runWorkflow = async (id: string, initialState?: Record<string, any>
 export const stopWorkflow = async (id: string) => {
     await axios.post(`${API_Base}/workflows/${id}/stop`);
 };
+
+export const fetchSettings = async () => {
+    const res = await axios.get(`${API_Base}/settings`);
+    return res.data;
+};
+
+export const saveSettings = async (payload: {
+    language: string;
+    memory_enabled: boolean;
+    api_key: string;
+    base_url: string;
+    model: string;
+}) => {
+    const res = await axios.post(`${API_Base}/settings`, payload);
+    return res.data;
+};
+
+export const ingestMemory = async (payload: {
+    workflowId: string;
+    memoryId: string;
+    chunkSize: number;
+    overlap: number;
+    files: File[];
+}) => {
+    const form = new FormData();
+    form.append('workflow_id', payload.workflowId);
+    form.append('memory_id', payload.memoryId);
+    form.append('chunk_size', String(payload.chunkSize));
+    form.append('overlap', String(payload.overlap));
+    payload.files.forEach((file) => {
+        form.append('files', file);
+    });
+    const res = await axios.post(`${API_Base}/memory/ingest`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+};

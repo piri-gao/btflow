@@ -101,34 +101,3 @@ export function ActionNode({ data, selected }: NodeProps) {
         </div>
     );
 }
-
-// Debug Node - Dashed border, distinctive style
-export function DebugNode({ data, selected }: NodeProps) {
-    const getColors = () => {
-        switch (data.status) {
-            case 'RUNNING': return 'bg-yellow-100 border-yellow-500';
-            case 'SUCCESS': return 'bg-green-100 border-green-500';
-            case 'FAILURE': return 'bg-red-100 border-red-500';
-            default: return 'bg-green-50 border-green-500';
-        }
-    };
-
-    return (
-        <div className={`
-            px-4 py-3 rounded-lg border-2 border-dashed
-            ${getColors()}
-            ${selected ? 'ring-2 ring-blue-400' : ''}
-            transition-all min-w-[120px] shadow-md
-        `}>
-            <Handle type="target" position={Position.Top} className="w-3 h-3" />
-
-            <div className="text-center">
-                <div className="text-xl mb-1">{data.icon || '🐛'}</div>
-                <div className="text-sm font-semibold text-gray-800">{data.label}</div>
-                <div className="text-xs text-green-600 font-medium mt-0.5">{data.nodeType}</div>
-            </div>
-
-            <Handle type="source" position={Position.Bottom} className="w-3 h-3" />
-        </div>
-    );
-}

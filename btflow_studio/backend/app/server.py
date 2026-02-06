@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +28,7 @@ for key in LLM_KEYS:
 load_dotenv(env_path, override=True)
 
 from typing import List, Dict, Optional, Any
+import tempfile
 import uuid
 import asyncio
 from pydantic import BaseModel
@@ -44,6 +45,8 @@ from btflow.core.runtime import ReactiveRunner
 from btflow.core.logging import logger
 from btflow.core.trace import subscribe as trace_subscribe, unsubscribe as trace_unsubscribe
 from btflow.core.trace import set_context as trace_set_context, reset_context as trace_reset_context
+from btflow.memory import Memory
+from btflow.memory.store import SQLiteStore
 
 # 配置持久化日志用于调试
 logger.add("studio_backend.log", rotation="10 MB", level="DEBUG")
@@ -105,6 +108,93 @@ class WorkflowCreateRequest(BaseModel):
 class WorkflowRunRequest(BaseModel):
     initial_state: Optional[Dict[str, Any]] = None
 
+
+class StudioSettings(BaseModel):
+    language: str = "zh"
+    memory_enabled: bool = True
+    api_key: str = ""
+    base_url: str = ""
+    model: str = ""
+
+
+def _parse_bool(value: Optional[str], default: bool = True) -> bool:
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _memory_enabled() -> bool:
+    return _parse_bool(os.getenv("BTFLOW_MEMORY_ENABLED", "true"))
+
+
+def _default_memory_path(workflow_id: str, memory_id: str) -> Path:
+    safe_workflow = workflow_id or "workflow"
+    safe_memory = memory_id or "default"
+    base_dir = Path(__file__).resolve().parent / "data" / "memory"
+    base_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{safe_workflow}_{safe_memory}.sqlite"
+    return base_dir / filename
+
+
+def _read_env_settings() -> StudioSettings:
+    values = dotenv_values(env_path)
+    return StudioSettings(
+        language=values.get("BTFLOW_LANG", "zh"),
+        memory_enabled=_parse_bool(values.get("BTFLOW_MEMORY_ENABLED", "true")),
+        api_key=values.get("API_KEY", ""),
+        base_url=values.get("BASE_URL", ""),
+        model=values.get("MODEL", ""),
+    )
+
+
+def _write_env_settings(settings: StudioSettings) -> None:
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    lines = []
+    if env_path.exists():
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+
+    updates = {
+        "BTFLOW_LANG": settings.language,
+        "BTFLOW_MEMORY_ENABLED": "1" if settings.memory_enabled else "0",
+        "API_KEY": settings.api_key or "",
+        "BASE_URL": settings.base_url or "",
+        "MODEL": settings.model or "",
+    }
+
+    updated = set()
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in line:
+            new_lines.append(line)
+            continue
+        key, _, _ = line.partition("=")
+        key = key.strip()
+        if key in updates:
+            value = updates[key]
+            if value == "":
+                updated.add(key)
+                continue
+            new_lines.append(f"{key}={value}")
+            updated.add(key)
+        else:
+            new_lines.append(line)
+
+    for key, value in updates.items():
+        if key in updated:
+            continue
+        if value == "":
+            continue
+        new_lines.append(f"{key}={value}")
+
+    env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+
+    for key, value in updates.items():
+        if value == "":
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+
 @app.get("/api/nodes", response_model=List[NodeMetadata])
 async def get_nodes():
     """List all available node types."""
@@ -114,6 +204,73 @@ async def get_nodes():
 async def get_tools():
     """List all available tools (builtin for now)."""
     return get_builtin_tools()
+
+@app.get("/api/settings", response_model=StudioSettings)
+async def get_settings():
+    return _read_env_settings()
+
+@app.post("/api/settings", response_model=StudioSettings)
+async def update_settings(payload: StudioSettings):
+    _write_env_settings(payload)
+    return _read_env_settings()
+
+@app.post("/api/memory/ingest")
+async def ingest_memory(
+    workflow_id: str = Form(...),
+    memory_id: str = Form("default"),
+    chunk_size: int = Form(500),
+    overlap: int = Form(50),
+    files: List[UploadFile] = File(...),
+):
+    if not _memory_enabled():
+        raise HTTPException(status_code=400, detail="Memory is disabled")
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+
+    db_path = _default_memory_path(workflow_id, memory_id)
+    store = SQLiteStore(str(db_path))
+    memory = Memory(store=store)
+
+    results = []
+    for upload in files:
+        suffix = Path(upload.filename).suffix
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(await upload.read())
+                tmp_path = tmp.name
+            ids = memory.ingest_file(
+                tmp_path,
+                chunk_size=chunk_size,
+                overlap=overlap,
+                metadata={"source": upload.filename},
+            )
+            results.append({
+                "file": upload.filename,
+                "chunks": len(ids),
+                "ok": True,
+            })
+        except Exception as e:
+            results.append({
+                "file": upload.filename,
+                "chunks": 0,
+                "ok": False,
+                "error": str(e),
+            })
+        finally:
+            try:
+                if tmp_path:
+                    os.remove(tmp_path)
+            except Exception:
+                pass
+
+    memory.save()
+    return {
+        "ok": True,
+        "db_path": str(db_path),
+        "records": len(memory),
+        "results": results,
+    }
 
 @app.get("/api/workflows", response_model=List[WorkflowDefinition])
 async def list_workflows():
@@ -215,10 +372,20 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
     try:
         await manager.broadcast(workflow_id, {"type": "status", "status": "running"})
         await agent.run()
+        try:
+            final_state = agent.state_manager.get().model_dump(mode='json')
+            await manager.broadcast(workflow_id, {"type": "state_update", "data": final_state})
+        except Exception as state_error:
+            logger.warning("⚠️ [API] Workflow {} state snapshot failed: {}", workflow_id, state_error)
         await manager.broadcast(workflow_id, {"type": "status", "status": "completed"})
         
     except asyncio.CancelledError:
         logger.info("⏹️ [API] Workflow {} cancelled", workflow_id)
+        try:
+            final_state = agent.state_manager.get().model_dump(mode='json')
+            asyncio.create_task(manager.broadcast(workflow_id, {"type": "state_update", "data": final_state}))
+        except Exception:
+            pass
         # 使用 create_task 而不是 await，确保不会阻塞取消流程
         asyncio.create_task(manager.broadcast(workflow_id, {"type": "status", "status": "stopped"}))
         raise  # Re-raise to properly cancel the task
@@ -226,6 +393,11 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
         logger.error("🔥 [API] Workflow {} failed: {}", workflow_id, e)
         import traceback
         traceback.print_exc()
+        try:
+            final_state = agent.state_manager.get().model_dump(mode='json')
+            await manager.broadcast(workflow_id, {"type": "state_update", "data": final_state})
+        except Exception:
+            pass
         await manager.broadcast(workflow_id, {"type": "error", "message": str(e)})
     finally:
         logger.info("💤 [API] Workflow {} finished", workflow_id)
@@ -310,6 +482,7 @@ class ChatRequest(BaseModel):
     conversation_history: Optional[List[Dict[str, str]]] = None
     current_workflow: Optional[Dict[str, Any]] = None
     available_nodes: Optional[List[Dict[str, Any]]] = None
+    available_tools: Optional[List[Dict[str, Any]]] = None
 
 @app.post("/api/chat/generate-workflow")
 async def generate_workflow_from_chat(request: ChatRequest):
@@ -319,11 +492,12 @@ async def generate_workflow_from_chat(request: ChatRequest):
     """
     try:
         llm = get_workflow_llm()
-        result = llm.generate_workflow(
+        result = await llm.generate_workflow(
             user_message=request.message,
             conversation_history=request.conversation_history,
             current_workflow=request.current_workflow,
-            available_nodes=request.available_nodes
+            available_nodes=request.available_nodes,
+            available_tools=request.available_tools,
         )
         
         return result

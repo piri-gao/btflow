@@ -23,6 +23,8 @@ fastapi = ">=0.100.0"
 uvicorn = ">=0.20.0"
 websockets = ">=11.0,<15.0"
 fastmcp = ">=2.0.0,<3.0.0"
+pypdf = "^4.0.0"
+python-docx = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

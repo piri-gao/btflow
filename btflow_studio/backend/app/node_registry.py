@@ -135,7 +135,7 @@ node_registry.register_metadata(NodeMetadata(
     node_class=Parallel
 ))
 
-# 2. Debug & Action Nodes
+# 2. Utility Nodes
 from btflow.nodes import Log
 from btflow.nodes import Wait
 
@@ -143,7 +143,7 @@ node_registry.register(
     Log,
     id="Log",
     label="Log Message",
-    category="Debug",
+    category="Utilities",
     icon="📝",
     config_schema={
         "message": {
@@ -158,7 +158,7 @@ node_registry.register(
     Wait,
     id="Wait",
     label="Wait",
-    category="Action",
+    category="Utilities",
     icon="⏳",
     config_schema={
         "duration": {
@@ -172,28 +172,7 @@ node_registry.register(
 # 3. Import and Register Advanced Patterns & Tools
 from btflow.core.composites import LoopUntilSuccess
 from btflow.nodes import AgentLLMNode, ToolExecutor, ParserNode, ConditionNode
-from btflow.tools import CalculatorTool
 from btflow.tools import ToolNode
-
-def _tool_description(tool_cls: Type) -> str:
-    return _resolve_description(None, tool_cls)
-
-
-def _register_tool_meta(tool_cls: Type, node_id: str, label: str, icon: str):
-    node_registry.register_metadata(NodeMetadata(
-        id=node_id,
-        label=label,
-        category="Tools",
-        icon=icon,
-        description=_tool_description(tool_cls),
-        inputs=[{"name": "input", "type": "any", "default": ""}],
-        outputs=[{"name": "output", "type": "any", "default": None}],
-        node_class=lambda **kwargs: ToolNode(name=kwargs.get("name", label), tool=tool_cls())
-    ))
-
-
-# Tools
-_register_tool_meta(CalculatorTool, "CalculatorTool", "Calculator", "🧮")
 
 # Generic ToolNode (deterministic tool execution)
 node_registry.register(
@@ -223,7 +202,7 @@ node_registry.register(
         },
         "memory_id": {
             "type": "text",
-            "label": "Memory ID",
+            "label": "Memory ID (match KB ID)",
             "default": "default",
         },
     },
@@ -256,7 +235,7 @@ node_registry.register(
     config_schema={
         "model": {"type": "text", "default": "gemini-2.5-flash"},
         "system_prompt": {"type": "textarea", "default": ""},
-        "memory_id": {"type": "text", "default": "default"},
+        "memory_id": {"type": "text", "label": "Memory ID (match KB ID)", "default": "default"},
         "memory_top_k": {"type": "number", "default": 5},
         "structured_tool_calls": {"type": "boolean", "default": True},
         "strict_tool_calls": {"type": "boolean", "default": False},
@@ -283,7 +262,7 @@ node_registry.register(
             "source": "tools",
             "default": []
         },
-        "memory_id": {"type": "text", "default": "default"}
+        "memory_id": {"type": "text", "label": "Memory ID (match KB ID)", "default": "default"}
     }
 )
 

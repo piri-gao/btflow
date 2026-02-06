@@ -11,18 +11,58 @@ interface GeneratedWorkflow {
     edges: any[];
 }
 
+interface ChatSession {
+    id: string;
+    title: string;
+    messages: Message[];
+    generatedWorkflow?: GeneratedWorkflow | null;
+}
+
 interface ChatPanelProps {
     currentWorkflow: { nodes: any[], edges: any[] } | null;
     onApplyWorkflow: (workflow: GeneratedWorkflow) => void;
     availableNodes: any[];
+    availableTools: any[];
+    sessions: ChatSession[];
+    activeSessionId: string;
+    onSelectSession: (id: string) => void;
+    onNewSession: () => void;
+    onUpdateSession: (id: string, updater: (session: ChatSession) => ChatSession) => void;
+    onDeleteSession: (id: string) => void;
 }
 
-export default function ChatPanel({ currentWorkflow, onApplyWorkflow, availableNodes }: ChatPanelProps) {
-    const [messages, setMessages] = useState<Message[]>([]);
+const titleFromMessage = (message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return 'New Session';
+    return trimmed.length > 24 ? `${trimmed.slice(0, 24)}...` : trimmed;
+};
+
+const normalizeTitle = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    return trimmed.length > 24 ? `${trimmed.slice(0, 24)}...` : trimmed;
+};
+
+export default function ChatPanel({
+    currentWorkflow,
+    onApplyWorkflow,
+    availableNodes,
+    availableTools,
+    sessions,
+    activeSessionId,
+    onSelectSession,
+    onNewSession,
+    onUpdateSession,
+    onDeleteSession
+}: ChatPanelProps) {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [generatedWorkflow, setGeneratedWorkflow] = useState<GeneratedWorkflow | null>(null);
+    const [showSessions, setShowSessions] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
+    const messages = activeSession?.messages || [];
+    const generatedWorkflow = activeSession?.generatedWorkflow || null;
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -31,7 +71,7 @@ export default function ChatPanel({ currentWorkflow, onApplyWorkflow, availableN
     useEffect(scrollToBottom, [messages]);
 
     const sendMessage = async () => {
-        if (!input.trim() || loading) return;
+        if (!activeSession || !input.trim() || loading) return;
 
         const userMessage = input.trim();
         setInput('');
@@ -39,7 +79,11 @@ export default function ChatPanel({ currentWorkflow, onApplyWorkflow, availableN
 
         // Add user message to chat
         const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
-        setMessages(newMessages);
+        onUpdateSession(activeSession.id, (session) => ({
+            ...session,
+            title: session.messages.length === 0 ? titleFromMessage(userMessage) : session.title,
+            messages: newMessages
+        }));
 
         try {
             // Call LLM API
@@ -47,42 +91,47 @@ export default function ChatPanel({ currentWorkflow, onApplyWorkflow, availableN
                 message: userMessage,
                 conversation_history: messages,
                 current_workflow: currentWorkflow,
-                available_nodes: availableNodes
+                available_nodes: availableNodes,
+                available_tools: availableTools
             });
 
             const { reply, workflow } = response.data;
 
             // Add assistant response
-            setMessages([...newMessages, { role: 'model', content: reply }]);
-
-            // Store generated workflow
-            if (workflow) {
-                setGeneratedWorkflow(workflow);
-            }
+            onUpdateSession(activeSession.id, (session) => ({
+                ...session,
+                messages: [...newMessages, { role: 'model', content: reply }],
+                generatedWorkflow: workflow || session.generatedWorkflow || null
+            }));
 
         } catch (error: any) {
             console.error('Chat error:', error);
-            setMessages([...newMessages, {
-                role: 'model',
-                content: `❌ Error: ${error.response?.data?.detail || error.message}`
-            }]);
+            onUpdateSession(activeSession.id, (session) => ({
+                ...session,
+                messages: [...newMessages, {
+                    role: 'model',
+                    content: `❌ Error: ${error.response?.data?.detail || error.message}`
+                }]
+            }));
         } finally {
             setLoading(false);
         }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && e.shiftKey) {
             e.preventDefault();
             sendMessage();
         }
     };
 
     const handleApply = () => {
-        if (generatedWorkflow) {
-            onApplyWorkflow(generatedWorkflow);
-            setGeneratedWorkflow(null); // Clear after applying
-        }
+        if (!activeSession || !generatedWorkflow) return;
+        onApplyWorkflow(generatedWorkflow);
+        onUpdateSession(activeSession.id, (session) => ({
+            ...session,
+            generatedWorkflow: null
+        }));
     };
 
     return (
@@ -96,6 +145,73 @@ export default function ChatPanel({ currentWorkflow, onApplyWorkflow, availableN
                 <p className="text-xs text-gray-500 mt-1">
                     Describe your workflow and I'll generate it for you
                 </p>
+            </div>
+
+            {/* Sessions */}
+            <div className="px-4 py-2 border-b border-gray-200 bg-white">
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => setShowSessions((prev) => !prev)}
+                        className="text-xs text-gray-600 hover:text-gray-800 flex items-center gap-1"
+                    >
+                        <span>{showSessions ? '▾' : '▸'}</span>
+                        <span>Sessions</span>
+                    </button>
+                    <button
+                        onClick={onNewSession}
+                        className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                        New
+                    </button>
+                </div>
+                {showSessions && (
+                    <div className="mt-2 max-h-24 overflow-y-auto space-y-1">
+                        {sessions.map((s) => (
+                            <div
+                                key={s.id}
+                                className={`flex items-center justify-between text-left text-xs px-2 py-1 rounded border ${s.id === activeSessionId
+                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                    }`}
+                            >
+                                <button
+                                    onClick={() => onSelectSession(s.id)}
+                                    className="flex-1 text-left"
+                                >
+                                    {s.title || s.id}
+                                </button>
+                                <div className="ml-2 flex items-center gap-1">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const nextTitle = normalizeTitle(prompt('Rename session', s.title || '') || '');
+                                            if (nextTitle) {
+                                                onUpdateSession(s.id, (session) => ({
+                                                    ...session,
+                                                    title: nextTitle
+                                                }));
+                                            }
+                                        }}
+                                        className="text-[10px] px-1 rounded text-gray-500 hover:text-blue-600"
+                                        title="Rename session"
+                                    >
+                                        ✎
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (sessions.length > 1) onDeleteSession(s.id);
+                                        }}
+                                        className={`text-[10px] px-1 rounded ${sessions.length > 1 ? 'text-gray-500 hover:text-red-600' : 'text-gray-300 cursor-not-allowed'}`}
+                                        title={sessions.length > 1 ? 'Delete session' : 'At least one session required'}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Messages */}
@@ -174,7 +290,7 @@ export default function ChatPanel({ currentWorkflow, onApplyWorkflow, availableN
                     </button>
                 </div>
                 <div className="text-xs text-gray-400 mt-2">
-                    Press Enter to send, Shift+Enter for new line
+                    Press Enter for new line, Shift+Enter to send
                 </div>
             </div>
         </div>

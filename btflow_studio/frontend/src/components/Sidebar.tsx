@@ -10,6 +10,7 @@ interface NodeMeta {
 
 interface SidebarProps {
     nodeMetas: NodeMeta[];
+    language?: string;
 }
 
 const onDragStart = (event: React.DragEvent, nodeType: string, label: string) => {
@@ -25,15 +26,10 @@ const categoryStyles: Record<string, { bg: string, border: string, hover: string
         border: 'border-purple-300',
         hover: 'hover:bg-purple-100 hover:border-purple-400'
     },
-    'Action': {
+    'Utilities': {
         bg: 'bg-blue-50',
         border: 'border-blue-300',
         hover: 'hover:bg-blue-100 hover:border-blue-400'
-    },
-    'Debug': {
-        bg: 'bg-green-50',
-        border: 'border-green-300',
-        hover: 'hover:bg-green-100 hover:border-green-400'
     },
     'Tools': {
         bg: 'bg-yellow-50',
@@ -47,19 +43,71 @@ const categoryStyles: Record<string, { bg: string, border: string, hover: string
     },
 };
 
-export default function Sidebar({ nodeMetas }: SidebarProps) {
+const CATEGORY_LABEL_ZH: Record<string, string> = {
+    'Control Flow': '控制流',
+    'Utilities': '实用',
+    'Tools': '工具',
+    'Agent': '智能体',
+    'Other': '其他',
+};
+
+const NODE_LABEL_ZH: Record<string, string> = {
+    Sequence: '顺序',
+    Selector: '选择',
+    Parallel: '并行',
+    LoopUntilSuccess: '循环直到成功',
+    Log: '日志',
+    Wait: '等待',
+    AgentLLMNode: '智能体 LLM',
+    ToolExecutor: '工具执行器',
+    ParserNode: '解析器',
+    ConditionNode: '条件判断',
+    ToolNode: '工具节点',
+};
+
+const NODE_DESC_ZH: Record<string, string> = {
+    Sequence: '按顺序执行子节点，任意失败则停止。',
+    Selector: '按优先级选择，直到有一个成功。',
+    Parallel: '并行执行多个子节点。',
+    LoopUntilSuccess: '循环执行直到成功或达到最大次数。',
+    Log: '输出一条日志。',
+    Wait: '等待指定时长。',
+    AgentLLMNode: '调用 LLM 生成下一步内容。',
+    ToolExecutor: '解析并执行工具调用。',
+    ParserNode: '从消息中解析结构化信息。',
+    ConditionNode: '根据条件判断是否继续。',
+    ToolNode: '确定性执行一个工具。',
+};
+
+const translateNodeMeta = (node: NodeMeta, language?: string): NodeMeta => {
+    if (language !== 'zh') return node;
+    const id = node.id;
+    return {
+        ...node,
+        label: NODE_LABEL_ZH[id] || node.label,
+        description: NODE_DESC_ZH[id] || node.description,
+    };
+};
+
+const translateCategory = (category: string, language?: string) => {
+    if (language !== 'zh') return category;
+    return CATEGORY_LABEL_ZH[category] || category;
+};
+
+export default function Sidebar({ nodeMetas, language }: SidebarProps) {
     const [query, setQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
     const filteredNodes = useMemo(() => {
-        if (!query.trim()) return nodeMetas;
+        const translated = nodeMetas.map(n => translateNodeMeta(n, language));
+        if (!query.trim()) return translated;
         const q = query.toLowerCase();
-        return nodeMetas.filter((n) =>
+        return translated.filter((n) =>
             n.id.toLowerCase().includes(q) ||
             n.label.toLowerCase().includes(q) ||
             (n.description || '').toLowerCase().includes(q)
         );
-    }, [nodeMetas, query]);
+    }, [nodeMetas, query, language]);
 
     // Group nodes by category
     const groupedNodes = filteredNodes.reduce((acc, node) => {
@@ -70,7 +118,7 @@ export default function Sidebar({ nodeMetas }: SidebarProps) {
     }, {} as Record<string, NodeMeta[]>);
 
     // Category order
-    const categoryOrder = ['Control Flow', 'Action', 'Tools', 'Debug', 'Agent', 'Other'];
+    const categoryOrder = ['Control Flow', 'Utilities', 'Tools', 'Agent', 'Other'];
 
     // Sort all categories: predefined first, then others alphabetically
     const allCategories = Object.keys(groupedNodes);
@@ -99,13 +147,13 @@ export default function Sidebar({ nodeMetas }: SidebarProps) {
                             className="w-full flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3"
                             onClick={() => setCollapsed(prev => ({ ...prev, [category]: !prev[category] }))}
                         >
-                            <span>{category}</span>
+                            <span>{translateCategory(category, language)}</span>
                             <span className="text-xs">{collapsed[category] ? '▸' : '▾'}</span>
                         </button>
                         {!collapsed[category] && (
                             <div className="grid grid-cols-2 gap-2">
                                 {groupedNodes[category].map((node) => {
-                                    const style = categoryStyles[category] || categoryStyles['Action'];
+                                    const style = categoryStyles[category] || categoryStyles['Utilities'];
                                     return (
                                         <div
                                             key={node.id}

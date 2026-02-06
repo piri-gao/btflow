@@ -1,5 +1,7 @@
 import btflow
-from typing import Dict, Any, Type, List
+import operator
+import os
+from typing import Dict, Any, Type, List, Annotated
 from pathlib import Path
 from pydantic import create_model
 from btflow.core.state import StateManager
@@ -166,8 +168,15 @@ class WorkflowConverter:
             "tuple": tuple
         }
         
+        reducer_fields = {"messages"}
+
         for field in field_defs:
             py_type = type_map.get(field.type, str)
+
+            if field.name in reducer_fields and field.type == "list":
+                # Append-only list reducer for chat history
+                py_type = Annotated[List[Any], operator.add]
+
             # TODO: Handle ActionField annotation if field.is_action is True
             fields[field.name] = (py_type, field.default)
         
@@ -259,6 +268,9 @@ class WorkflowConverter:
         return str(base_dir / filename)
 
     def _create_memories(self) -> Dict[str, Memory]:
+        value = os.getenv("BTFLOW_MEMORY_ENABLED", "true")
+        if str(value).strip().lower() not in {"1", "true", "yes", "on"}:
+            return {}
         resources = getattr(self.workflow, "resources", None)
         memory_defs = resources.memories if resources and resources.memories else []
 

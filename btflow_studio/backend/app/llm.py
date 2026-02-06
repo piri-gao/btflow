@@ -1,5 +1,5 @@
 """
-LLM integration for workflow generation using Gemini API.
+LLM integration for workflow generation using BTFlow LLMProvider.
 Supports multi-turn conversations and workflow modifications.
 """
 import os
@@ -7,8 +7,8 @@ import json
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 from btflow.core.logging import logger
+from btflow.llm import LLMProvider
 
-# Load environment variables
 load_dotenv()
 
 # System prompt for workflow generation
@@ -31,11 +31,11 @@ Your role is to help users create and modify workflows through natural conversat
    - Executes all children simultaneously
    - Config: `policy` (string) - "SuccessOnAll" or "SuccessOnOne"
 
-4. **Wait** (Action)
+4. **Wait** (Utilities)
    - Waits for specified duration (non-blocking)
    - Config: `duration` (float) - seconds to wait
 
-5. **Log** (Debug)
+5. **Log** (Utilities)
    - Prints a message to execution logs
    - Config: `message` (string) - the message to print
 
@@ -71,7 +71,7 @@ Your role is to help users create and modify workflows through natural conversat
    - Child of Root: `Sequence` (memory: true)
    - Children of Sequence (in order): 
      * `AgentLLMNode`
-     * `ToolExecutor` (MUST connect tools like `CalculatorTool` as children here)
+     * `ToolExecutor` (configure tools via `config.tools`)
      * `ConditionNode` (preset: has_final_answer)
 
 2. **Reflexion Pattern**:
@@ -82,8 +82,10 @@ Your role is to help users create and modify workflows through natural conversat
      * `ParserNode` (preset: score)
      * `ConditionNode` (preset: score_gte)
 
-3. **Tool Connections**:
-   - Always connect individual tool nodes (labels like Calculator, Search) as direct children of a `ToolExecutor`.
+3. **Tool Usage**:
+   - For agent-style tool use: configure `ToolExecutor.config.tools` with tool ids from the available tools list.
+   - For deterministic tool execution: add a `ToolNode` and set `config.tool_id` to the tool id.
+   - Do NOT invent tool node types like `CalculatorTool`; always use ToolExecutor or ToolNode.
 
 **Layout Guidelines:**
 - Root node at x=400, y=50
@@ -139,33 +141,17 @@ Always include both explanation and valid JSON in your response."""
 
 class WorkflowLLM:
     """Handles LLM interactions for workflow generation."""
-    
-    def __init__(self, model_name: str = "models/gemini-2.5-flash"):
-        try:
-            from google import genai
-            from google.genai import types
-        except ImportError as e:
-            raise RuntimeError(
-                "google-genai package not installed. Run: pip install google-genai"
-            ) from e
 
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            logger.warning("⚠️ GEMINI_API_KEY/GOOGLE_API_KEY not found in env!")
-        self.client = genai.Client(api_key=api_key)
-        self._types = types
-        self.model_name = model_name
-        if model_name.startswith("models/"):
-            self.fallback_model_name = "models/gemini-1.5-flash"
-        else:
-            self.fallback_model_name = "gemini-1.5-flash"
+    def __init__(self, model_name: Optional[str] = None):
+        self.model_name = model_name or os.getenv("MODEL", "gemini-2.5-flash")
         
-    def generate_workflow(
+    async def generate_workflow(
         self, 
         user_message: str,
         conversation_history: Optional[List[Dict[str, str]]] = None,
         current_workflow: Optional[Dict[str, Any]] = None,
-        available_nodes: Optional[List[Dict[str, Any]]] = None
+        available_nodes: Optional[List[Dict[str, Any]]] = None,
+        available_tools: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         Generate or modify a workflow based on user message.
@@ -175,6 +161,7 @@ class WorkflowLLM:
             conversation_history: Previous messages
             current_workflow: Existing workflow JSON (for modifications)
             available_nodes: List of available node types from /api/nodes
+            available_tools: List of available tools from /api/tools
             
         Returns:
             {
@@ -190,57 +177,34 @@ class WorkflowLLM:
                 "**Available Node Types:**\n\n1. **Sequence**",
                 f"**Available Node Types:**\n\n{nodes_doc}\n\n**Note:** Use ONLY these node types. Do not invent new ones.\n\n1. **Sequence (for reference)**"
             )
+
+        if available_tools:
+            tools_doc = self._build_tools_documentation(available_tools)
+            system_prompt = system_prompt + f"\n\n**Available Tools:**\n\n{tools_doc}\n\n**Note:** Use tool ids from this list when setting ToolExecutor.config.tools or ToolNode.config.tool_id."
         
-        # Build conversation context
-        messages = []
-        
-        # Add system prompt
-        messages.append({"role": "user", "parts": [system_prompt]})
-        messages.append({"role": "model", "parts": ["Understood. I'll help you create workflows using only the available node types."]})
-        
-        # Add conversation history
-        if conversation_history:
-            for msg in conversation_history:
-                messages.append({
-                    "role": msg["role"],
-                    "parts": [msg["content"]]
-                })
-        
-        # Add current workflow context if modifying
-        if current_workflow:
-            context = f"\n\n**Current Workflow:**\n```json\n{json.dumps(current_workflow, indent=2)}\n```\n\n**User Request:** {user_message}"
-            messages.append({"role": "user", "parts": [context]})
-        else:
-            messages.append({"role": "user", "parts": [user_message]})
-        
-        # Generate response
+        prompt = self._build_prompt(
+            system_prompt=system_prompt,
+            user_message=user_message,
+            conversation_history=conversation_history,
+            current_workflow=current_workflow,
+        )
+
         try:
-            contents = [
-                self._types.Content(role=msg["role"], parts=[self._types.Part.from_text(msg["parts"][0])])
-                for msg in messages
-            ]
-            config = self._types.GenerateContentConfig(
+            provider = LLMProvider.default(
+                preference=["openai", "gemini", "anthropic"],
+                base_url=os.getenv("BASE_URL"),
+            )
+            model = os.getenv("MODEL", self.model_name)
+            response = await provider.generate_text(
+                prompt=prompt,
+                model=model,
                 temperature=0.3,
                 top_p=0.95,
                 top_k=40,
+                timeout=60.0,
             )
 
-            try:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=contents,
-                    config=config,
-                )
-            except Exception as e:
-                logger.warning("⚠️ Failed to use model {}: {}", self.model_name, e)
-                logger.info("Trying fallback model...")
-                response = self.client.models.generate_content(
-                    model=self.fallback_model_name,
-                    contents=contents,
-                    config=config,
-                )
-
-            reply_text = response.text
+            reply_text = getattr(response, "content", None) or str(response)
             
             # Extract workflow JSON
             workflow = self._extract_workflow_json(reply_text)
@@ -267,17 +231,61 @@ class WorkflowLLM:
             # Add config schema if available
             if node.get('config_schema'):
                 schema = node['config_schema']
-                if schema.get('properties'):
+                if isinstance(schema, dict):
                     node_doc += "\n   - Config:"
-                    for key, prop in schema['properties'].items():
-                        prop_type = prop.get('type', 'any')
-                        node_doc += f"\n     * `{key}` ({prop_type})"
-                        if prop.get('description'):
-                            node_doc += f" - {prop['description']}"
+                    for key, prop in schema.items():
+                        if isinstance(prop, dict):
+                            prop_type = prop.get('type', 'any')
+                            default = prop.get('default', None)
+                            options = prop.get('options')
+                            line = f"\n     * `{key}` ({prop_type})"
+                            if default not in (None, ""):
+                                line += f", default={default}"
+                            if options:
+                                line += f", options={options}"
+                            node_doc += line
+                        else:
+                            node_doc += f"\n     * `{key}`"
             
             docs.append(node_doc)
         
         return "\n\n".join(docs)
+
+    def _build_tools_documentation(self, available_tools: List[Dict[str, Any]]) -> str:
+        docs = []
+        for idx, tool in enumerate(available_tools, 1):
+            if tool.get('available') is False:
+                continue
+            label = tool.get('label') or tool.get('id') or tool.get('name')
+            tool_id = tool.get('id') or tool.get('name')
+            desc = tool.get('description', '')
+            docs.append(f"{idx}. **{label}** (id: `{tool_id}`)\n   - {desc}")
+        return "\n\n".join(docs)
+
+    def _build_prompt(
+        self,
+        system_prompt: str,
+        user_message: str,
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        current_workflow: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        parts = [system_prompt.strip()]
+
+        if conversation_history:
+            parts.append("Conversation:")
+            for msg in conversation_history:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                if role == "model":
+                    role = "assistant"
+                parts.append(f"{role.title()}: {content}")
+
+        if current_workflow:
+            parts.append("Current Workflow (JSON):")
+            parts.append(json.dumps(current_workflow, indent=2))
+
+        parts.append(f"User: {user_message}")
+        return "\n\n".join(parts)
     
     def _extract_workflow_json(self, text: str) -> Optional[Dict[str, Any]]:
         """Extract workflow JSON from LLM response."""
@@ -304,11 +312,6 @@ class WorkflowLLM:
 
 
 # Singleton instance
-_workflow_llm = None
-
 def get_workflow_llm() -> WorkflowLLM:
-    """Get or create the WorkflowLLM singleton."""
-    global _workflow_llm
-    if _workflow_llm is None:
-        _workflow_llm = WorkflowLLM()
-    return _workflow_llm
+    """Create a fresh WorkflowLLM (config is read from env each call)."""
+    return WorkflowLLM()

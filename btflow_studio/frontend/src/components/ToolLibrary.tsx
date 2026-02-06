@@ -11,21 +11,55 @@ interface ToolMeta {
 
 interface ToolLibraryProps {
   tools: ToolMeta[];
+  language?: string;
 }
 
-export default function ToolLibrary({ tools }: ToolLibraryProps) {
+const TOOL_LABEL_ZH: Record<string, string> = {
+  CalculatorTool: '计算器',
+  PythonREPLTool: 'Python REPL',
+  FileReadTool: '读取文件',
+  FileWriteTool: '写入文件',
+  HTTPTool: 'HTTP 请求',
+  DuckDuckGoSearchTool: 'DuckDuckGo 搜索',
+  MemorySearchTool: '记忆检索',
+  MemoryAddTool: '记忆写入',
+};
+
+const TOOL_DESC_ZH: Record<string, string> = {
+  CalculatorTool: '计算数学表达式。',
+  PythonREPLTool: '执行 Python 代码。',
+  FileReadTool: '读取本地文件内容。',
+  FileWriteTool: '写入或创建本地文件。',
+  HTTPTool: '发起 HTTP 请求。',
+  DuckDuckGoSearchTool: '使用 DuckDuckGo 搜索网页。',
+  MemorySearchTool: '在记忆库中检索相关信息。',
+  MemoryAddTool: '把信息写入记忆库。',
+};
+
+const translateTool = (tool: ToolMeta, language?: string): ToolMeta => {
+  if (language !== 'zh') return tool;
+  const id = tool.id;
+  return {
+    ...tool,
+    label: TOOL_LABEL_ZH[id] || tool.label,
+    description: TOOL_DESC_ZH[id] || tool.description,
+  };
+};
+
+export default function ToolLibrary({ tools, language }: ToolLibraryProps) {
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return tools;
+    const translated = tools.map(t => translateTool(t, language));
+    if (!query.trim()) return translated;
     const q = query.toLowerCase();
-    return tools.filter(t =>
+    return translated.filter(t =>
       t.id.toLowerCase().includes(q) ||
       t.name.toLowerCase().includes(q) ||
       t.label.toLowerCase().includes(q) ||
       (t.description || '').toLowerCase().includes(q)
     );
-  }, [tools, query]);
+  }, [tools, query, language]);
 
   return (
     <div className="p-4 h-full overflow-y-auto">

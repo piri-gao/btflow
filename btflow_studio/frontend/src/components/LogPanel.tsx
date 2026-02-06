@@ -44,7 +44,7 @@ const formatTraceDetails = (data: Record<string, any>) => {
 export default function LogPanel({ logs, traceEvents, toolEvents, onClear }: LogPanelProps) {
     const [tab, setTab] = useState<'logs' | 'trace' | 'tools'>('logs');
 
-    const filteredLogs = useMemo(() => logs, [logs]);
+    const filteredLogs = useMemo(() => logs.filter((log) => log.type !== 'trace'), [logs]);
     const filteredTrace = useMemo(() => traceEvents, [traceEvents]);
     const filteredTools = useMemo(() => toolEvents, [toolEvents]);
 

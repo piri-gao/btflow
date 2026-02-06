@@ -58,9 +58,17 @@ improve it using the reflection feedback.
 
 Answer: [Your complete answer here]
 
-Score: [A number from 0 to 10, be honest and critical]
+Score: [A number from 0 to 10, be honest and critical. Use only a number, e.g. 8.5]
 
 Reflection: [If score < 8, explain what could be improved. If score >= 8, write "The answer is satisfactory."]
+
+If Score >= 8, append one extra line:
+Final Answer: [Repeat the Answer exactly]
+
+IMPORTANT:
+- Use EXACT labels: Answer, Score, Reflection, Final Answer
+- Do NOT use other labels like "评分" or "最终答案"
+- Do NOT wrap the response in code blocks
 
 Scoring guidelines:
 - 0-3: Incorrect or very incomplete
