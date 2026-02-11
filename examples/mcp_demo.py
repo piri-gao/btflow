@@ -1,126 +1,102 @@
+"""
+MCP Memory Agent Demo - Uses Memory MCP server for persistent storage.
+
+This demo shows how to connect a ReAct agent to an MCP server,
+giving the agent the ability to store and retrieve memories.
+
+Prerequisites:
+    npm install -g @anthropic-ai/mcp-server-memory
+    # or use npx (will auto-install)
+"""
 import asyncio
 import os
-import shutil
-from btflow.protocols.mcp import MCPServerConfig, MCPClient
-from btflow.nodes import AgentLLMNode, ToolExecutor, ConditionNode
-from btflow.core.state import StateManager
-from btflow.messages import Message
-from py_trees.common import Status
-from pydantic import BaseModel, Field
-from typing import List, Optional, Any, Dict
+from dotenv import load_dotenv
 
-class ReActState(BaseModel):
-    messages: List[Message] = Field(default_factory=list)
-    task: str = ""
-    tools_desc: str = ""
-    tools_schema: List[Dict[str, Any]] = Field(default_factory=list)
-    final_answer: Optional[str] = None
-    rounds: int = 0
+load_dotenv()
 
+from btflow.patterns.react import ReActAgent
+from btflow.llm import LLMProvider
+from btflow.protocols.mcp import MCPClient
+
+STRICT_MEMORY_PROMPT = """You are a precise assistant that manages a memory graph.
+
+Rules:
+1) Only store facts explicitly provided by the user. Do NOT infer or add new facts.
+2) Use tools to create entities and add observations when asked to store facts.
+3) When asked to read, only report facts that exist in the knowledge graph.
+4) Do not fabricate or guess missing information.
+"""
 
 async def main():
-    # 1. Check dependencies
-    npx_path = shutil.which("npx")
-    if not npx_path:
-        print("❌ 'npx' not found. Please install Node.js/npm to run this demo.")
-        return
-
-    # 2. Configure MCP Server (Filesystem Server)
-    # This server provides tools like 'read_file', 'write_file', 'list_directory'
-    # MCPClient uses fastmcp v2 under the hood and supports stdio/http/sse.
-    # This demo uses stdio via npx.
-    current_dir = os.getcwd()
-    config = MCPServerConfig(
-        command="npx",
-        args=["-y", "@modelcontextprotocol/server-filesystem", current_dir],
-        env=os.environ.copy()
+    # 1. Setup LLM Provider
+    base_url = os.getenv("BASE_URL")
+    
+    # Prefer Gemini to avoid key mismatch issues
+    provider = LLMProvider.default(preference=["gemini", "openai"], base_url=base_url)
+    
+    # 2. Connect to Memory MCP Server
+    # Uses npx to auto-install and run the server
+    # Package: @modelcontextprotocol/server-memory
+    mcp_client = MCPClient(
+        server_source=["npx", "-y", "@modelcontextprotocol/server-memory"]
     )
-
-    print(f"🔌 Connecting to MCP Filesystem Server on: {current_dir}...")
     
     try:
-        async with MCPClient(config) as client:
-            # 3. Load MCP Tools (and optional prompts)
-            tools = await client.as_tools()
-            print(f"🛠️  Loaded {len(tools)} tools from MCP:")
-            for t in tools:
-                print(f"   - {t.name}: {t.description[:50]}...")
-            prompts = await client.list_prompts()
-            if prompts:
-                print(f"🧾 Loaded {len(prompts)} prompts from MCP:")
-                for p in prompts:
-                    print(f"   - {p.name}: {getattr(p, 'description', '')[:50]}...")
+        # 3. Get tools from MCP server
+        print("🔌 Connecting to Memory MCP server...")
+        mcp_tools = await mcp_client.as_tools()
+        
+        print(f"✅ Found {len(mcp_tools)} MCP tools:")
+        for tool in mcp_tools:
+            print(f"   - {tool.name}: {tool.description[:60]}...")
+        
+        # 4. Create ReAct agent with MCP tools
+        agent = ReActAgent.create(
+            model="gemini-2.5-flash",
+            provider=provider,
+            tools=mcp_tools,
+            max_rounds=10,
+            system_prompt=STRICT_MEMORY_PROMPT,
+        )
+        
+        # 5. First task: Store some memories
+        task1 = "Please store the following facts in memory: 1) My name is Alice 2) I like Python programming 3) My favorite color is blue"
+        
+        print(f"\n🚀 Task 1: {task1}\n")
+        print("-" * 50)
 
-            # 4. Create ReAct Agent
-            state_manager = StateManager(ReActState)
-            
-            # Create a simple test file
-            with open("test_mcp.txt", "w") as f:
-                f.write("Hello from BTflow + MCP Integration!")
+        await agent.run(input_data={"task": task1, "messages": []})
 
-            # Agent Nodes
-            llm_node = AgentLLMNode(
-                model="gemini-2.0-flash-exp", # Faster model
-                tools_description="", # Will be updated dynamically by executor 
-            )
-            llm_node.bind_state_manager(state_manager)
+        final_state = agent.state_manager.get()
+        print(f"\n🎯 Result: {final_state.final_answer}")
+        
+        # 6. Second task: Retrieve memories
+        # Reset agent state but keep MCP server connection (memories persist)
+        # Use read_graph or search for "Alice" to find stored entities
+        task2 = "Please read the knowledge graph and tell me all the facts you know about Alice."
+        
+        print(f"\n🚀 Task 2: {task2}\n")
+        print("-" * 50)
+        
+        # Create a new agent instance with same MCP tools
+        agent2 = ReActAgent.create(
+            model="gemini-2.5-flash",
+            provider=provider,
+            tools=mcp_tools,
+            max_rounds=10,
+            system_prompt=STRICT_MEMORY_PROMPT,
+        )
+        
+        await agent2.run(input_data={"task": task2, "messages": []})
+        
+        final_state2 = agent2.state_manager.get()
+        print(f"\n🎯 Result: {final_state2.final_answer}")
+        
+    finally:
+        # 7. Cleanup: Close MCP connection
+        await mcp_client.close()
+        print("\n👋 MCP connection closed.")
 
-            tool_node = ToolExecutor(tools=tools) # Inject MCP tools
-            tool_node.bind_state_manager(state_manager)
-
-            check_node = ConditionNode(preset="has_final_answer")
-            check_node.state_manager = state_manager # Manual bind for simple behaviour
-
-            # Behavior Tree vs manual loop:
-            # This demo uses a manual loop for clarity instead of running a full Runner.
-            # 5. Run it
-            question = "Read the file 'test_mcp.txt' and tell me what it says."
-            print(f"\n🤖 User: {question}")
-            
-            # Initialize task
-            state_manager.update({"task": question})
-            
-            # Because ReactiveRunner runs forever until stopped, we'll run it for a bit
-            # or rely on ConditionNode to stop? 
-            # btflow logic: nodes return RUNNING/SUCCESS/FAILURE.
-            # We need a condition to stop the runner. Runner stops if root returns SUCCESS/FAILURE (if configured).
-            # Repeat returns SUCCESS only if child returns SUCCESS (and num_failures work).
-            # If child is Sequence, it returns SUCCESS if all children SUCCESS.
-            # LLM -> SUCCESS. Tool -> SUCCESS. ConditionNode -> SUCCESS (if found).
-            # So if Final Answer found, Step returns SUCCESS. Repeat loops again?
-            # py_trees Repeat: repeats child returns SUCCESS or FAILURE. 
-            
-            # Let's just do a manual tick loop for clarity in this demo
-            print("🚀 Starting Agent Loop...")
-            llm_node.initialise() 
-            tool_node.initialise() # Register tools
-            
-            # Update tool descriptions manually once since we aren't using the full Runner's setup lifecycle here perfectly
-            tool_node._update_tools_state() 
-            
-            for i in range(5):
-                print(f"\n--- Step {i+1} ---")
-                
-                # 1. LLM
-                await llm_node.update_async()
-                
-                # 2. Check Final
-                if check_node.update() == Status.SUCCESS:
-                    ans = state_manager.get().final_answer
-                    print(f"\n✅ Final Answer: {ans}")
-                    break
-                
-                # 3. Tool
-                await tool_node.update_async()
-                
-            # Cleanup
-            if os.path.exists("test_mcp.txt"):
-                os.remove("test_mcp.txt")
-
-    except Exception as e:
-        print(f"\n💥 Error: {e}")
-        import traceback
-        traceback.print_exc()
 
 if __name__ == "__main__":
     asyncio.run(main())

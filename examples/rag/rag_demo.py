@@ -12,12 +12,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), \"../..\")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 load_dotenv()
 
-from btflow.memory import Memory, SearchOptions
+from btflow.memory import Memory, resolve_embedder
 from btflow.memory.store import SQLiteStore
 from btflow.llm import LLMProvider
+from btflow.patterns.react import ReActAgent
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,52 +34,27 @@ def parse_args() -> argparse.Namespace:
         help="Question to ask",
     )
     parser.add_argument(
-        "--k",
-        type=int,
-        default=3,
-        help="Top-k chunks to retrieve (default: 3)",
-    )
-    parser.add_argument(
-        "--mode",
-        default="hybrid",
-        choices=["hybrid", "semantic", "keyword"],
-        help="Retrieval mode (default: hybrid)",
+        "--provider",
+        choices=["gemini", "openai"],
+        default=None,
+        help="Force embedding provider (gemini/openai)",
     )
     return parser.parse_args()
-
-
-def build_prompt(question: str, context_items) -> str:
-    if not context_items:
-        context = "No context."
-    else:
-        lines = []
-        for i, item in enumerate(context_items, 1):
-            source = item.metadata.get("source", "unknown") if item.metadata else "unknown"
-            lines.append(f"[{i}] ({source}) {item.text}")
-        context = "\n".join(lines)
-
-    return (
-        "Use the context to answer the question. If the context is insufficient, say so.\n\n"
-        f"Context:\n{context}\n\n"
-        f"Question: {question}\n"
-        "Answer:"
-    )
 
 
 async def main() -> None:
     args = parse_args()
 
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY")
+    # 1. Setup Provider (Relaxed check, support --provider)
+    preference = [args.provider] if args.provider else ["gemini", "openai"]
     base_url = os.getenv("BASE_URL")
-    if not api_key:
-        print("❌ Error: OPENAI_API_KEY (or API_KEY) not set in .env")
-        return
-
+    
     try:
-        provider = LLMProvider.default(preference=["gemini", "openai"], base_url=base_url)
+        provider = LLMProvider.default(preference=preference, base_url=base_url)
         print(f"🤖 Using LLM Provider: {type(provider).__name__}")
     except Exception as e:
         print(f"❌ Error initializing LLM provider: {e}")
+        print("   Please set GEMINI_API_KEY or OPENAI_API_KEY.")
         return
 
     db_path = Path(args.db).expanduser().resolve()
@@ -87,32 +63,57 @@ async def main() -> None:
         print("   Run: python examples/rag/ingest.py --path <docs>")
         return
 
-    memory = Memory(store=SQLiteStore(str(db_path)))
+    # Embedder also follows preference
+    embedder = resolve_embedder(preference=preference)
+    if embedder is None:
+        print("❌ No embedding provider configured.")
+        return
+
+    # Initialize Memory
+    memory = Memory(store=SQLiteStore(str(db_path)), embedder=embedder)
     if len(memory) == 0:
         print("❌ DB is empty. Run ingest first.")
         return
 
-    question = args.question
-    results = memory.search(question, options=SearchOptions(k=args.k, mode=args.mode))
-    prompt = build_prompt(question, results)
+    print("🧠 Memory loaded. Creating ReAct Agent...")
 
-    response = await provider.generate_text(
-        prompt=prompt,
+    from btflow.memory.tools import MemorySearchTool
+
+    # Create ReAct Agent with Memory
+    # We disable auto_memory_tools to avoid adding MemoryAddTool (read-only mode)
+    # We pass memory=None to DISABLE Implicit RAG (context injection) so we rely ONLY on the tool.
+    agent = ReActAgent.create(
+        provider=provider,
+        memory=None, # Disable implicit context injection
+        tools=[MemorySearchTool(memory)],
         model=os.getenv("MODEL", "gemini-2.5-flash"),
-        temperature=0.2,
+        auto_memory_tools=False,
+        # system_prompt="You are a helpful assistant with access to a knowledge base.",
     )
 
-    print("\n🔎 Retrieved Context:")
-    if not results:
-        print("(none)")
-    else:
-        for item in results:
-            src = item.metadata.get("source", "unknown") if item.metadata else "unknown"
-            print(f"- [{src}] {item.text}")
+    from btflow.messages import human
 
-    print("\n🤖 Answer:")
-    print(response.content)
+    question = args.question
+    print(f"\nQuestion: {question}\n")
 
+    # Run Agent (agent.run returns Status, not state)
+    await agent.run({"messages": [human(question)]})
+    state = agent.state_manager.get()
+
+    print("\n" + "="*50)
+    print(f"🤖 Final Answer: {state.final_answer}")
+    print("="*50)
+
+    # Optional: Inspect tool usage
+    print("\n🔍 Trace:")
+    for msg in state.messages:
+        if msg.role == "tool":
+            print(f"  🔧 Tool Output: {msg.content[:200]}..." if len(msg.content) > 200 else f"  🔧 Tool Output: {msg.content}")
+        elif msg.role == "assistant":
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                 print(f"  💭 Thought/Call: {msg.content} -> {msg.tool_calls}")
+            else:
+                 print(f"  💭 Thought: {msg.content}")
 
 if __name__ == "__main__":
     asyncio.run(main())

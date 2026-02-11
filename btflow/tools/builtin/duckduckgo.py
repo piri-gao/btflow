@@ -1,6 +1,12 @@
 import asyncio
 from typing import List, Dict, Any, Optional
-from duckduckgo_search import DDGS
+
+# Try new package first, fallback to old for compatibility
+try:
+    from ddgs import DDGS
+except ImportError:
+    from duckduckgo_search import DDGS
+
 from btflow.tools.base import Tool
 from btflow.core.logging import logger
 

@@ -110,6 +110,7 @@ async def main():
     print("🔄 BTflow Reflexion Agent Demo (Reflexion)")
     print("=" * 60)
     await demo_haiku(provider)
+    await demo_explanation(provider)
 
 
 if __name__ == "__main__":

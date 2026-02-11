@@ -148,6 +148,8 @@ class BTAgent:
             # 2. 可选：数据重置
             if reset_data:
                 self.state_manager.initialize()
+            else:
+                self.state_manager.reset_turn_fields()
             
             # 3. 清除残留信号 (在 update 之前，避免误伤 update 产生的新信号)
             self.runner.tick_signal.clear()

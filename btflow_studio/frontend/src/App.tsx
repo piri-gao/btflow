@@ -21,7 +21,7 @@ import NodePanel from './components/NodePanel';
 import LogPanel from './components/LogPanel';
 import ChatPanel from './components/ChatPanel';
 import { ControlFlowNode, ActionNode } from './components/CustomNodes';
-import { fetchNodes, fetchTools, saveWorkflow, runWorkflow, stopWorkflow, createWorkflow } from './api/client';
+import { fetchNodes, fetchTools, fetchMcpTools, saveWorkflow, runWorkflow, stopWorkflow, createWorkflow } from './api/client';
 
 interface LogEntry {
   timestamp: string;
@@ -80,6 +80,8 @@ const STORAGE_KEYS = {
   activeChatSessionId: 'btflow.studio.activeChatSessionId',
   lastRunMessages: 'btflow.studio.lastRunMessages',
   reuseMessages: 'btflow.studio.reuseMessages',
+  mcpServers: 'btflow.studio.mcpServers',
+  mcpTools: 'btflow.studio.mcpTools',
 };
 
 // Define once outside component to avoid re-creation
@@ -185,7 +187,9 @@ function Flow() {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [nodeMetas, setNodeMetas] = useState<any[]>([]);
-  const [tools, setTools] = useState<any[]>([]);
+  const [builtinTools, setBuiltinTools] = useState<any[]>([]);
+  const [mcpTools, setMcpTools] = useState<any[]>([]);
+  const [mcpServers, setMcpServers] = useState<any[]>([]);
 
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -203,6 +207,8 @@ function Flow() {
   const [reuseMessagesByWorkflow, setReuseMessagesByWorkflow] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initPanelRef = useRef<HTMLDivElement>(null);
+
+  const tools = useMemo(() => [...builtinTools, ...mcpTools], [builtinTools, mcpTools]);
 
   // Derive selectedNode from nodes to keep it in sync
   const selectedNode = useMemo(() => {
@@ -245,6 +251,16 @@ function Flow() {
     localStorage.setItem(STORAGE_KEYS.reuseMessages, JSON.stringify(reuseMessagesByWorkflow));
   }, [reuseMessagesByWorkflow, hasHydrated]);
 
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.mcpServers, JSON.stringify(mcpServers));
+  }, [mcpServers, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.mcpTools, JSON.stringify(mcpTools));
+  }, [mcpTools, hasHydrated]);
+
   const inferredStateFields = useMemo(
     () => inferStateFields(nodes, nodeMetas),
     [nodes, nodeMetas]
@@ -254,6 +270,12 @@ function Flow() {
     () => inferInputFields(nodes, nodeMetas),
     [nodes, nodeMetas]
   );
+
+  const savedMessagesCount = useMemo(() => {
+    if (!workflowId) return 0;
+    const msgs = lastMessagesByWorkflow[workflowId];
+    return Array.isArray(msgs) ? msgs.length : 0;
+  }, [workflowId, lastMessagesByWorkflow]);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -286,7 +308,7 @@ function Flow() {
 
   useEffect(() => {
     fetchNodes().then(setNodeMetas).catch(err => console.error("Failed to fetch nodes", err));
-    fetchTools().then(setTools).catch(err => console.error("Failed to fetch tools", err));
+    fetchTools().then(setBuiltinTools).catch(err => console.error("Failed to fetch tools", err));
     const storedNodes = localStorage.getItem(STORAGE_KEYS.nodes);
     const storedEdges = localStorage.getItem(STORAGE_KEYS.edges);
     const storedWorkflowId = localStorage.getItem(STORAGE_KEYS.workflowId);
@@ -294,6 +316,8 @@ function Flow() {
     const storedActiveSession = localStorage.getItem(STORAGE_KEYS.activeChatSessionId);
     const storedLastRunMessages = localStorage.getItem(STORAGE_KEYS.lastRunMessages);
     const storedReuseMessages = localStorage.getItem(STORAGE_KEYS.reuseMessages);
+    const storedMcpServers = localStorage.getItem(STORAGE_KEYS.mcpServers);
+    const storedMcpTools = localStorage.getItem(STORAGE_KEYS.mcpTools);
 
     if (storedNodes) {
       try {
@@ -323,6 +347,20 @@ function Flow() {
     }
     if (storedActiveSession) {
       setActiveChatSessionId(storedActiveSession);
+    }
+    if (storedMcpServers) {
+      try {
+        setMcpServers(JSON.parse(storedMcpServers));
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.mcpServers);
+      }
+    }
+    if (storedMcpTools) {
+      try {
+        setMcpTools(JSON.parse(storedMcpTools));
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.mcpTools);
+      }
     }
     if (storedLastRunMessages) {
       try {
@@ -512,8 +550,8 @@ function Flow() {
     [reactFlowInstance, setNodes]
   );
 
-  const onSave = useCallback(async () => {
-    if (!reactFlowInstance || !workflowId) return;
+  const onSave = useCallback(async (): Promise<string | null> => {
+    if (!reactFlowInstance || !workflowId) return null;
 
     try {
       await saveWorkflow(workflowId, {
@@ -522,8 +560,13 @@ function Flow() {
         state: {
           schema_name: 'AutoState',
           fields: inferredStateFields
+        },
+        resources: {
+          memories: [],
+          mcp_servers: mcpServers,
         }
       });
+      return workflowId;
     } catch (error: any) {
       // If workflow not found (404), create a new one
       if (error?.response?.status === 404) {
@@ -536,13 +579,19 @@ function Flow() {
           state: {
             schema_name: 'AutoState',
             fields: inferredStateFields
+          },
+          resources: {
+            memories: [],
+            mcp_servers: mcpServers,
           }
         });
+        return newWf.id;
       } else {
         console.error("Save failed:", error);
       }
     }
-  }, [reactFlowInstance, nodes, edges, workflowId, inferredStateFields]);
+    return null;
+  }, [reactFlowInstance, nodes, edges, workflowId, inferredStateFields, mcpServers]);
 
   const buildInitialState = useCallback((): { state?: Record<string, any>; error?: string } => {
     const state: Record<string, any> = {};
@@ -567,16 +616,23 @@ function Flow() {
       }
       if (field.type === 'list' || field.type === 'dict' || field.type === 'tuple') {
         if (raw === '' || raw === null || raw === undefined) continue;
-        if (field.name === 'messages' && typeof raw === 'string') {
-          try {
-            const parsed = JSON.parse(raw);
-            state[field.name] = parsed;
-            messagesProvided = true;
-          } catch {
-            state[field.name] = [{ role: 'user', content: raw }];
-            messagesProvided = true;
+        if (field.name === 'messages') {
+          if (Array.isArray(raw) && raw.length === 0) continue;
+          if (typeof raw === 'string' && raw.trim() === '') continue;
+          if (typeof raw === 'string') {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length === 0) {
+                continue;
+              }
+              state[field.name] = parsed;
+              messagesProvided = true;
+            } catch {
+              state[field.name] = [{ role: 'user', content: raw }];
+              messagesProvided = true;
+            }
+            continue;
           }
-          continue;
         }
         if (typeof raw === 'string') {
           try {
@@ -596,11 +652,15 @@ function Flow() {
       state[field.name] = raw;
       if (field.name === 'messages') messagesProvided = true;
     }
-    if (!messagesProvided && hasMessagesField && workflowId) {
+    if (!messagesProvided && workflowId) {
       const reuse = !!reuseMessagesByWorkflow[workflowId];
       const lastMessages = lastMessagesByWorkflow[workflowId];
       if (reuse && Array.isArray(lastMessages) && lastMessages.length > 0) {
-        state.messages = lastMessages;
+        if (typeof state.task === 'string' && state.task.trim()) {
+          state.messages = [...lastMessages, { role: 'user', content: state.task }];
+        } else {
+          state.messages = lastMessages;
+        }
       }
     }
     return { state };
@@ -614,8 +674,9 @@ function Flow() {
       return;
     }
     setInitialStateError('');
-    await onSave();
-    await runWorkflow(workflowId, result.state);
+    const resolvedId = await onSave();
+    if (!resolvedId) return;
+    await runWorkflow(resolvedId, result.state);
     setShowInitialState(false);
   }, [workflowId, onSave, buildInitialState]);
 
@@ -624,7 +685,7 @@ function Flow() {
     await stopWorkflow(workflowId);
   }, [workflowId]);
 
-  const applyWorkflow = useCallback((workflow: { nodes: any[], edges: any[] }) => {
+  const applyWorkflow = useCallback((workflow: { nodes: any[], edges: any[], resources?: any }) => {
     // Convert workflow JSON to React Flow format
     const newNodes: Node[] = workflow.nodes.map(n => ({
       id: n.id,
@@ -648,7 +709,62 @@ function Flow() {
 
     setNodes(newNodes);
     setEdges(newEdges);
+    if (workflow.resources?.mcp_servers) {
+      const servers = workflow.resources.mcp_servers;
+      setMcpServers(servers);
+      const nextTools: any[] = [];
+      servers.forEach((server: any) => {
+        const serverId = server.id;
+        (server.tools || []).forEach((tool: any) => {
+          nextTools.push({
+            id: `mcp:${serverId}:${tool.name}`,
+            name: tool.name,
+            label: tool.name,
+            category: "MCP",
+            source: "mcp",
+            description: tool.description || "",
+            available: true,
+            input_schema: tool.input_schema || {},
+            output_schema: tool.output_schema || {},
+          });
+        });
+      });
+      setMcpTools(nextTools);
+    }
   }, [setNodes, setEdges, nodeMetas]);
+
+  const loadMcpTools = useCallback(async (payload: {
+    id?: string;
+    transport: 'stdio' | 'http' | 'sse';
+    command?: string;
+    args?: string[];
+    url?: string;
+    env?: Record<string, string>;
+    headers?: Record<string, string>;
+    auth?: string;
+    allowlist?: string[];
+  }) => {
+    const data = await fetchMcpTools(payload);
+    const server = data.server;
+    const tools = data.tools || [];
+    if (server?.id) {
+      setMcpServers((prev) => {
+        const next = prev.filter((s: any) => s.id !== server.id);
+        return [...next, { ...server, tools }];
+      });
+      setMcpTools((prev) => {
+        const prefix = `mcp:${server.id}:`;
+        const filtered = prev.filter((t: any) => typeof t.id !== 'string' || !t.id.startsWith(prefix));
+        return [...filtered, ...tools];
+      });
+    }
+    return data;
+  }, []);
+
+  const removeMcpServer = useCallback((serverId: string) => {
+    setMcpServers((prev) => prev.filter((s: any) => s.id !== serverId));
+    setMcpTools((prev) => prev.filter((t: any) => typeof t.id !== 'string' || !t.id.startsWith(`mcp:${serverId}:`)));
+  }, []);
 
   const createChatSession = useCallback(() => {
     const id = `session-${Date.now()}`;
@@ -705,6 +821,10 @@ function Flow() {
         source: e.source,
         target: e.target
       })),
+      resources: {
+        memories: [],
+        mcp_servers: mcpServers,
+      },
       state: {
         schema_name: 'AutoState',
         fields: inferredStateFields
@@ -734,7 +854,7 @@ function Flow() {
         if (!parsed.nodes || !parsed.edges) {
           throw new Error('Invalid workflow file');
         }
-        applyWorkflow({ nodes: parsed.nodes, edges: parsed.edges });
+        applyWorkflow({ nodes: parsed.nodes, edges: parsed.edges, resources: parsed.resources });
       } catch (err) {
         console.error('Failed to load workflow:', err);
       }
@@ -742,18 +862,6 @@ function Flow() {
     reader.readAsText(file);
     event.target.value = '';
   }, [applyWorkflow]);
-
-  useEffect(() => {
-    if (!showInitialState) return;
-    const handler = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (initPanelRef.current && target && !initPanelRef.current.contains(target)) {
-        setShowInitialState(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showInitialState]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-gray-50">
@@ -766,6 +874,9 @@ function Flow() {
             tools={tools}
             onApplyWorkflow={applyWorkflow}
             workflowId={workflowId}
+            mcpServers={mcpServers}
+            onLoadMcpTools={loadMcpTools}
+            onRemoveMcpServer={removeMcpServer}
             currentWorkflow={{
               nodes: nodes.map(n => ({
                 id: n.id,
@@ -780,7 +891,11 @@ function Flow() {
                 id: e.id,
                 source: e.source,
                 target: e.target
-              }))
+              })),
+              resources: {
+                memories: [],
+                mcp_servers: mcpServers,
+              }
             }}
           />
 
@@ -838,65 +953,100 @@ function Flow() {
                   <div ref={initPanelRef} className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded shadow-lg p-3 text-xs z-10">
                     <div className="font-semibold text-gray-700 mb-2">Initial State</div>
                     <div className="max-h-64 overflow-auto pr-1">
-                      {inferredInputFields.map((field) => (
-                        <div key={field.name} className="mb-2">
-                          <label className="block text-[10px] text-gray-500 mb-1">
-                            {field.name} <span className="text-gray-400">({field.type})</span>
-                          </label>
-                          {field.type === 'bool' ? (
-                            <input
-                              type="checkbox"
-                              checked={!!initialStateValues[field.name]}
-                              onChange={(e) =>
-                                setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.checked }))
-                              }
-                            />
-                          ) : field.type === 'int' || field.type === 'float' ? (
-                            <input
-                              type="number"
-                              className="w-full text-xs p-1 border rounded"
-                              value={initialStateValues[field.name] ?? ''}
-                              onChange={(e) =>
-                                setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
-                              }
-                            />
-                          ) : field.type === 'list' || field.type === 'dict' || field.type === 'tuple' ? (
-                            <textarea
-                              className="w-full text-xs p-1 border rounded font-mono"
-                              rows={3}
-                              placeholder={field.name === 'messages' ? '输入一段话，或 JSON 数组' : 'JSON'}
-                              value={initialStateValues[field.name] ?? ''}
-                              onChange={(e) =>
-                                setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
-                              }
-                            />
-                          ) : (
-                            <input
-                              className="w-full text-xs p-1 border rounded"
-                              value={initialStateValues[field.name] ?? ''}
-                              onChange={(e) =>
-                                setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
-                              }
-                              placeholder={field.name === 'task' ? '例如：用一句话介绍你自己' : ''}
-                            />
-                          )}
-                        </div>
-                      ))}
+                      {inferredInputFields.map((field) => {
+                        const hideMessages = field.name === 'messages' && inferredInputFields.some((f) => f.name === 'task');
+                        if (hideMessages) return null;
+                        return (
+                          <div key={field.name} className="mb-2">
+                            <label className="block text-[10px] text-gray-500 mb-1">
+                              {field.name} <span className="text-gray-400">({field.type})</span>
+                            </label>
+                            {field.type === 'bool' ? (
+                              <input
+                                type="checkbox"
+                                checked={!!initialStateValues[field.name]}
+                                onChange={(e) =>
+                                  setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.checked }))
+                                }
+                              />
+                            ) : field.type === 'int' || field.type === 'float' ? (
+                              <input
+                                type="number"
+                                className="w-full text-xs p-1 border rounded"
+                                value={initialStateValues[field.name] ?? ''}
+                                onChange={(e) =>
+                                  setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                }
+                              />
+                            ) : field.type === 'list' || field.type === 'dict' || field.type === 'tuple' ? (
+                              <textarea
+                                className="w-full text-xs p-1 border rounded font-mono"
+                                rows={3}
+                                placeholder={field.name === 'messages' ? '输入一段话，或 JSON 数组' : 'JSON'}
+                                value={initialStateValues[field.name] ?? ''}
+                                onChange={(e) =>
+                                  setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                }
+                              />
+                            ) : field.name === 'task' ? (
+                              <textarea
+                                className="w-full text-xs p-1 border rounded"
+                                rows={4}
+                                value={initialStateValues[field.name] ?? ''}
+                                onChange={(e) =>
+                                  setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                }
+                                placeholder="例如：用一句话介绍你自己"
+                              />
+                            ) : (
+                              <input
+                                className="w-full text-xs p-1 border rounded"
+                                value={initialStateValues[field.name] ?? ''}
+                                onChange={(e) =>
+                                  setInitialStateValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                }
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                     {workflowId && inferredInputFields.some((field) => field.name === 'messages') && (
-                      <label className="flex items-center gap-2 text-[10px] text-gray-500 mt-2">
-                        <input
-                          type="checkbox"
-                          checked={!!reuseMessagesByWorkflow[workflowId]}
-                          onChange={(e) =>
-                            setReuseMessagesByWorkflow((prev) => ({
-                              ...prev,
-                              [workflowId]: e.target.checked
-                            }))
-                          }
-                        />
-                        复用上次对话消息（未填写 messages 时生效）
-                      </label>
+                      <div className="mt-2">
+                        <div className="text-[10px] text-gray-500 mb-1">对话模式</div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              setReuseMessagesByWorkflow((prev) => ({ ...prev, [workflowId]: false }))
+                            }
+                            className={`px-2 py-1 rounded text-[10px] border ${
+                              reuseMessagesByWorkflow[workflowId]
+                                ? 'border-gray-200 text-gray-500'
+                                : 'border-blue-500 text-blue-600 bg-blue-50'
+                            }`}
+                          >
+                            单轮对话
+                          </button>
+                          <button
+                            onClick={() =>
+                              setReuseMessagesByWorkflow((prev) => ({ ...prev, [workflowId]: true }))
+                            }
+                            className={`px-2 py-1 rounded text-[10px] border ${
+                              reuseMessagesByWorkflow[workflowId]
+                                ? 'border-blue-500 text-blue-600 bg-blue-50'
+                                : 'border-gray-200 text-gray-500'
+                            }`}
+                          >
+                            多轮对话
+                          </button>
+                          <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                            {savedMessagesCount > 0 ? `已保存 ${savedMessagesCount} 条` : '暂无已保存消息'}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-1">
+                          多轮对话会在上次消息后追加本次 task。
+                        </div>
+                      </div>
                     )}
                     {initialStateError && (
                       <div className="text-[10px] text-red-500 mt-2">{initialStateError}</div>

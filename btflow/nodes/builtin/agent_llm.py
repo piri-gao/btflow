@@ -1,7 +1,8 @@
 import asyncio
 import json
 import os
-from typing import List, Optional
+import re
+from typing import List, Optional, Any, Dict, Tuple
 
 from py_trees.common import Status
 
@@ -44,6 +45,9 @@ Always think step by step."""
 
 
 class AgentLLMNode(AsyncBehaviour):
+    FINAL_ANSWER_RE = re.compile(r"Final Answer:\s*(.+)", re.IGNORECASE | re.DOTALL)
+    TOOL_CALL_TEXT_RE = re.compile(r"(?:ToolCall:\s*\{|Action:\s*.+\n\s*Input:)", re.IGNORECASE)
+    ACTION_PATTERN = re.compile(r"Action:\s*(.+?)\s*\n\s*Input:\s*(.+)", re.IGNORECASE | re.DOTALL)
     """
     Agent LLM node.
 
@@ -70,7 +74,11 @@ class AgentLLMNode(AsyncBehaviour):
         self.model = model
         self.tools_description = tools_description
         self._uses_default_prompt = system_prompt is None or system_prompt == ""
-        self.system_prompt = system_prompt if not self._uses_default_prompt else DEFAULT_REACT_PROMPT
+        # Merge custom prompt with default ReAct format (custom prompt first, then format instructions)
+        if self._uses_default_prompt:
+            self.system_prompt = DEFAULT_REACT_PROMPT
+        else:
+            self.system_prompt = f"{system_prompt}\n\n{DEFAULT_REACT_PROMPT}"
         self.provider = provider or LLMProvider.default()
         self.structured_tool_calls = structured_tool_calls
         self.strict_tool_calls = strict_tool_calls
@@ -218,10 +226,51 @@ class AgentLLMNode(AsyncBehaviour):
                 return Status.FAILURE
 
             rounds = getattr(state, "rounds", 0)
-            self.state_manager.update({
+            
+            # Detect termination and extraction actions
+            has_tool_calls = False
+            actions = []
+
+            # Priority 1: Structured tool_calls
+            if response_msg and hasattr(response_msg, "tool_calls") and response_msg.tool_calls:
+                has_tool_calls = True
+                for tc in response_msg.tool_calls:
+                    extracted = self._extract_tool_call_from_dict(tc)
+                    if extracted:
+                        tool_name, args = extracted
+                        actions.append({"tool": tool_name, "arguments": args})
+
+            # Priority 2: Text-based patterns (if no structured calls found, or supplemental?)
+            # Usually if structured calls exist, we rely on them. But let's check text if empty.
+            if not has_tool_calls:
+                text_tool_call = self._extract_tool_call_from_marked(content)
+                if text_tool_call:
+                    has_tool_calls = True
+                    tool_name, args = text_tool_call
+                    actions.append({"tool": tool_name, "arguments": args})
+                else:
+                    # Priority 3: Legacy Action/Input
+                    match = self.ACTION_PATTERN.search(content)
+                    if match:
+                        has_tool_calls = True
+                        tool_name = match.group(1).strip().lower()
+                        tool_input = match.group(2).strip()
+                        actions.append({"tool": tool_name, "arguments": tool_input})
+            
+            updates = {
                 "messages": [response_msg],
-                "rounds": rounds + 1
-            })
+                "rounds": rounds + 1,
+                "actions": actions,  # Populate actions for ToolExecutor
+            }
+            
+            if not has_tool_calls:
+                # No tool calls → this is the final answer
+                updates["final_answer"] = self._extract_final_answer(content)
+            else:
+                # Has tool calls → clear any stale final_answer
+                updates["final_answer"] = None
+            
+            self.state_manager.update(updates)
 
             log_limit = int(os.getenv("BTFLOW_LOG_MAX_LEN", "200") or "200")
             if log_limit <= 0:
@@ -241,6 +290,66 @@ class AgentLLMNode(AsyncBehaviour):
             logger.error("🔥 [{}] LLM 调用失败: {}", self.name, e)
             trace_emit("llm_error", {"node": self.name, "model": self.model, "error": str(e)})
             return Status.FAILURE
+
+    def _extract_tool_call_from_dict(self, data: Any) -> Optional[Tuple[str, Any]]:
+        if not isinstance(data, dict):
+            return None
+
+        if "tool_calls" in data and isinstance(data["tool_calls"], list) and data["tool_calls"]:
+            return self._extract_tool_call_from_dict(data["tool_calls"][0])
+
+        if "function_call" in data and isinstance(data["function_call"], dict):
+            return self._extract_tool_call_from_dict(data["function_call"])
+
+        if "function" in data and isinstance(data["function"], dict):
+            return self._extract_tool_call_from_dict(data["function"])
+
+        tool_name = data.get("tool") or data.get("name") or data.get("tool_name")
+        args_container = None
+        for key in ("arguments", "args", "input"):
+            if key in data:
+                args_container = data[key]
+                break
+
+        if not tool_name:
+            return None
+
+        args = args_container
+        if isinstance(args, str):
+            args_str = args.strip()
+            if args_str.startswith("{") or args_str.startswith("["):
+                try:
+                    args = json.loads(args_str)
+                except json.JSONDecodeError:
+                    pass
+
+        return str(tool_name).lower(), args
+
+    def _extract_tool_call_from_marked(self, content: str) -> Optional[Tuple[str, Any]]:
+        marker = "ToolCall:"
+        idx = content.find(marker)
+        if idx == -1:
+            return None
+
+        payload = content[idx + len(marker):].strip()
+        try:
+            obj = json.loads(payload)
+        except json.JSONDecodeError:
+            return None
+
+        return self._extract_tool_call_from_dict(obj)
+
+    def _extract_final_answer(self, content: str) -> str:
+        """Extract final answer from LLM response content.
+        
+        Tries 'Final Answer:' format first, falls back to full content
+        with 'Thought:' prefix stripped.
+        """
+        match = self.FINAL_ANSWER_RE.search(content)
+        if match:
+            return match.group(1).strip()
+        # Strip "Thought:" prefix if present
+        return re.sub(r"^Thought:\s*", "", content, flags=re.IGNORECASE).strip()
 
 
 __all__ = ["AgentLLMNode", "DEFAULT_REACT_PROMPT"]

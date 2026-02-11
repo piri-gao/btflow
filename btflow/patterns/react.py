@@ -27,17 +27,19 @@ from btflow.memory import Memory, create_memory_tools
 
 # ============ State Schema ============
 
+from btflow.core.state import TurnField
 from btflow.messages import Message
 
 class ReActState(BaseModel):
     """ReAct Agent 的状态定义"""
     task: Optional[str] = None
     messages: Annotated[List[Message], operator.add] = Field(default_factory=list)
-    final_answer: Optional[str] = None
-    rounds: int = 0
+    final_answer: Annotated[Optional[str], TurnField()] = None
+    actions: Annotated[List[Dict[str, Any]], TurnField()] = Field(default_factory=list)
+    rounds: Annotated[int, TurnField()] = 0
     tools_desc: str = ""
     tools_schema: List[Dict[str, Any]] = Field(default_factory=list)
-    streaming_output: str = ""
+    streaming_output: Annotated[str, TurnField()] = ""
 
 
 # ============ ReAct Agent Factory ============
@@ -81,6 +83,7 @@ class ReActAgent:
         stream: bool = False,
         streaming_output_key: str = "streaming_output",
         auto_memory_tools: bool = True,
+        system_prompt: Optional[str] = None,
     ) -> BTAgent:
         """使用指定 Provider 创建 ReAct Agent。"""
         tools = tools or []
@@ -101,6 +104,7 @@ class ReActAgent:
             name="AgentLLM",
             model=model,
             provider=provider,
+            system_prompt=system_prompt,
             tools_description=tools_desc,
             memory=memory,
             memory_top_k=memory_top_k,

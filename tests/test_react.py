@@ -56,6 +56,11 @@ class NumberTool(Tool):
 
 class MockLLMNode(AsyncBehaviour):
     """Mock LLM node that returns predefined responses"""
+    FINAL_ANSWER_RE = getattr(AgentLLMNode, "FINAL_ANSWER_RE", None) # Use regex from AgentLLMNode if available or define locally? 
+    # Actually cleaner to just import re and define it or use string splitting for mock
+    import re
+    FINAL_ANSWER_RE = re.compile(r"Final Answer:\s*(.+)", re.IGNORECASE | re.DOTALL)
+
     def __init__(self, name: str, responses: List[str]):
         super().__init__(name)
         self.responses = responses
@@ -66,10 +71,18 @@ class MockLLMNode(AsyncBehaviour):
             response = self.responses[self.call_count]
             self.call_count += 1
             state = self.state_manager.get()
-            self.state_manager.update({
+            
+            updates = {
                 "messages": [ai(response)],
                 "rounds": state.rounds + 1
-            })
+            }
+            
+            # Mock extraction logic
+            match = self.FINAL_ANSWER_RE.search(response)
+            if match:
+                updates["final_answer"] = match.group(1).strip()
+            
+            self.state_manager.update(updates)
             return Status.SUCCESS
         return Status.FAILURE
 
@@ -118,7 +131,8 @@ class TestConditionFinalAnswer(unittest.TestCase):
     def test_with_final_answer_returns_success(self):
         """有 Final Answer 返回 SUCCESS"""
         self.state_manager.update({
-            "messages": [ai("Thought: done.\nFinal Answer: 42")]
+            "messages": [ai("Thought: done.\nFinal Answer: 42")],
+            "final_answer": "42"
         })
         self.check.setup()
         result = self.check.update()
@@ -128,7 +142,8 @@ class TestConditionFinalAnswer(unittest.TestCase):
     def test_multimodal_content_final_answer(self):
         """多模态 content 也能解析 Final Answer"""
         self.state_manager.update({
-            "messages": [ai([{"text": "Thought: ok.\nFinal Answer: 7"}])]
+            "messages": [ai([{"text": "Thought: ok.\nFinal Answer: 7"}])],
+            "final_answer": "7"
         })
         self.check.setup()
         result = self.check.update()

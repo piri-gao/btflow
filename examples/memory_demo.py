@@ -6,11 +6,16 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from btflow.memory import Memory, SearchOptions
+from btflow.memory import Memory, SearchOptions, resolve_embedder
 
 
 def main():
-    memory = Memory(persist_path=".memory/demo.json")
+    embedder = resolve_embedder()
+    if embedder is None:
+        print("❌ No embedding provider configured. Set GEMINI_API_KEY or OPENAI_API_KEY.")
+        return
+
+    memory = Memory(persist_path=".memory/demo.json", embedder=embedder)
     memory.clear()
 
     memory.add("I like pizza")

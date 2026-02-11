@@ -13,10 +13,10 @@ from typing import Iterable, List
 
 from dotenv import load_dotenv
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), \"../..\")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 load_dotenv()
 
-from btflow.memory import Memory
+from btflow.memory import Memory, resolve_embedder
 from btflow.memory.store import SQLiteStore
 
 
@@ -90,6 +90,12 @@ def parse_args() -> argparse.Namespace:
         default="utf-8",
         help="File encoding (default: utf-8)",
     )
+    parser.add_argument(
+        "--provider",
+        choices=["gemini", "openai"],
+        default=None,
+        help="Force embedding provider (gemini/openai)",
+    )
     return parser.parse_args()
 
 
@@ -99,7 +105,13 @@ def main() -> None:
     db_path = Path(args.db).expanduser().resolve()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    memory = Memory(store=SQLiteStore(str(db_path)))
+    preference = [args.provider] if args.provider else None
+    embedder = resolve_embedder(preference=preference)
+    if embedder is None:
+        print("❌ No embedding provider configured. Set GEMINI_API_KEY or OPENAI_API_KEY.")
+        return
+
+    memory = Memory(store=SQLiteStore(str(db_path)), embedder=embedder)
     if args.clear:
         memory.clear()
 

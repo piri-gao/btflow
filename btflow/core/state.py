@@ -19,6 +19,14 @@ class ActionField:
     """
     pass
 
+
+class TurnField:
+    """
+    回合字段标记。
+    用于标记每次 run() 需要重置的字段（如 final_answer、rounds、actions）。
+    """
+    pass
+
 class StateManager:
     """
     状态管理器 (Event-Driven)
@@ -37,6 +45,7 @@ class StateManager:
         # ActionField 标记的字段: (default_value, default_factory)
         # 如果有 factory 则优先使用 factory，避免可变默认值陷阱
         self._action_fields: Dict[str, tuple] = {}
+        self._turn_fields: Dict[str, tuple] = {}
         
         # 监听器列表
         self._listeners: List[Callable[[], None]] = []
@@ -96,6 +105,9 @@ class StateManager:
                         logger.debug("   🎯 [Action] 标记字段: '{}'", name)
                         # 存储 (default_value, default_factory) 元组
                         self._action_fields[name] = (field.default, field.default_factory)
+                    elif isinstance(arg, TurnField):
+                        logger.debug("   🔄 [Turn] 标记字段: '{}'", name)
+                        self._turn_fields[name] = (field.default, field.default_factory)
                     # 检查是否为 Reducer 函数
                     elif callable(arg):
                         logger.debug("   ⚙️ [Reducer] 绑定字段: '{}' -> {}", name, arg.__name__)
@@ -187,6 +199,27 @@ class StateManager:
                 else:
                     current_data[name] = default_value
             
+            self._data = self.schema(**current_data)
+
+    def reset_turn_fields(self):
+        """
+        重置所有 TurnField 标记的字段为默认值。
+        应在每次 run() 开始时调用。
+        """
+        with self._lock:
+            if self._data is None:
+                return
+
+            if not self._turn_fields:
+                return
+
+            current_data = self._data.model_dump()
+            for name, (default_value, default_factory) in self._turn_fields.items():
+                if default_factory is not None:
+                    current_data[name] = default_factory()
+                else:
+                    current_data[name] = default_value
+
             self._data = self.schema(**current_data)
 
     def get_actions(self) -> Dict[str, Any]:

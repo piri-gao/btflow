@@ -6,6 +6,7 @@ from btflow.memory.ingest import load_text, chunk_text
 from btflow.memory.retriever import Retriever, HybridRetriever, SearchOptions
 from btflow.memory.memory import Memory
 from btflow.memory.tools import MemorySearchTool, MemoryAddTool, create_memory_tools
+from btflow.memory.embedders import GeminiEmbedder, OpenAIEmbedder, resolve_embedder
 
 __all__ = [
     "MemoryRecord",
@@ -22,4 +23,7 @@ __all__ = [
     "MemorySearchTool",
     "MemoryAddTool",
     "create_memory_tools",
+    "GeminiEmbedder",
+    "OpenAIEmbedder",
+    "resolve_embedder",
 ]

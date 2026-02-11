@@ -19,12 +19,27 @@ export const fetchTools = async () => {
     return res.data;
 };
 
+export const fetchMcpTools = async (payload: {
+    id?: string;
+    transport: 'stdio' | 'http' | 'sse';
+    command?: string;
+    args?: string[];
+    url?: string;
+    env?: Record<string, string>;
+    headers?: Record<string, string>;
+    auth?: string;
+    allowlist?: string[];
+}) => {
+    const res = await axios.post(`${API_Base}/mcp/tools`, payload);
+    return res.data;
+};
+
 export const createWorkflow = async (name: string) => {
     const res = await axios.post(`${API_Base}/workflows`, { name });
     return res.data;
 };
 
-export const saveWorkflow = async (id: string, workflow: { nodes: Node[], edges: Edge[], state?: any }) => {
+export const saveWorkflow = async (id: string, workflow: { nodes: Node[], edges: Edge[], state?: any, resources?: any }) => {
     // Convert React Flow types to backend JSON format
     const payload = {
         nodes: workflow.nodes.map(n => ({
@@ -45,7 +60,8 @@ export const saveWorkflow = async (id: string, workflow: { nodes: Node[], edges:
         state: workflow.state || {
             schema_name: "AutoState",
             fields: []
-        }
+        },
+        resources: workflow.resources || undefined,
     };
     await axios.put(`${API_Base}/workflows/${id}`, payload);
 };

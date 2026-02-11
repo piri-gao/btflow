@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Sidebar from './Sidebar';
 import ToolLibrary from './ToolLibrary';
 import { fetchSettings, saveSettings, ingestMemory } from '../api/client';
@@ -7,8 +7,19 @@ interface LeftPanelProps {
   nodeMetas: any[];
   tools: any[];
   onApplyWorkflow: (workflow: { nodes: any[]; edges: any[] }) => void;
-  currentWorkflow: { nodes: any[]; edges: any[] };
+  currentWorkflow: { nodes: any[]; edges: any[]; resources?: any };
   workflowId?: string | null;
+  mcpServers: any[];
+  onLoadMcpTools: (payload: {
+    id?: string;
+    transport: 'stdio' | 'http' | 'sse';
+    command?: string;
+    args?: string[];
+    url?: string;
+    env?: Record<string, string>;
+    allowlist?: string[];
+  }) => Promise<any>;
+  onRemoveMcpServer: (id: string) => void;
 }
 
 type PanelKey = 'workflow' | 'nodes' | 'tools' | 'knowledge' | 'settings';
@@ -199,7 +210,7 @@ const buildRagTemplate = () => {
 
 const TEMPLATE_STORAGE_KEY = 'btflow.studio.templates';
 
-export default function LeftPanel({ nodeMetas, tools, onApplyWorkflow, currentWorkflow, workflowId }: LeftPanelProps) {
+export default function LeftPanel({ nodeMetas, tools, onApplyWorkflow, currentWorkflow, workflowId, mcpServers, onLoadMcpTools, onRemoveMcpServer }: LeftPanelProps) {
   const [active, setActive] = useState<PanelKey>('nodes');
   const [settings, setSettings] = useState({
     language: 'zh',
@@ -218,6 +229,31 @@ export default function LeftPanel({ nodeMetas, tools, onApplyWorkflow, currentWo
   const [ingestStatus, setIngestStatus] = useState<string>('');
   const [ingestLoading, setIngestLoading] = useState<boolean>(false);
   const [ingestResults, setIngestResults] = useState<Array<{ file: string; ok: boolean; chunks: number; error?: string }>>([]);
+  const [mcpServerId, setMcpServerId] = useState<string>('');
+  const [mcpTransport, setMcpTransport] = useState<'stdio' | 'http' | 'sse'>('http');
+  const [mcpUrl, setMcpUrl] = useState<string>('');
+  const [mcpCommand, setMcpCommand] = useState<string>('npx');
+  const [mcpArgs, setMcpArgs] = useState<string>('');
+  const [mcpAllowlist, setMcpAllowlist] = useState<string>('');
+  const [mcpAuthToken, setMcpAuthToken] = useState<string>('');
+  const [mcpHeadersJson, setMcpHeadersJson] = useState<string>('');
+  const [mcpEnvJson, setMcpEnvJson] = useState<string>('');
+  const [mcpStatus, setMcpStatus] = useState<string>('');
+  const [mcpLoading, setMcpLoading] = useState<boolean>(false);
+
+  const memoryIdsInWorkflow = useMemo(() => {
+    const ids = new Set<string>();
+    (currentWorkflow?.nodes || []).forEach((node: any) => {
+      const mem = node?.config?.memory_id;
+      if (typeof mem === 'string' && mem.trim()) {
+        ids.add(mem.trim());
+      }
+    });
+    return Array.from(ids);
+  }, [currentWorkflow]);
+
+  const kbMemoryId = (ingestMemoryId || '').trim() || 'default';
+  const memoryIdMismatch = memoryIdsInWorkflow.length > 0 && !memoryIdsInWorkflow.includes(kbMemoryId);
 
   useEffect(() => {
     let mounted = true;
@@ -333,6 +369,53 @@ export default function LeftPanel({ nodeMetas, tools, onApplyWorkflow, currentWo
     }
   };
 
+  const parseJsonField = (value: string, label: string) => {
+    if (!value.trim()) return undefined;
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      throw new Error(`${label} must be valid JSON`);
+    }
+    throw new Error(`${label} must be an object`);
+  };
+
+  const handleLoadMcpTools = async () => {
+    setMcpLoading(true);
+    setMcpStatus('');
+    try {
+      const headers = parseJsonField(mcpHeadersJson, 'Headers');
+      const env = parseJsonField(mcpEnvJson, 'Env Vars');
+      const payload = {
+        id: mcpServerId || undefined,
+        transport: mcpTransport,
+        url: mcpTransport === 'stdio' ? undefined : mcpUrl,
+        command: mcpTransport === 'stdio' ? mcpCommand : undefined,
+        args: mcpTransport === 'stdio'
+          ? mcpArgs.split(/\s+/).filter(Boolean)
+          : undefined,
+        headers: mcpTransport === 'stdio' ? undefined : headers,
+        auth: mcpTransport === 'stdio' ? undefined : (mcpAuthToken || undefined),
+        env: mcpTransport === 'stdio' ? env : undefined,
+        allowlist: mcpAllowlist
+          ? mcpAllowlist.split(',').map(s => s.trim()).filter(Boolean)
+          : undefined,
+      };
+      const data = await onLoadMcpTools(payload);
+      if (data?.server?.id && !mcpServerId) {
+        setMcpServerId(data.server.id);
+      }
+      const count = Array.isArray(data?.tools) ? data.tools.length : 0;
+      setMcpStatus(`✅ Loaded ${count} MCP tools`);
+    } catch (e: any) {
+      setMcpStatus(`❌ ${e?.response?.data?.detail || e?.message || 'Failed to load MCP tools'}`);
+    } finally {
+      setMcpLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-full border-r border-gray-200 bg-white">
       <div className="w-16 border-r border-gray-200 bg-gray-50 flex flex-col items-center py-4 gap-3">
@@ -360,7 +443,121 @@ export default function LeftPanel({ nodeMetas, tools, onApplyWorkflow, currentWo
 
       <div className="w-64 bg-white h-full overflow-hidden">
         {active === 'nodes' && <Sidebar nodeMetas={nodeMetas} language={settings.language} />}
-        {active === 'tools' && <ToolLibrary tools={tools} language={settings.language} />}
+        {active === 'tools' && (
+          <div className="h-full flex flex-col">
+            <div className="p-4 border-b border-gray-200">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">MCP Tools</div>
+              <div className="space-y-2">
+                <label className="block text-xs text-gray-600">Server ID (optional)</label>
+                <input
+                  className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="mcp-server-1"
+                  value={mcpServerId}
+                  onChange={(e) => setMcpServerId(e.target.value)}
+                />
+                <label className="block text-xs text-gray-600">Transport</label>
+                <select
+                  className="w-full text-sm p-2 border rounded bg-white"
+                  value={mcpTransport}
+                  onChange={(e) => setMcpTransport(e.target.value as 'stdio' | 'http' | 'sse')}
+                >
+                  <option value="http">http</option>
+                  <option value="sse">sse</option>
+                  <option value="stdio">stdio</option>
+                </select>
+                {mcpTransport === 'stdio' ? (
+                  <>
+                    <label className="block text-xs text-gray-600">Command</label>
+                    <input
+                      className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="npx"
+                      value={mcpCommand}
+                      onChange={(e) => setMcpCommand(e.target.value)}
+                    />
+                    <label className="block text-xs text-gray-600">Args</label>
+                    <input
+                      className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="-y @modelcontextprotocol/server-filesystem ."
+                      value={mcpArgs}
+                      onChange={(e) => setMcpArgs(e.target.value)}
+                    />
+                    <label className="block text-xs text-gray-600">Env Vars (JSON)</label>
+                    <textarea
+                      className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                      placeholder='{"EXA_API_KEY":"$EXA_API_KEY"}'
+                      value={mcpEnvJson}
+                      onChange={(e) => setMcpEnvJson(e.target.value)}
+                      rows={3}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-xs text-gray-600">Server URL</label>
+                    <input
+                      className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="http://localhost:8000"
+                      value={mcpUrl}
+                      onChange={(e) => setMcpUrl(e.target.value)}
+                    />
+                    <label className="block text-xs text-gray-600">Auth Token (optional)</label>
+                    <input
+                      className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="$EXA_API_KEY"
+                      value={mcpAuthToken}
+                      onChange={(e) => setMcpAuthToken(e.target.value)}
+                    />
+                    <label className="block text-xs text-gray-600">Headers (JSON)</label>
+                    <textarea
+                      className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                      placeholder='{"X-Custom":"value"}'
+                      value={mcpHeadersJson}
+                      onChange={(e) => setMcpHeadersJson(e.target.value)}
+                      rows={3}
+                    />
+                  </>
+                )}
+                <label className="block text-xs text-gray-600">Allowlist (optional)</label>
+                <input
+                  className="w-full text-sm p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="tool_a, tool_b"
+                  value={mcpAllowlist}
+                  onChange={(e) => setMcpAllowlist(e.target.value)}
+                />
+                <button
+                  onClick={handleLoadMcpTools}
+                  disabled={mcpLoading}
+                  className="w-full text-sm px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300"
+                >
+                  {mcpLoading ? 'Connecting...' : 'Load MCP Tools'}
+                </button>
+                {mcpStatus && (
+                  <div className="text-xs text-gray-500">{mcpStatus}</div>
+                )}
+                {mcpServers.length > 0 && (
+                  <div className="pt-2 border-t space-y-1">
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Loaded Servers</div>
+                    {mcpServers.map((server: any) => (
+                      <div key={server.id} className="text-xs text-gray-600 flex items-center justify-between gap-2">
+                        <div className="truncate">
+                          {server.id} <span className="text-gray-400">({server.transport})</span>
+                        </div>
+                        <button
+                          onClick={() => onRemoveMcpServer(server.id)}
+                          className="text-[10px] px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <ToolLibrary tools={tools} language={settings.language} />
+            </div>
+          </div>
+        )}
         {active === 'knowledge' && (
           <div className="p-4 h-full overflow-y-auto">
             <div className="mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Knowledge Base</div>
@@ -405,6 +602,34 @@ export default function LeftPanel({ nodeMetas, tools, onApplyWorkflow, currentWo
               <div className="text-[11px] text-gray-400">
                 当前 workflow_id: <span className="font-mono">{workflowId || 'unknown'}</span>
               </div>
+              <div className="text-[11px] text-gray-400">
+                当前 workflow memory_id:{" "}
+                <span className="font-mono">
+                  {memoryIdsInWorkflow.length > 0 ? memoryIdsInWorkflow.join(", ") : "未设置"}
+                </span>
+              </div>
+              <div className="text-[11px] text-gray-400">
+                当前 Knowledge Base:{" "}
+                <span className="font-mono">{workflowId || "unknown"}/{kbMemoryId}</span>
+              </div>
+              {memoryIdsInWorkflow.length === 0 && (
+                <div className="text-[11px] text-amber-600">
+                  ⚠️ workflow 中未配置 memory_id，检索可能为空。
+                </div>
+              )}
+              {memoryIdMismatch && (
+                <div className="text-[11px] text-amber-600">
+                  ⚠️ workflow 的 memory_id 与 Knowledge Base 不一致，检索会为空。
+                </div>
+              )}
+              {memoryIdsInWorkflow.length === 1 && memoryIdMismatch && (
+                <button
+                  onClick={() => setIngestMemoryId(memoryIdsInWorkflow[0])}
+                  className="text-[11px] px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                >
+                  使用 workflow memory_id: {memoryIdsInWorkflow[0]}
+                </button>
+              )}
               <button
                 onClick={handleIngest}
                 disabled={ingestLoading}

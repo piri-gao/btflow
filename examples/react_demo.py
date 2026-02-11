@@ -84,7 +84,10 @@ async def demo_calculator(provider):
     for i, msg in enumerate(state.messages):
         role_label = msg.role.upper()
         content = msg.content
-        preview = content[:150] + "..." if len(content) > 150 else content
+        if "Final Answer:" in content:
+            preview = "Final Answer: " + content.split("Final Answer:", 1)[1].strip()
+        else:
+            preview = content[:150] + "..." if len(content) > 150 else content
         print(f"[{i+1}][{role_label}] {preview}")
         print("-" * 40)
 

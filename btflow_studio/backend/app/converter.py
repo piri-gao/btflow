@@ -1,7 +1,7 @@
 import btflow
 import operator
 import os
-from typing import Dict, Any, Type, List, Annotated
+from typing import Dict, Any, Type, List, Annotated, Optional
 from pathlib import Path
 from pydantic import create_model
 from btflow.core.state import StateManager
@@ -18,6 +18,8 @@ from btflow.nodes import ToolExecutor
 from btflow.memory import Memory
 from btflow.memory.store import InMemoryStore, JsonStore, SQLiteStore
 from btflow.memory.tools import MemorySearchTool, MemoryAddTool
+from btflow.protocols.mcp import MCPClient, MCPServerConfig, MCPTool
+from types import SimpleNamespace
 
 class WorkflowConverter:
     """
@@ -29,6 +31,9 @@ class WorkflowConverter:
         self.node_map: Dict[str, btflow.Behaviour] = {}
         self.state_manager = self._create_state_manager()
         self.memories = self._create_memories()
+        self.mcp_clients: Dict[str, MCPClient] = {}
+        self.mcp_tool_defs: Dict[tuple, Any] = {}
+        self._init_mcp()
     
     def compile(self) -> btflow.Behaviour:
         """Builds the behavior tree from the workflow definition."""
@@ -298,6 +303,134 @@ class WorkflowConverter:
 
         return memory_map
 
+    def _init_mcp(self):
+        resources = getattr(self.workflow, "resources", None)
+        mcp_defs = resources.mcp_servers if resources and getattr(resources, "mcp_servers", None) else []
+        for res in mcp_defs:
+            if not getattr(res, "id", None):
+                continue
+            client = self._build_mcp_client(res)
+            if client is not None:
+                self.mcp_clients[res.id] = client
+            for tool_def in getattr(res, "tools", []) or []:
+                key = (res.id, tool_def.name)
+                self.mcp_tool_defs[key] = tool_def
+
+    def _build_mcp_client(self, res):
+        transport = getattr(res, "transport", "stdio")
+        if transport in ("http", "sse"):
+            url = getattr(res, "url", None)
+            if not url:
+                logger.warning("❌ [Converter] MCP server '{}' missing url", res.id)
+                return None
+            
+            # Resolve headers (non-strict: missing vars become empty string)
+            headers = self._resolve_env_map(getattr(res, "headers", {}) or {}, label="headers")
+            
+            # Resolve auth (strict: missing vars will raise error)
+            auth = getattr(res, "auth", None)
+            if auth:
+                try:
+                    auth_value = self._resolve_env_value(auth, label="auth", strict=True)
+                    if auth_value and "Authorization" not in headers:
+                        headers["Authorization"] = f"Bearer {auth_value}"
+                except ValueError as e:
+                    logger.error("❌ [Converter] MCP server '{}' auth failed: {}", res.id, e)
+                    return None
+            
+            try:
+                return MCPClient(url, transport_type=transport, headers=headers)
+            except Exception as e:
+                logger.warning("❌ [Converter] MCP client init failed: {}", e)
+                return None
+        
+        command = getattr(res, "command", None)
+        if not command:
+            logger.warning("❌ [Converter] MCP server '{}' missing command", res.id)
+            return None
+        args = getattr(res, "args", []) or []
+        env = self._resolve_env_map(getattr(res, "env", {}) or {}, label="env")
+        try:
+            config = MCPServerConfig(command=command, args=args, env=env)
+            return MCPClient(config)
+        except Exception as e:
+            logger.warning("❌ [Converter] MCP client init failed: {}", e)
+            return None
+
+    def _resolve_env_value(self, value: Any, *, label: str, strict: bool = False) -> Any:
+        """Resolve environment variable references in values.
+        
+        Args:
+            value: The value to resolve. If starts with '$', treated as env var reference.
+            label: Label for error messages (e.g., 'auth', 'headers').
+            strict: If True, raise error when env var is missing. If False, log warning and return "".
+        
+        Returns:
+            Resolved value, or original if not an env reference.
+        
+        Raises:
+            ValueError: If strict=True and env var is missing.
+        """
+        if isinstance(value, str) and value.startswith("$"):
+            key = value[1:].strip()
+            if not key:
+                msg = f"{label} contains invalid env reference: '{value}'"
+                logger.error("❌ [Converter] {}", msg)
+                if strict:
+                    raise ValueError(msg)
+                return ""
+            resolved = os.environ.get(key)
+            if resolved is None:
+                msg = f"{label} references missing env var: ${key}. Please set it in your .env file or environment."
+                logger.error("❌ [Converter] {}", msg)
+                if strict:
+                    raise ValueError(msg)
+                return ""
+            logger.debug("✅ [Converter] Resolved ${} for {}", key, label)
+            return resolved
+        return value
+
+    def _resolve_env_map(self, values: Dict[str, Any], *, label: str, strict: bool = False) -> Dict[str, Any]:
+        """Resolve environment variable references in a dict of values."""
+        resolved: Dict[str, Any] = {}
+        for k, v in (values or {}).items():
+            resolved[k] = self._resolve_env_value(v, label=f"{label}[{k}]", strict=strict)
+        return resolved
+
+    def _parse_mcp_tool_id(self, tool_id: str):
+        if not tool_id or not tool_id.startswith("mcp:"):
+            return None
+        parts = tool_id.split(":", 2)
+        if len(parts) != 3:
+            return None
+        return parts[1], parts[2]
+
+    def _get_mcp_tool(self, tool_id: str) -> Optional[Tool]:
+        parsed = self._parse_mcp_tool_id(tool_id)
+        if not parsed:
+            return None
+        server_id, tool_name = parsed
+        client = self.mcp_clients.get(server_id)
+        if not client:
+            logger.warning("❌ [Converter] MCP server '{}' not configured", server_id)
+            return None
+        tool_meta = self.mcp_tool_defs.get((server_id, tool_name))
+        if tool_meta:
+            tool_def = SimpleNamespace(
+                name=tool_meta.name,
+                description=getattr(tool_meta, "description", "") or "",
+                inputSchema=getattr(tool_meta, "input_schema", {}) or {"type": "object"},
+                outputSchema=getattr(tool_meta, "output_schema", {}) or {"type": "string"},
+            )
+        else:
+            tool_def = SimpleNamespace(
+                name=tool_name,
+                description="",
+                inputSchema={"type": "object"},
+                outputSchema={"type": "string"},
+            )
+        return MCPTool(client, tool_def)
+
 
 
         
@@ -336,6 +469,10 @@ class WorkflowConverter:
             memory = self.memories.get(memory_id) if memory_id else None
             tools = []
             for tool_id in node_def.config.get("tools", []) or []:
+                mcp_tool = self._get_mcp_tool(tool_id)
+                if mcp_tool is not None:
+                    tools.append(mcp_tool)
+                    continue
                 tool_cls = get_tool_class_by_id(tool_id)
                 if not tool_cls:
                     logger.warning("❌ [Converter] Unknown tool id '{}'", tool_id)
@@ -360,10 +497,13 @@ class WorkflowConverter:
             if not tool_id:
                 logger.warning("❌ [Converter] ToolNode missing tool_id")
                 return btflow.Dummy(name=node_def.label or node_def.id)
-            tool_cls = get_tool_class_by_id(tool_id)
-            if not tool_cls:
-                logger.warning("❌ [Converter] Unknown tool id '{}'", tool_id)
-                return btflow.Dummy(name=node_def.label or node_def.id)
+            mcp_tool = self._get_mcp_tool(tool_id)
+            tool_cls = None
+            if mcp_tool is None:
+                tool_cls = get_tool_class_by_id(tool_id)
+                if not tool_cls:
+                    logger.warning("❌ [Converter] Unknown tool id '{}'", tool_id)
+                    return btflow.Dummy(name=node_def.label or node_def.id)
 
             memory_id = node_def.config.get("memory_id") if node_def.config else None
             if memory_id is None and self.memories:
@@ -371,7 +511,9 @@ class WorkflowConverter:
             memory = self.memories.get(memory_id) if memory_id else None
 
             try:
-                if tool_cls in (MemorySearchTool, MemoryAddTool):
+                if mcp_tool is not None:
+                    tool_instance = mcp_tool
+                elif tool_cls in (MemorySearchTool, MemoryAddTool):
                     if memory is None:
                         logger.warning("❌ [Converter] Memory tool '{}' requires memory_id", tool_id)
                         return btflow.Dummy(name=node_def.label or node_def.id)

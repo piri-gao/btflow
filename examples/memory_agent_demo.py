@@ -16,6 +16,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from btflow.patterns.react import ReActAgent
 from btflow.memory import Memory
 from btflow.llm import LLMProvider
+from btflow.messages import human
 
 
 async def main():
@@ -35,7 +36,7 @@ async def main():
 
     # 3. Create agent with memory (tools auto-injected)
     agent = ReActAgent.create(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         provider=provider,
         memory=memory,
         max_rounds=10,
@@ -59,12 +60,19 @@ async def main():
             print("🗑️ Memory cleared!")
             continue
 
-        # Run agent
-        await agent.run(input_data={"task": user_input, "messages": []}, reset_tree=True, reset_data=False)
+        # Run agent with conversation history (messages are appended)
+        await agent.run(
+            input_data={"messages": [human(user_input)]},
+            reset_tree=True,
+            reset_data=False
+        )
 
         # Get result
         state = agent.state_manager.get()
-        print(f"\n🤖 Agent: {state.final_answer}\n")
+        if state.final_answer:
+            print(f"\n🤖 Agent: {state.final_answer}\n")
+        else:
+            print("\n🤖 Agent: (No response generated)\n")
         print(f"(Memory items: {len(memory)})\n")
 
 

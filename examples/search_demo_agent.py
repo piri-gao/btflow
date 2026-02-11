@@ -3,6 +3,7 @@ Search Agent Demo - uses DuckDuckGo to answer real-time questions.
 """
 import asyncio
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv() # Load from .env file
 
@@ -19,14 +20,19 @@ async def main():
     # Prefer Gemini to avoid key mismatch issues if OpenAI package is missing
     provider = LLMProvider.default(preference=["gemini", "openai"], base_url=base_url)
     
-    # 3. Create the ReAct agent tree
-    # This agent wrapping the tree and state_manager
+    # 3. Create the ReAct agent tree with date context
+    today = datetime.now().strftime("%Y-%m-%d")
+    system_prompt = f"""You are a helpful assistant with access to web search.
+Today's date is {today}. For any time-sensitive questions (sports results, current events, etc.),
+ALWAYS use the search tool first to get accurate, up-to-date information."""
+    
     agent = ReActAgent.create(
         model="gemini-2.5-flash", # Use a fast model
         provider=provider,
         tools=[search_tool],
         max_rounds=10,
-        stream=False # Disabled for proxy compatibility
+        stream=False, # Disabled for proxy compatibility
+        system_prompt=system_prompt
     )
     
     # 5. Define the task
@@ -40,15 +46,6 @@ async def main():
     print(f"\n🚀 [Agent Task]: {task}\n")
     print("-" * 50)
     
-    # We can subscribe to state changes to show streaming output
-    def on_state_change():
-        state = state_manager.get()
-        # You could print streaming_output here if you want real-time jumpy text,
-        # but for a CLI demo, we'll let it finish or use trace events.
-        pass
-    
-    agent.state_manager.subscribe(on_state_change)
-
     await agent.run(input_data=input_data)
     
     # 7. Final Results

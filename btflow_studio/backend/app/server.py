@@ -27,7 +27,7 @@ for key in LLM_KEYS:
 
 load_dotenv(env_path, override=True)
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Literal
 import tempfile
 import uuid
 import asyncio
@@ -47,6 +47,7 @@ from btflow.core.trace import subscribe as trace_subscribe, unsubscribe as trace
 from btflow.core.trace import set_context as trace_set_context, reset_context as trace_reset_context
 from btflow.memory import Memory
 from btflow.memory.store import SQLiteStore
+from btflow.protocols.mcp import MCPClient, MCPServerConfig
 
 # 配置持久化日志用于调试
 logger.add("studio_backend.log", rotation="10 MB", level="DEBUG")
@@ -109,6 +110,18 @@ class WorkflowRunRequest(BaseModel):
     initial_state: Optional[Dict[str, Any]] = None
 
 
+class MCPToolLoadRequest(BaseModel):
+    id: Optional[str] = None
+    transport: Literal["stdio", "http", "sse"] = "stdio"
+    command: Optional[str] = None
+    args: List[str] = []
+    url: Optional[str] = None
+    env: Dict[str, str] = {}
+    headers: Dict[str, str] = {}
+    auth: Optional[str] = None
+    allowlist: Optional[List[str]] = None
+
+
 class StudioSettings(BaseModel):
     language: str = "zh"
     memory_enabled: bool = True
@@ -145,6 +158,23 @@ def _read_env_settings() -> StudioSettings:
         base_url=values.get("BASE_URL", ""),
         model=values.get("MODEL", ""),
     )
+
+def _resolve_env_value(value: Any, *, label: str) -> Any:
+    if isinstance(value, str) and value.startswith("$"):
+        key = value[1:].strip()
+        if not key:
+            raise HTTPException(status_code=400, detail=f"{label} contains invalid env reference")
+        resolved = os.environ.get(key)
+        if resolved is None:
+            raise HTTPException(status_code=400, detail=f"{label} references missing env var: {key}")
+        return resolved
+    return value
+
+def _resolve_env_map(values: Dict[str, Any], *, label: str) -> Dict[str, Any]:
+    resolved: Dict[str, Any] = {}
+    for k, v in (values or {}).items():
+        resolved[k] = _resolve_env_value(v, label=label)
+    return resolved
 
 
 def _write_env_settings(settings: StudioSettings) -> None:
@@ -204,6 +234,73 @@ async def get_nodes():
 async def get_tools():
     """List all available tools (builtin for now)."""
     return get_builtin_tools()
+
+@app.post("/api/mcp/tools")
+async def get_mcp_tools(payload: MCPToolLoadRequest):
+    server_id = payload.id or f"mcp-{uuid.uuid4().hex[:8]}"
+    transport = payload.transport.lower()
+    resolved_env = _resolve_env_map(payload.env or {}, label="env")
+    resolved_headers = _resolve_env_map(payload.headers or {}, label="headers")
+    resolved_auth = _resolve_env_value(payload.auth, label="auth") if payload.auth else None
+    if resolved_auth and "Authorization" not in resolved_headers:
+        resolved_headers["Authorization"] = f"Bearer {resolved_auth}"
+
+    if transport in {"http", "sse"}:
+        if not payload.url:
+            raise HTTPException(status_code=400, detail="MCP url is required for http/sse")
+        client = MCPClient(payload.url, transport_type=transport, headers=resolved_headers)
+    else:
+        if not payload.command:
+            raise HTTPException(status_code=400, detail="MCP command is required for stdio")
+        config = MCPServerConfig(command=payload.command, args=payload.args or [], env=resolved_env or {})
+        client = MCPClient(config)
+
+    try:
+        tools = await client.list_tools()
+    except Exception as e:
+        logger.warning("⚠️ [MCP] list_tools failed (transport={}, server_id={}): {}", transport, server_id, e)
+        await client.close()
+        raise HTTPException(status_code=500, detail=f"MCP list_tools failed: {e}")
+
+    allow = set(t.lower() for t in (payload.allowlist or [])) if payload.allowlist else None
+    result_tools: List[ToolMetadata] = []
+    for tool in tools:
+        name = getattr(tool, "name", "mcp_tool")
+        if allow and name.lower() not in allow:
+            continue
+        description = getattr(tool, "description", "") or ""
+        input_schema = getattr(tool, "inputSchema", {"type": "object"})
+        output_schema = getattr(tool, "outputSchema", {"type": "string"})
+        result_tools.append(
+            ToolMetadata(
+                id=f"mcp:{server_id}:{name}",
+                name=name,
+                label=name,
+                category="MCP",
+                source="mcp",
+                description=description,
+                input_schema=input_schema,
+                output_schema=output_schema,
+                available=True,
+            )
+        )
+
+    await client.close()
+
+    return {
+        "server": {
+            "id": server_id,
+            "transport": transport,
+            "command": payload.command,
+            "args": payload.args or [],
+            "url": payload.url,
+            "env": payload.env or {},
+            "headers": payload.headers or {},
+            "auth": payload.auth,
+            "allowlist": payload.allowlist or None,
+        },
+        "tools": result_tools,
+    }
 
 @app.get("/api/settings", response_model=StudioSettings)
 async def get_settings():
@@ -404,6 +501,13 @@ async def _run_agent_task(workflow_id: str, agent: BTAgent):
         logger.remove(sink_id) # 重要：移除沉降器防止内存泄漏
         trace_unsubscribe(on_trace)
         trace_reset_context(trace_token)
+        mcp_clients = getattr(agent, "_mcp_clients", None)
+        if isinstance(mcp_clients, dict):
+            for client in mcp_clients.values():
+                try:
+                    await client.close()
+                except Exception as e:
+                    logger.warning("⚠️ [API] MCP client close failed: {}", e)
         if workflow_id in running_agents:
             del running_agents[workflow_id]
         if workflow_id in running_tasks:
@@ -436,12 +540,25 @@ async def run_workflow(workflow_id: str, background_tasks: BackgroundTasks, req:
         root = converter.compile()
         state_manager = converter.state_manager
         if req and req.initial_state:
+            try:
+                messages_len = None
+                if isinstance(req.initial_state, dict):
+                    msgs = req.initial_state.get("messages")
+                    if isinstance(msgs, list):
+                        messages_len = len(msgs)
+                logger.info("📨 [Server] initial_state received: keys={}, messages_len={}",
+                            list(req.initial_state.keys()) if isinstance(req.initial_state, dict) else type(req.initial_state),
+                            messages_len)
+            except Exception as log_error:
+                logger.warning("⚠️ [Server] Failed to log initial_state: {}", log_error)
             state_manager.update(req.initial_state)
         
         # 2. Setup Agent
         # BTAgent implicitly creates a ReactiveRunner which sets up the tree (injects state_manager, calls setup())
         agent = BTAgent(root, state_manager)
-        
+        if getattr(converter, "mcp_clients", None):
+            agent._mcp_clients = converter.mcp_clients
+
         # Debug: 打印树结构
         import py_trees
         logger.info("🌳 [Server] Tree Structure:\n{}", py_trees.display.ascii_tree(root))

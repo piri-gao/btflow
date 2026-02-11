@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 os.environ.setdefault("BTFLOW_LOG_LEVEL", "WARNING")
 
 # 一行 import 搞定！
-from btflow import BTAgent, StateManager, Sequence
+from btflow import BTAgent, StateManager, Sequence, StreamPrinter
 from btflow.nodes import LLMNode
 from btflow.llm import LLMProvider
 
@@ -60,20 +60,8 @@ async def main():
     agent = BTAgent(root, state_manager)
 
     # === 5. 进入聊天循环 ===
-    last_stream = ""
-    streaming_active = False
-    def on_state_change():
-        nonlocal last_stream, streaming_active
-        if not streaming_active:
-            return
-        current = state_manager.get().streaming_output
-        if current and current != last_stream:
-            delta = current[len(last_stream):]
-            if delta:
-                print(delta, end="", flush=True)
-            last_stream = current
-
-    state_manager.subscribe(on_state_change)
+    stream_printer = StreamPrinter(state_manager, key="streaming_output", enabled=False)
+    state_manager.subscribe(stream_printer)
     while True:
         try:
             user_input = input("\n👤 User: ").strip()
@@ -88,8 +76,8 @@ async def main():
             # reset_tree=True: 从根节点开始新决策
             # reset_data=False: 保留 messages 历史
             # Print assistant prefix for streaming
-            last_stream = ""
-            streaming_active = True
+            stream_printer.reset()
+            stream_printer.set_enabled(True)
             print("🤖 ", end="", flush=True)
 
             await agent.run(
@@ -98,16 +86,15 @@ async def main():
                 reset_data=False,
                 max_ticks=10
             )
-            streaming_active = False
+            stream_printer.set_enabled(False)
 
             # 打印本次回复
             current_msgs = state_manager.get().messages
             if current_msgs and current_msgs[-1].startswith("Assistant:"):
-                if last_stream:
+                if state_manager.get().streaming_output:
                     print()
                 else:
                     print(f"🤖 {current_msgs[-1]}")
-                last_stream = ""
 
         except KeyboardInterrupt:
             print("\n👋 用户强制退出")

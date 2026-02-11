@@ -170,6 +170,8 @@ class ToolExecutor(AsyncBehaviour):
                 return raw_input, None
             if isinstance(raw_input, dict) and "input" in raw_input and len(raw_input) == 1:
                 return str(raw_input["input"]), None
+            if isinstance(raw_input, dict) and len(raw_input) == 1:
+                return str(next(iter(raw_input.values()))), None
             return str(raw_input), None
 
         # [FIX] Unwrap primitive types that were wrapped by tool schema normalization
@@ -443,15 +445,17 @@ class ToolExecutor(AsyncBehaviour):
         state = self.state_manager.get()
 
         # 0. Use pre-parsed actions if provided (e.g., ParserNode)
+        # 0. Use pre-parsed actions if provided (e.g., ParserNode or AgentLLMNode)
         actions = self._normalize_actions(getattr(state, "actions", None))
-        if actions is None:
-            if not state.messages:
-                return Status.SUCCESS
-            # 1. Parse all Actions (supports multiple parallel tool calls)
-            actions = self._parse_all_actions(state.messages)
-        else:
-            # Clear actions to avoid repeated execution
+        
+        # If pre-parsed actions exist, use them and clear state
+        if actions:
             self.state_manager.update({"actions": []})
+        else:
+            # Fallback: Parse all Actions from messages (legacy/standalone mode)
+            if not getattr(state, "messages", []):
+                return Status.SUCCESS
+            actions = self._parse_all_actions(state.messages)
 
         if not actions:
             return Status.SUCCESS

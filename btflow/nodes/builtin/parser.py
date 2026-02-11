@@ -20,6 +20,7 @@ class ParserNode(Behaviour):
     ANSWER_PATTERN = re.compile(r"Answer:\s*(.+?)(?=\n\s*Score:|$)", re.DOTALL | re.IGNORECASE)
     REFLECTION_PATTERN = re.compile(r"Reflection:\s*(.+)", re.DOTALL | re.IGNORECASE)
     ACTION_PATTERN = re.compile(r"Action:\s*(.+?)\s*\n\s*Input:\s*(.+)", re.IGNORECASE | re.DOTALL)
+    TOOLCALL_MARKER = "ToolCall:"
 
     def __init__(
         self,
@@ -51,8 +52,10 @@ class ParserNode(Behaviour):
         updates: dict[str, Any] = {}
 
         if self.preset == "final_answer":
-            final_answer = self._parse_final_answer(content)
-            if final_answer:
+            if self._has_toolcall_marker(content):
+                updates["final_answer"] = None
+            else:
+                final_answer = self._parse_final_answer(content)
                 updates["final_answer"] = final_answer
         elif self.preset == "score":
             answer, score, reflection = self._parse_score(content)
@@ -174,6 +177,16 @@ class ParserNode(Behaviour):
 
         return []
 
+    def _has_toolcall_marker(self, content: str) -> bool:
+        if not content:
+            return False
+        if self.TOOLCALL_MARKER in content:
+            return True
+        if self.ACTION_PATTERN.search(content):
+            return True
+        return False
+
+
     def _extract_tool_call_from_dict(self, data: Any) -> Optional[Tuple[str, Any]]:
         if not isinstance(data, dict):
             return None
@@ -228,8 +241,6 @@ class ConditionNode(Behaviour):
     Evaluate a condition based on preset rules.
     """
 
-    FINAL_ANSWER_PATTERN = re.compile(r"Final Answer:\s*(.+)", re.IGNORECASE | re.DOTALL)
-
     def __init__(
         self,
         name: str = "Condition",
@@ -258,13 +269,6 @@ class ConditionNode(Behaviour):
             updates["is_complete"] = passed
         elif self.preset == "has_final_answer":
             final_answer = getattr(state, "final_answer", None)
-            if not final_answer:
-                messages: List[Message] = list(getattr(state, "messages", []) or [])
-                content = self._latest_assistant_text(messages)
-                match = self.FINAL_ANSWER_PATTERN.search(content) if content else None
-                if match:
-                    final_answer = match.group(1).strip()
-                    updates["final_answer"] = final_answer
             passed = bool(final_answer)
         elif self.preset == "max_rounds":
             rounds = getattr(state, "rounds", 0)
@@ -279,14 +283,5 @@ class ConditionNode(Behaviour):
             self.state_manager.update(updates)
 
         return Status.SUCCESS if passed else Status.FAILURE
-
-    def _latest_assistant_text(self, messages: List[Message]) -> str:
-        for msg in reversed(messages):
-            if isinstance(msg, Message) and msg.role == "assistant":
-                return message_to_text(msg)
-            if not isinstance(msg, Message):
-                return message_to_text(msg)
-        return ""
-
 
 __all__ = ["ParserNode", "ConditionNode"]

@@ -71,13 +71,43 @@ class MCPClient:
         return self.client
 
     async def close(self):
+        """Close the MCP connection and cleanup subprocess transport.
+        
+        This method handles the cleanup of subprocess transports to avoid
+        'Event loop is closed' errors during garbage collection.
+        """
         if self._context_manager is None:
             return
+        
+        # Capture transport reference before closing
+        transport = None
+        if self.client is not None:
+            transport = getattr(self.client, "transport", None)
+        
         try:
             await self._context_manager.__aexit__(None, None, None)
+        except Exception:
+            pass  # Ignore errors during exit
         finally:
             self.client = None
             self._context_manager = None
+        
+        # For stdio transports (subprocesses), ensure clean shutdown
+        if transport is not None:
+            try:
+                # Some transports have their own close method
+                close_fn = getattr(transport, "close", None)
+                if callable(close_fn):
+                    import asyncio
+                    result = close_fn()
+                    if asyncio.iscoroutine(result):
+                        await result
+                
+                # Give subprocess a moment to exit cleanly
+                import asyncio
+                await asyncio.sleep(0.1)
+            except Exception:
+                pass  # Ignore cleanup errors
 
     async def list_tools(self):
         client = await self.connect()
@@ -103,6 +133,9 @@ class MCPClient:
 
     async def call_tool(self, name: str, arguments: Optional[Dict[str, Any]] = None):
         client = await self.connect()
+        call_tool_mcp = getattr(client, "call_tool_mcp", None)
+        if callable(call_tool_mcp):
+            return await call_tool_mcp(name, arguments or {})
         return await client.call_tool(name, arguments or {})
 
     async def list_prompts(self):
@@ -277,7 +310,18 @@ class MCPTool(Tool):
 
         result = await self._client.call_tool(self.name, arguments=args)
 
+        if getattr(result, "isError", False):
+            content = getattr(result, "content", None)
+            if isinstance(content, list):
+                for block in content:
+                    text = getattr(block, "text", None)
+                    if text is not None:
+                        return f"Error: {text}"
+            return "Error: MCP tool execution failed"
+
         structured = getattr(result, "structuredContent", None)
+        if structured is None:
+            structured = getattr(result, "structured_content", None)
         if structured is not None:
             return structured
 

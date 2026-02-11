@@ -48,8 +48,27 @@ class MemoryResource(BaseModel):
     max_size: Optional[int] = None
     autosave: bool = True
 
+class MCPToolDefinition(BaseModel):
+    name: str
+    description: str = ""
+    input_schema: Dict[str, Any] = Field(default_factory=dict)
+    output_schema: Dict[str, Any] = Field(default_factory=dict)
+
+class MCPServerResource(BaseModel):
+    id: str
+    transport: Literal["stdio", "http", "sse"] = "stdio"
+    command: Optional[str] = None
+    args: List[str] = Field(default_factory=list)
+    url: Optional[str] = None
+    env: Dict[str, str] = Field(default_factory=dict)
+    headers: Dict[str, str] = Field(default_factory=dict)
+    auth: Optional[str] = None
+    allowlist: Optional[List[str]] = None
+    tools: List[MCPToolDefinition] = Field(default_factory=list)
+
 class ResourcesDefinition(BaseModel):
     memories: List[MemoryResource] = Field(default_factory=list)
+    mcp_servers: List[MCPServerResource] = Field(default_factory=list)
 
 class WorkflowDefinition(BaseModel):
     version: str = "1.0"
